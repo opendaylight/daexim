@@ -1,0 +1,78 @@
+module data-export-import-cfg {
+    yang-version 1;
+    namespace "urn:opendaylight:daexim-config";
+    prefix "cfg";
+
+    import config { prefix config; revision-date 2013-04-05; }
+    import data-export-import-spi { prefix spi; revision-date 2016-08-16; }
+    import opendaylight-md-sal-dom { prefix md-sal-dom; revision-date 2013-10-28; }
+    import opendaylight-md-sal-binding { prefix mdsal; revision-date 2013-10-28; }
+    
+    organization
+        "Brocade BSC Team";
+
+    contact
+        "Anton Ivanov <mailto:aivanov@brocade.com>
+        David Spence <mailto:dspence@brocade.com>
+        Shaleen Saxena <mailto:ssaxena@brocade.com>
+        Richard Kosegi <mailto:rkosegi@brocade.com>";
+
+    description
+        "This module contains YANG definitions for data export import application
+        configuration";
+
+    revision "2016-08-03" {
+        description "Initial revision.";
+    }
+
+    identity daexim-config {
+        base config:module-type;
+        config:java-name-prefix DataExportImportConfig;
+    }
+
+    augment "/config:modules/config:module/config:configuration" {
+        case daexim-config {
+            when "/config:modules/config:module/config:type = 'daexim-config'";
+            container dom-data-broker {
+                uses config:service-ref {
+                    refine type {
+                        mandatory true;
+                        config:required-identity md-sal-dom:dom-async-data-broker;
+                    }
+                }
+            }
+            container data-broker {
+                uses config:service-ref {
+                    refine type {
+                        mandatory true;
+                        config:required-identity mdsal:binding-async-data-broker;
+                    }
+                }
+            }
+            container rpc-registry {
+                uses config:service-ref {
+                    refine type {
+                        mandatory true;
+                        config:required-identity mdsal:binding-rpc-registry;
+                    }
+                }
+            }
+            container schema-service {
+                uses config:service-ref {
+                    refine type {
+                        mandatory true;
+                        config:required-identity md-sal-dom:schema-service;
+                    }
+                }
+            }
+            container node-name-provider {
+                uses config:service-ref {
+                    refine type {
+                        mandatory true;
+                        config:required-identity spi:node-name-provider;
+                    }
+                }
+            }
+        }
+    }
+}

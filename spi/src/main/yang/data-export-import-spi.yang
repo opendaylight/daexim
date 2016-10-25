@@ -1,0 +1,26 @@
+module data-export-import-spi {
+    yang-version 1;
+    namespace "urn:opendaylight:daexim-spi";
+    prefix "spi";
+
+    import config { prefix config; revision-date 2013-04-05; }
+
+    organization
+        "Brocade BSC Team";
+
+    contact
+        "Richard Kosegi <mailto:rkosegi@brocade.com>";
+
+    description
+        "This module contains YANG definitions for daexim application
+        SPI";
+
+    revision "2016-08-16" {
+        description "Initial revision.";
+    }
+
+    identity node-name-provider {
+        base "config:service-type";
+        config:java-class  "org.opendaylight.daexim.spi.NodeNameProvider";
+    }
+}

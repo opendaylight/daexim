@@ -1,0 +1,16 @@
+module B {
+    namespace "testB";
+    prefix "B";
+    organization "Brocade BSC Team";
+    contact "Richard Kosegi <mailto:rkosegi@brocade.com>";
+    description "Test model #1";
+    revision "2016-09-13" {
+        description "Initial version";
+    }
+
+    container data3 {
+        leaf leaf1 {
+            type string;
+        }
+    }
+}

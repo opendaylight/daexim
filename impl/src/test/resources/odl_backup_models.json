@@ -1,0 +1,142 @@
+[
+  {
+    "module": "entity-owners",
+    "namespace": "urn:opendaylight:params:xml:ns:yang:controller:md:sal:clustering:entity-owners",
+    "revision-date": "2015-08-04"
+  },
+  {
+    "module": "rpc-context",
+    "namespace": "urn:ietf:params:xml:ns:yang:rpc-context",
+    "revision-date": "2013-06-17"
+  },
+  {
+    "module": "opendaylight-md-sal-common",
+    "namespace": "urn:opendaylight:params:xml:ns:yang:controller:md:sal:common",
+    "revision-date": "2013-10-28"
+  },
+  {
+    "module": "ietf-inet-types",
+    "namespace": "urn:ietf:params:xml:ns:yang:ietf-inet-types",
+    "revision-date": "2010-09-24"
+  },
+  {
+    "module": "network-topology",
+    "namespace": "urn:TBD:params:xml:ns:yang:network-topology",
+    "revision-date": "2013-07-12"
+  },
+  {
+    "module": "l3-unicast-igp-topology",
+    "namespace": "urn:TBD:params:xml:ns:yang:nt:l3-unicast-igp-topology",
+    "revision-date": "2013-07-12"
+  },
+  {
+    "module": "ted",
+    "namespace": "urn:TBD:params:xml:ns:yang:network:ted",
+    "revision-date": "2013-10-21"
+  },
+  {
+    "module": "ted",
+    "namespace": "urn:TBD:params:xml:ns:yang:network:ted",
+    "revision-date": "2013-07-12"
+  },
+  {
+    "module": "general-entity",
+    "namespace": "urn:opendaylight:params:xml:ns:yang:controller:md:sal:core:general-entity",
+    "revision-date": "2015-08-20"
+  },
+  {
+    "module": "ospf-topology",
+    "namespace": "urn:ietf:params:xml:ns:yang:ospf-topology",
+    "revision-date": "2013-07-12"
+  },
+  {
+    "module": "config",
+    "namespace": "urn:opendaylight:params:xml:ns:yang:controller:config",
+    "revision-date": "2013-04-05"
+  },
+  {
+    "module": "opendaylight-md-sal-binding",
+    "namespace": "urn:opendaylight:params:xml:ns:yang:controller:md:sal:binding",
+    "revision-date": "2013-10-28"
+  },
+  {
+    "module": "opendaylight-operational-dom-datastore",
+    "namespace": "urn:opendaylight:params:xml:ns:yang:controller:md:sal:core:spi:operational-dom-store",
+    "revision-date": "2014-06-17"
+  },
+  {
+    "module": "opendaylight-config-dom-datastore",
+    "namespace": "urn:opendaylight:params:xml:ns:yang:controller:md:sal:core:spi:config-dom-store",
+    "revision-date": "2014-06-17"
+  },
+  {
+    "module": "data-export-import-spi",
+    "namespace": "urn:opendaylight:daexim-spi",
+    "revision-date": "2016-08-16"
+  },
+  {
+    "module": "actor-system-provider-service",
+    "namespace": "urn:opendaylight:params:xml:ns:yang:controller:config:actor-system-provider:service",
+    "revision-date": "2015-10-05"
+  },
+  {
+    "module": "opendaylight-md-sal-dom",
+    "namespace": "urn:opendaylight:params:xml:ns:yang:controller:md:sal:dom",
+    "revision-date": "2013-10-28"
+  },
+  {
+    "module": "opendaylight-pingpong-broker",
+    "namespace": "urn:opendaylight:params:xml:ns:yang:controller:md:sal:dom:pingpong",
+    "revision-date": "2014-11-07"
+  },
+  {
+    "module": "opendaylight-inmemory-datastore-provider",
+    "namespace": "urn:opendaylight:params:xml:ns:yang:controller:inmemory-datastore-provider",
+    "revision-date": "2014-06-17"
+  },
+  {
+    "module": "distributed-datastore-provider",
+    "namespace": "urn:opendaylight:params:xml:ns:yang:controller:config:distributed-datastore-provider",
+    "revision-date": "2014-06-12"
+  },
+  {
+    "module": "ietf-yang-types",
+    "namespace": "urn:ietf:params:xml:ns:yang:ietf-yang-types",
+    "revision-date": "2013-07-15"
+  },
+  {
+    "module": "data-export-import",
+    "namespace": "urn:opendaylight:daexim",
+    "revision-date": "2016-09-21"
+  },
+  {
+    "module": "data-export-import-internal",
+    "namespace": "urn:opendaylight:daexim-internal",
+    "revision-date": "2016-09-21"
+  },
+  {
+    "module": "opendaylight-sal-dom-broker-impl",
+    "namespace": "urn:opendaylight:params:xml:ns:yang:controller:md:sal:dom:impl",
+    "revision-date": "2013-10-28"
+  },
+  {
+    "module": "odl-concurrent-data-broker-cfg",
+    "namespace": "urn:opendaylight:params:xml:ns:yang:controller:config:concurrent-data-broker",
+    "revision-date": "2014-11-24"
+  },
+  {
+    "module": "network-topology",
+    "namespace": "urn:TBD:params:xml:ns:yang:network-topology",
+    "revision-date": "2013-10-21"
+  },
+  {
+    "module": "l3-unicast-igp-topology",
+    "namespace": "urn:TBD:params:xml:ns:yang:nt:l3-unicast-igp-topology",
+    "revision-date": "2013-10-21"
+  },
+  {
+    "module": "ospf-topology",
+    "namespace": "urn:TBD:params:xml:ns:yang:ospf-topology",
+    "revision-date": "2013-10-21"
+  }
+]
