@@ -584,17 +584,17 @@ public class DataExportImportAppProvider implements DataExportImportService, Aut
 
     private void updateExportStatus(Status newStatus) {
         if (!exportStatus.equals(newStatus)) {
-            exportStatus = newStatus;
             lastExportChanged = System.currentTimeMillis();
             LOG.debug("Export status transition from {} to {} at {}", exportStatus, newStatus, lastExportChanged);
+            exportStatus = newStatus;
         }
     }
 
     private void updateImportStatus(Status newStatus) {
         if (!importStatus.equals(newStatus)) {
-            importStatus = newStatus;
             lastImportChanged = System.currentTimeMillis();
             LOG.debug("Import status transition from {} to {} at {}", importStatus, newStatus, lastImportChanged);
+            importStatus = newStatus;
         }
     }
 

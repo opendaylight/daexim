@@ -45,6 +45,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
+import com.google.common.base.Strings;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -73,7 +74,7 @@ public class ExportTask implements Callable<Void> {
         for (final ExcludedModules em : this.excludedModules) {
             if (em.getModuleName().getWildcardStar() != null
                     && ExcludedModulesModuleNameBuilder.STAR.equals(em.getModuleName().getWildcardStar().getValue())) {
-                excludedDss.add(Util.storeTypeFromName(em.getDataStore().getString()));
+                excludedDss.add(Util.storeTypeFromName(getDataStoreFromExclusion(em).toLowerCase()));
             }
         }
         this.callback = callback;
@@ -213,10 +214,16 @@ public class ExportTask implements Callable<Void> {
         jsonWriter.endObject();
     }
 
+    private String getDataStoreFromExclusion(ExcludedModules excl) {
+        return Strings.isNullOrEmpty(excl.getDataStore().getString()) ? excl.getDataStore().getEnumeration().getName()
+                : excl.getDataStore().getString();
+    }
+
     @VisibleForTesting
     boolean isExcluded(final LogicalDatastoreType type, final NormalizedNode<?, ?> node) {
         for (final ExcludedModules excl : excludedModules) {
-            if (!Util.storeNameByType(type).equals(excl.getDataStore().getString())) {
+            LOG.debug("Checking for exclusion of {} in {} against {}", node, type, excl);
+            if (!Util.storeNameByType(type).equalsIgnoreCase(getDataStoreFromExclusion(excl))) {
                 // The datastore type being written does not match the one in
                 // exclude list.
                 // Try the next item in exclude list.
