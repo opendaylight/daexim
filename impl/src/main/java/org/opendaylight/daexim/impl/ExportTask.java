@@ -146,7 +146,7 @@ public class ExportTask implements Callable<Void> {
         final NormalizedNode<?, ?> nn = opt.get();
         if (nn instanceof NormalizedNodeContainer) {
             @SuppressWarnings("unchecked")
-            final NormalizedNodeContainer<? extends PathArgument, ? extends PathArgument, ? extends NormalizedNode<?, ?>> nnContainer = ((NormalizedNodeContainer<? extends PathArgument, ? extends PathArgument, ? extends NormalizedNode<?, ?>>) nn);
+            final NormalizedNodeContainer<? extends PathArgument, ? extends PathArgument, ? extends NormalizedNode<?, ?>> nnContainer = (NormalizedNodeContainer<? extends PathArgument, ? extends PathArgument, ? extends NormalizedNode<?, ?>>) nn;
             try (final JsonWriter jsonWriter = createWriter(type, false)) {
                 writeData(type, nnContainer.getValue(), jsonWriter);
             }

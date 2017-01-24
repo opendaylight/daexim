@@ -73,7 +73,6 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
         <module>test-model</module>
         <module>model</module>
         <module>spi</module>
-        <module>config</module>
         <module>impl</module>
         <module>akka-infoprovider-impl</module>
         <module>features</module>

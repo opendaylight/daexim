@@ -66,7 +66,7 @@ public class ImportTask implements Callable<ImportOperationResult> {
             Callback callback) {
         this.dataBroker = domDataBroker;
         this.schemaService = schemaService;
-        this.mustValidate = (input.isCheckModels() != null && input.isCheckModels());
+        this.mustValidate = input.isCheckModels() != null && input.isCheckModels();
         this.clearScope = input.getClearStores();
         this.callback = callback;
         dataFiles = ArrayListMultimap.create(LogicalDatastoreType.values().length, 4);
@@ -94,7 +94,7 @@ public class ImportTask implements Callable<ImportOperationResult> {
     }
 
     private boolean isDataFilePresent(final LogicalDatastoreType store) {
-        return (dataFiles.containsKey(store) && !dataFiles.get(store).isEmpty());
+        return dataFiles.containsKey(store) && !dataFiles.get(store).isEmpty();
     }
 
     private void importInternal()
@@ -132,9 +132,7 @@ public class ImportTask implements Callable<ImportOperationResult> {
                     final NormalizedNodeContainerBuilder<?, ?, ?, ?> builder = ImmutableContainerNodeBuilder.create()
                             .withNodeIdentifier(new YangInstanceIdentifier.NodeIdentifier(
                                     schemaService.getGlobalContext().getQName()));
-
                     final NormalizedNodeStreamWriter writer = ImmutableNormalizedNodeStreamWriter.from(builder);
-                    schemaService.getGlobalContext().getQName();
                     final JsonParserStream jsonParser = JsonParserStream.create(writer,
                             schemaService.getGlobalContext());
                     final JsonReader reader = new JsonReader(new InputStreamReader(is));
@@ -177,7 +175,7 @@ public class ImportTask implements Callable<ImportOperationResult> {
             final NormalizedNode<?, ?> nn = rootNode.get();
             if (nn instanceof NormalizedNodeContainer) {
                 @SuppressWarnings("unchecked")
-                final NormalizedNodeContainer<? extends PathArgument, ? extends PathArgument, ? extends NormalizedNode<PathArgument, ?>> nnContainer = ((NormalizedNodeContainer<? extends PathArgument, ? extends PathArgument, ? extends NormalizedNode<PathArgument, ?>>) nn);
+                final NormalizedNodeContainer<? extends PathArgument, ? extends PathArgument, ? extends NormalizedNode<PathArgument, ?>> nnContainer = (NormalizedNodeContainer<? extends PathArgument, ? extends PathArgument, ? extends NormalizedNode<PathArgument, ?>>) nn;
                 for (final NormalizedNode<PathArgument, ?> child : nnContainer.getValue()) {
                     if (isInternalObject(child)) {
                         LOG.debug("Skipping removal of internal dataobject : {}", child.getIdentifier());

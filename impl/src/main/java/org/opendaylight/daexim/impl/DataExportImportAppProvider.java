@@ -27,9 +27,9 @@ import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.controller.md.sal.common.api.data.ReadFailedException;
 import org.opendaylight.controller.md.sal.common.api.data.TransactionCommitFailedException;
 import org.opendaylight.controller.md.sal.dom.api.DOMDataBroker;
-import org.opendaylight.controller.sal.binding.api.BindingAwareBroker.RpcRegistration;
-import org.opendaylight.controller.sal.binding.api.RpcProviderRegistry;
 import org.opendaylight.controller.sal.core.api.model.SchemaService;
+import org.opendaylight.daexim.spi.NodeNameProvider;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.DateAndTime;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.internal.rev160921.Daexim;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.internal.rev160921.DaeximBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.internal.rev160921.ImportOperationResult;
@@ -60,7 +60,6 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.StatusImpo
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.status.export.output.Nodes;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.status.export.output.NodesBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.status.export.output.NodesKey;
-import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.DateAndTime;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 import org.opendaylight.yangtools.yang.common.RpcError.ErrorType;
 import org.opendaylight.yangtools.yang.common.RpcResult;
@@ -69,7 +68,6 @@ import org.opendaylight.yangtools.yang.common.RpcResultBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.opendaylight.daexim.spi.NodeNameProvider;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
@@ -87,9 +85,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Aut
     private static final Logger LOG = LoggerFactory.getLogger(DataExportImportAppProvider.class);
     private DOMDataBroker domDataBroker;
     private SchemaService schemaService;
-    private RpcProviderRegistry rpcProviderRegistry;
     private NodeNameProvider nodeNameProvider;
-    private RpcRegistration<DataExportImportService> reg;
     private ListenableFuture<Void> exportSchedule;
     private ListeningScheduledExecutorService scheduledExecutorService;
     private volatile Status exportStatus = Status.Initial;
@@ -116,20 +112,16 @@ public class DataExportImportAppProvider implements DataExportImportService, Aut
         nodeStatusII = InstanceIdentifier.create(Daexim.class).child(DaeximStatus.class).child(NodeStatus.class,
                 new NodeStatusKey(nodeNameProvider.getNodeName()));
         ipcDTC = new DataTreeIdentifier<>(LogicalDatastoreType.OPERATIONAL, ipcII);
-        dataBroker.registerDataTreeChangeListener(ipcDTC, new ClusteredDataTreeChangeListener<DaeximControl>() {
-            @Override
-            public void onDataTreeChanged(Collection<DataTreeModification<DaeximControl>> changes) {
-                try {
-                    ipcHandler(changes);
-                } catch (TransactionCommitFailedException e) {
-                    LOG.error("Failure while processing IPC request", e);
-                }
+        dataBroker.registerDataTreeChangeListener(ipcDTC, (ClusteredDataTreeChangeListener<DaeximControl>) changes -> {
+            try {
+                ipcHandler(changes);
+            } catch (TransactionCommitFailedException e) {
+                LOG.error("Failure while processing IPC request", e);
             }
         });
         checkDatastructures();
         scheduledExecutorService = MoreExecutors.listeningDecorator(Executors.newScheduledThreadPool(10,
                 new ThreadFactoryBuilder().setNameFormat("daexim-scheduler-%d").build()));
-        reg = rpcProviderRegistry.addRpcImplementation(DataExportImportService.class, this);
         LOG.info("Daexim Session Initiated, running on node '{}'", nodeNameProvider.getNodeName());
     }
 
@@ -245,12 +237,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Aut
         final NodeStatusBuilder nsb = new NodeStatusBuilder().setExportStatus(exportStatus)
                 .setExportResult(exportFailure).setImportStatus(importStatus).setImportResult(importFailure)
                 .setDataFiles(Lists.transform(Lists.newArrayList(Util.collectDataFiles().values()),
-                        new Function<File, String>() {
-                            @Override
-                            public String apply(File input) {
-                                return input.getAbsolutePath();
-                            }
-                        }))
+                        File::getAbsolutePath))
                 .setNodeName(nodeNameProvider.getNodeName())
                 .setModelFile(Util.isModelFilePresent() ? Util.getModelsFilePath().toString() : null);
         nsb.setLastExportChange(
@@ -382,7 +369,6 @@ public class DataExportImportAppProvider implements DataExportImportService, Aut
      */
     @Override
     public void close() {
-        reg.close();
         scheduledExecutorService.shutdownNow();
         LOG.info("{} closed", getClass().getSimpleName());
     }
@@ -528,17 +514,14 @@ public class DataExportImportAppProvider implements DataExportImportService, Aut
                 updateNodeStatus();
             }
         });
-        return Futures.transform(f, new Function<ImportOperationResult, RpcResult<ImmediateImportOutput>>() {
-            @Override
-            public RpcResult<ImmediateImportOutput> apply(ImportOperationResult input) {
-                final ImmediateImportOutputBuilder output = new ImmediateImportOutputBuilder();
-                output.setResult(input.isResult());
-                if (!input.isResult()) {
-                    output.setReason(input.getReason());
-                    return RpcResultBuilder.<ImmediateImportOutput>success().withResult(output.build()).build();
-                }
-                return RpcResultBuilder.<ImmediateImportOutput>success(output.build()).build();
+        return Futures.transform(f, (Function<ImportOperationResult, RpcResult<ImmediateImportOutput>>) input1 -> {
+            final ImmediateImportOutputBuilder output = new ImmediateImportOutputBuilder();
+            output.setResult(input1.isResult());
+            if (!input1.isResult()) {
+                output.setReason(input1.getReason());
+                return RpcResultBuilder.<ImmediateImportOutput>success().withResult(output.build()).build();
             }
+            return RpcResultBuilder.<ImmediateImportOutput>success(output.build()).build();
         });
     }
 
@@ -552,27 +535,23 @@ public class DataExportImportAppProvider implements DataExportImportService, Aut
             final DaeximStatus gs = readGlobalStatus();
             final List<org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.status._import.output.Nodes> nodes = Lists.<org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.status._import.output.Nodes>newArrayList(
                     Iterables.transform(gs.getNodeStatus(),
-                            new Function<NodeStatus, org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.status._import.output.Nodes>() {
-                                @Override
-                                public org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.status._import.output.Nodes apply(
-                                        NodeStatus input) {
-                                    final org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.status._import.output.NodesBuilder nb = new org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.status._import.output.NodesBuilder();
-                                    if (Status.Complete.equals(input.getImportStatus())) {
-                                        nb.setImportedAt(input.getImportedAt());
-                                    }
-                                    nb.setReason(input.getImportResult());
-                                    nb.setModelFile(input.getModelFile());
-                                    nb.setDataFiles(input.getDataFiles());
-                                    nb.setStatus(input.getImportStatus());
-                                    if (input.getLastImportChange() != null) {
-                                        nb.setLastChange(input.getLastImportChange());
-                                    }
-                                    nb.setKey(
-                                            new org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.status._import.output.NodesKey(
-                                                    input.getNodeName()));
-                                    return nb.build();
-                                }
-                            }));
+                            input -> {
+                           final org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.status._import.output.NodesBuilder nb = new org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.status._import.output.NodesBuilder();
+                           if (Status.Complete.equals(input.getImportStatus())) {
+                            nb.setImportedAt(input.getImportedAt());
+                           }
+                           nb.setReason(input.getImportResult());
+                           nb.setModelFile(input.getModelFile());
+                           nb.setDataFiles(input.getDataFiles());
+                           nb.setStatus(input.getImportStatus());
+                           if (input.getLastImportChange() != null) {
+                            nb.setLastChange(input.getLastImportChange());
+                           }
+                           nb.setKey(
+                                new org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.status._import.output.NodesKey(
+                                        input.getNodeName()));
+                           return nb.build();
+                        }));
             builder.setStatus(importStatus);
             builder.setNodes(nodes);
             return Futures.immediateFuture(RpcResultBuilder.<StatusImportOutput>success(builder.build()).build());
@@ -608,10 +587,6 @@ public class DataExportImportAppProvider implements DataExportImportService, Aut
 
     public void setSchemaService(SchemaService schemaService) {
         this.schemaService = schemaService;
-    }
-
-    public void setRpcProviderRegistry(RpcProviderRegistry rpcProviderRegistry) {
-        this.rpcProviderRegistry = rpcProviderRegistry;
     }
 
     public void setNodeNameProvider(NodeNameProvider nodeNameProvider) {

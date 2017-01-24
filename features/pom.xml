@@ -72,17 +72,7 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
         </dependency>
         <dependency>
             <groupId>org.opendaylight.daexim</groupId>
-            <artifactId>daexim-config</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.opendaylight.daexim</groupId>
-            <artifactId>daexim-config</artifactId>
-            <classifier>config</classifier>
-            <type>xml</type>
-        </dependency>
-        <dependency>
-            <groupId>org.opendaylight.daexim</groupId>
-            <artifactId>daexim-config</artifactId>
+            <artifactId>daexim-impl</artifactId>
             <type>cfg</type>
         </dependency>
         <dependency>

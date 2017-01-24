@@ -12,8 +12,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -34,15 +32,10 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.opendaylight.controller.md.sal.binding.test.AbstractDataBrokerTest;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
-import org.opendaylight.controller.sal.binding.api.BindingAwareBroker.RoutedRpcRegistration;
-import org.opendaylight.controller.sal.binding.api.RpcProviderRegistry;
 import org.opendaylight.controller.sal.core.api.model.SchemaService;
-import org.opendaylight.daexim.impl.DataExportImportAppProvider;
-import org.opendaylight.daexim.impl.Util;
 import org.opendaylight.daexim.spi.NodeNameProvider;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.AbsoluteTime;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.CancelExportOutput;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.DataExportImportService;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.DataStoreScope;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.ImmediateImportInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.ImmediateImportOutput;
@@ -68,7 +61,6 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
     private DataExportImportAppProvider provider;
     private SchemaContext schemaContext;
     private NodeNameProvider nnp;
-    private RpcProviderRegistry rpcProviderRegistry;
 
     @BeforeClass
     public static void setupBeforeClass() throws IOException {
@@ -97,18 +89,14 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
 
     @Before
     public void setUp() throws Exception {
-        rpcProviderRegistry = mock(RpcProviderRegistry.class);
         nnp = mock(NodeNameProvider.class);
         when(nnp.getNodeName()).thenReturn("localhost");
         provider = new DataExportImportAppProvider();
-        doReturn(mock(RoutedRpcRegistration.class)).when(rpcProviderRegistry)
-                .addRpcImplementation(eq(DataExportImportService.class), eq(provider));
         provider.setDataBroker(getDataBroker());
         provider.setDomDataBroker(getDomBroker());
         SchemaService schemaService = mock(SchemaService.class);
         when(schemaService.getGlobalContext()).thenReturn(schemaContext);
         provider.setSchemaService(schemaService);
-        provider.setRpcProviderRegistry(rpcProviderRegistry);
         provider.setNodeNameProvider(nnp);
         provider.init();
     }

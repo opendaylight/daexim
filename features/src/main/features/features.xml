@@ -16,14 +16,11 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
     <feature name='odl-daexim-all' description="Opendaylight :: Data export-import" version='${project.version}'>
         <feature version="${project.version}">odl-daexim-depends</feature>
         <bundle>mvn:org.opendaylight.daexim/daexim-model/${project.version}</bundle>
-        <bundle>mvn:org.opendaylight.daexim/daexim-config/${project.version}</bundle>
         <bundle>mvn:org.opendaylight.daexim/daexim-impl/${project.version}</bundle>
         <bundle>mvn:org.opendaylight.daexim/daexim-spi/${project.version}</bundle>
         <bundle>mvn:org.opendaylight.daexim/daexim-akka-infoprovider-impl/${project.version}</bundle>
-        <configfile finalname="etc/opendaylight/karaf/10-daexim.xml">mvn:org.opendaylight.daexim/daexim-config/${project.version}/xml/config</configfile>
-        <configfile finalname="etc/org.opendaylight.daexim.cfg">mvn:org.opendaylight.daexim/daexim-config/${project.version}/cfg</configfile>
+        <configfile finalname="etc/org.opendaylight.daexim.cfg">mvn:org.opendaylight.daexim/daexim-impl/${project.version}/cfg</configfile>
     </feature>
-
 
     <feature name='odl-daexim-depends' description="Opendaylight :: Data export-import dependencies" version='${project.version}'>
         <feature version='${mdsal-model.version}'>odl-mdsal-models</feature>

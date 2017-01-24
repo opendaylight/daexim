@@ -38,20 +38,8 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
         <version>${project.version}</version>
       </dependency>
       <dependency>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>daexim-config</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
           <groupId>${project.groupId}</groupId>
-          <artifactId>daexim-config</artifactId>
-          <type>xml</type>
-          <classifier>config</classifier>
-          <version>${project.version}</version>
-      </dependency>
-      <dependency>
-          <groupId>${project.groupId}</groupId>
-          <artifactId>daexim-config</artifactId>
+          <artifactId>daexim-impl</artifactId>
           <type>cfg</type>
           <version>${project.version}</version>
       </dependency>
