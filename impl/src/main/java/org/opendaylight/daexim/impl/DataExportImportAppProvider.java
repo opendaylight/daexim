@@ -8,6 +8,17 @@
  */
 package org.opendaylight.daexim.impl;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningScheduledExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.io.File;
 import java.util.Collection;
 import java.util.Date;
@@ -16,7 +27,6 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-
 import org.opendaylight.controller.md.sal.binding.api.ClusteredDataTreeChangeListener;
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.controller.md.sal.binding.api.DataTreeIdentifier;
@@ -68,21 +78,12 @@ import org.opendaylight.yangtools.yang.common.RpcResultBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.ListeningScheduledExecutorService;
-import com.google.common.util.concurrent.MoreExecutors;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
-
 public class DataExportImportAppProvider implements DataExportImportService, AutoCloseable {
-    private static final String LOG_MSG_SCHEDULING_EXPORT = "Scheduling export at %s, which is %d seconds in future";
+
     private static final Logger LOG = LoggerFactory.getLogger(DataExportImportAppProvider.class);
+
+    private static final String LOG_MSG_SCHEDULING_EXPORT = "Scheduling export at %s, which is %d seconds in future";
+
     private DOMDataBroker domDataBroker;
     private SchemaService schemaService;
     private NodeNameProvider nodeNameProvider;
@@ -167,12 +168,9 @@ public class DataExportImportAppProvider implements DataExportImportService, Aut
                 updateNodeStatus();
                 long scheduleAtTimestamp = Util.parseDate(newTask.getRunAt().getValue()).getTime();
                 exportSchedule = scheduledExecutorService.schedule(
-                        new ExportTask(newTask.getExcludedModules(), domDataBroker, schemaService, new Callback() {
-                            @Override
-                            public void call() throws Exception {
-                                updateExportStatus(Status.InProgress);
-                                updateNodeStatus();
-                            }
+                        new ExportTask(newTask.getExcludedModules(), domDataBroker, schemaService, () -> {
+                            updateExportStatus(Status.InProgress);
+                            updateNodeStatus();
                         }), scheduleAtTimestamp - System.currentTimeMillis(), TimeUnit.MILLISECONDS);
                 Futures.addCallback(exportSchedule, new FutureCallback<Void>() {
                     @Override
@@ -184,12 +182,12 @@ public class DataExportImportAppProvider implements DataExportImportService, Aut
                     }
 
                     @Override
-                    public void onFailure(Throwable t) {
-                        if (t instanceof CancellationException) {
+                    public void onFailure(Throwable throwable) {
+                        if (throwable instanceof CancellationException) {
                             LOG.info("Previous export has been cancelled");
                         } else {
-                            LOG.error("Export failed", t);
-                            exportFailure = t.getMessage();
+                            LOG.error("Export failed", throwable);
+                            exportFailure = throwable.getMessage();
                             updateExportStatus(Status.Failed);
                             updateNodeStatus();
                         }
@@ -278,9 +276,9 @@ public class DataExportImportAppProvider implements DataExportImportService, Aut
     }
 
     /**
-     * This function calculate runtime global status.</br>
+     * This function calculate runtime global status.<br/>
      * Here are rules:
-     * </p>
+     * <p/>
      * <ol>
      * <li>If all nodes are {@link Status#Complete} then then return
      * {@link Status#Complete}</li>
@@ -295,9 +293,6 @@ public class DataExportImportAppProvider implements DataExportImportService, Aut
      * <li>If none of previous are true, then return
      * {@value Status#Inconsistent}
      * </ol>
-     * 
-     * @param tasks
-     * @return
      */
     @VisibleForTesting
     Status calculateStatus(final List<Nodes> nodes) {
@@ -309,33 +304,33 @@ public class DataExportImportAppProvider implements DataExportImportService, Aut
         for (final Nodes t : nodes) {
             switch (t.getStatus()) {
             // at least one export is in progress
-            case InProgress:
-                isInitial = false;
-                isComplete = false;
-                inProgress = true;
-                break;
-            // all nodes completed their job, we are done
-            case Complete:
-                isComplete &= true;
-                break;
-            // any node failed
-            case Failed:
-                isInitial = false;
-                isComplete = false;
-                isFailed = true;
-                break;
-            // all nodes are in initial status
-            case Initial:
-                isComplete = false;
-                isInitial &= true;
-                break;
-            case Scheduled:
-                isInitial = false;
-                isComplete = false;
-                isScheduled = true;
-                break;
-            default:
-                break;
+                case InProgress:
+                    isInitial = false;
+                    isComplete = false;
+                    inProgress = true;
+                    break;
+                // all nodes completed their job, we are done
+                case Complete:
+                    isComplete &= true;
+                    break;
+                // any node failed
+                case Failed:
+                    isInitial = false;
+                    isComplete = false;
+                    isFailed = true;
+                    break;
+                // all nodes are in initial status
+                case Initial:
+                    isComplete = false;
+                    isInitial &= true;
+                    break;
+                case Scheduled:
+                    isInitial = false;
+                    isComplete = false;
+                    isScheduled = true;
+                    break;
+                default:
+                    break;
             }
         }
         if (isComplete) {
@@ -373,13 +368,10 @@ public class DataExportImportAppProvider implements DataExportImportService, Aut
         LOG.info("{} closed", getClass().getSimpleName());
     }
 
-    /**
-     * RPC Methods
-     */
+    // RPC Methods
 
     /**
-     * Cancels any pending or active export tasks
-     *
+     * Cancels any pending or active export tasks.
      */
     @Override
     public Future<RpcResult<CancelExportOutput>> cancelExport() {
@@ -397,8 +389,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Aut
     }
 
     /**
-     * Schedule export
-     *
+     * Schedule export.
      */
     @Override
     public Future<RpcResult<ScheduleExportOutput>> scheduleExport(ScheduleExportInput input) {
@@ -411,7 +402,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Aut
         }
         final String logMsg;
         if (runAt.getRelativeTime() != null) {
-            scheduleAtTimestamp = System.currentTimeMillis() + (runAt.getRelativeTime().getValue() * 10);
+            scheduleAtTimestamp = System.currentTimeMillis() + runAt.getRelativeTime().getValue() * 10;
             logMsg = String.format(LOG_MSG_SCHEDULING_EXPORT, Util.dateToUtcString(new Date(scheduleAtTimestamp)),
                     (scheduleAtTimestamp - System.currentTimeMillis()) / 1000);
         } else {
@@ -444,8 +435,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Aut
     }
 
     /**
-     * Pending export status
-     *
+     * Pending export status.
      */
     @Override
     public Future<RpcResult<StatusExportOutput>> statusExport() {
@@ -453,17 +443,14 @@ public class DataExportImportAppProvider implements DataExportImportService, Aut
         try {
             final DaeximStatus gs = readGlobalStatus();
             final List<Nodes> tasks = Lists
-                    .<Nodes>newArrayList(Iterables.transform(gs.getNodeStatus(), new Function<NodeStatus, Nodes>() {
-                        @Override
-                        public Nodes apply(NodeStatus input) {
-                            final NodesBuilder nb = new NodesBuilder().setReason(input.getExportResult())
-                                    .setKey(new NodesKey(input.getNodeName())).setStatus(input.getExportStatus());
-                            if (Status.Complete.equals(input.getExportStatus())) {
-                                nb.setModelFile(input.getModelFile()).setDataFiles(input.getDataFiles());
-                            }
-                            nb.setLastChange(input.getLastExportChange());
-                            return nb.build();
+                    .<Nodes>newArrayList(Iterables.transform(gs.getNodeStatus(), input -> {
+                        final NodesBuilder nb = new NodesBuilder().setReason(input.getExportResult())
+                                .setKey(new NodesKey(input.getNodeName())).setStatus(input.getExportStatus());
+                        if (Status.Complete.equals(input.getExportStatus())) {
+                            nb.setModelFile(input.getModelFile()).setDataFiles(input.getDataFiles());
                         }
+                        nb.setLastChange(input.getLastExportChange());
+                        return nb.build();
                     }));
             final Status s = calculateStatus(tasks);
             builder.setStatus(s);
@@ -479,17 +466,14 @@ public class DataExportImportAppProvider implements DataExportImportService, Aut
     }
 
     /**
-     * Immediate restore operation
+     * Immediate restore operation.
      */
     @Override
     public Future<RpcResult<ImmediateImportOutput>> immediateImport(ImmediateImportInput input) {
         final ListenableFuture<ImportOperationResult> f = scheduledExecutorService
-                .submit(new ImportTask(input, domDataBroker, schemaService, new Callback() {
-                    @Override
-                    public void call() throws Exception {
-                        updateImportStatus(Status.InProgress);
-                        updateNodeStatus();
-                    }
+                .submit(new ImportTask(input, domDataBroker, schemaService, () -> {
+                    updateImportStatus(Status.InProgress);
+                    updateNodeStatus();
                 }));
         Futures.addCallback(f, new FutureCallback<ImportOperationResult>() {
             @Override
@@ -506,11 +490,11 @@ public class DataExportImportAppProvider implements DataExportImportService, Aut
             }
 
             @Override
-            public void onFailure(Throwable t) {
-                LOG.info("Restore operation failed", t);
+            public void onFailure(Throwable throwable) {
+                LOG.info("Restore operation failed", throwable);
                 lastImportTimestamp = -1;
                 updateImportStatus(Status.Failed);
-                importFailure = t.getMessage();
+                importFailure = throwable.getMessage();
                 updateNodeStatus();
             }
         });
@@ -526,32 +510,33 @@ public class DataExportImportAppProvider implements DataExportImportService, Aut
     }
 
     /**
-     * Import status RPC
+     * Import status RPC.
      */
     @Override
     public Future<RpcResult<StatusImportOutput>> statusImport() {
         final StatusImportOutputBuilder builder = new StatusImportOutputBuilder();
         try {
             final DaeximStatus gs = readGlobalStatus();
-            final List<org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.status._import.output.Nodes> nodes = Lists.<org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.status._import.output.Nodes>newArrayList(
-                    Iterables.transform(gs.getNodeStatus(),
-                            input -> {
-                           final org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.status._import.output.NodesBuilder nb = new org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.status._import.output.NodesBuilder();
-                           if (Status.Complete.equals(input.getImportStatus())) {
+            final List<org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.status._import.output.Nodes> nodes
+                = Lists.newArrayList(
+                    Iterables.transform(gs.getNodeStatus(), input -> {
+                        final org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.status._import.output
+                               .NodesBuilder nb = new org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921
+                                       .status._import.output.NodesBuilder();
+                        if (Status.Complete.equals(input.getImportStatus())) {
                             nb.setImportedAt(input.getImportedAt());
-                           }
-                           nb.setReason(input.getImportResult());
-                           nb.setModelFile(input.getModelFile());
-                           nb.setDataFiles(input.getDataFiles());
-                           nb.setStatus(input.getImportStatus());
-                           if (input.getLastImportChange() != null) {
+                        }
+                        nb.setReason(input.getImportResult());
+                        nb.setModelFile(input.getModelFile());
+                        nb.setDataFiles(input.getDataFiles());
+                        nb.setStatus(input.getImportStatus());
+                        if (input.getLastImportChange() != null) {
                             nb.setLastChange(input.getLastImportChange());
-                           }
-                           nb.setKey(
-                                new org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.status._import.output.NodesKey(
-                                        input.getNodeName()));
-                           return nb.build();
-                        }));
+                        }
+                        nb.setKey(new org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921
+                                .status._import.output.NodesKey(input.getNodeName()));
+                        return nb.build();
+                    }));
             builder.setStatus(importStatus);
             builder.setNodes(nodes);
             return Futures.immediateFuture(RpcResultBuilder.<StatusImportOutput>success(builder.build()).build());

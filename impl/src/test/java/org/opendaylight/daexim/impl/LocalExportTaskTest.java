@@ -8,15 +8,22 @@
  */
 package org.opendaylight.daexim.impl;
 
+import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasJsonPath;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
+import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.Lists;
+import com.jayway.jsonpath.Configuration;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -24,9 +31,6 @@ import org.opendaylight.controller.md.sal.binding.api.WriteTransaction;
 import org.opendaylight.controller.md.sal.binding.test.AbstractDataBrokerTest;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.controller.sal.core.api.model.SchemaService;
-import org.opendaylight.daexim.impl.Callback;
-import org.opendaylight.daexim.impl.ExportTask;
-import org.opendaylight.daexim.impl.Util;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NetworkTopology;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NetworkTopologyBuilder;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
@@ -40,15 +44,10 @@ import org.opendaylight.yangtools.yang.model.api.SchemaContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Charsets;
-import com.google.common.collect.Lists;
-import com.jayway.jsonpath.Configuration;
-import static com.jayway.jsonpath.matchers.JsonPathMatchers.*;
-import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.*;
-
 public class LocalExportTaskTest extends AbstractDataBrokerTest {
+
     private static final Logger LOG = LoggerFactory.getLogger(LocalExportTaskTest.class);
+
     private SchemaContext schemaContext;
     private SchemaService schemaService;
     private Path tempDir;
@@ -108,9 +107,10 @@ public class LocalExportTaskTest extends AbstractDataBrokerTest {
         ExportTask lbt = new ExportTask(null, getDomBroker(), schemaService, mock(Callback.class));
         lbt.call();
         final String jsonStr = new String(Files.readAllBytes(Util.collectDataFiles()
-                .get(LogicalDatastoreType.OPERATIONAL).get(0).toPath()), Charsets.UTF_8);
+                .get(LogicalDatastoreType.OPERATIONAL).get(0).toPath()), StandardCharsets.UTF_8);
         final Object json = Configuration.defaultConfiguration().jsonProvider().parse(jsonStr);
-        assertThat(json, hasJsonPath("$.network-topology:network-topology.topology[0].topology-id", equalTo("topo-id")));
+        assertThat(json,
+                hasJsonPath("$.network-topology:network-topology.topology[0].topology-id", equalTo("topo-id")));
         assertThat(json, hasJsonPath("$.network-topology:network-topology.topology[0].node[*]", hasSize(2)));
         assertThat(json, hasJsonPath("$..termination-point[0].tp-id", contains("eth0")));
     }

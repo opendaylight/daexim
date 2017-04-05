@@ -10,27 +10,27 @@ package org.opendaylight.daexim.impl;
 
 import static org.junit.Assert.assertEquals;
 
+import com.google.common.io.ByteStreams;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.opendaylight.daexim.impl.Util;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Charsets;
-import com.google.common.io.ByteStreams;
-
 public class UtilTest {
-    private static final String ALTERNATIVE_DIR = "SOME_DIR";
+
     private static final Logger LOG = LoggerFactory.getLogger(UtilTest.class);
+
+    private static final String ALTERNATIVE_DIR = "SOME_DIR";
     private static final String CFG_FILE = "daexim.cfg";
+
     private Path tempDir;
     private Path daeximDir;
     private Path etcDir;
@@ -54,7 +54,7 @@ public class UtilTest {
     }
 
     private void setPropertyFileContent(String content) throws IOException {
-        try (final ByteArrayInputStream is = new ByteArrayInputStream(content.getBytes(Charsets.UTF_8))) {
+        try (ByteArrayInputStream is = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8))) {
             ByteStreams.copy(is, new FileOutputStream(etcDir.resolve(CFG_FILE).toFile()));
         }
     }

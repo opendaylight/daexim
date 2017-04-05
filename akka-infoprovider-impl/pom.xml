@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<!-- 
+<!--
 Copyright (C) 2016 AT&T Intellectual Property. All rights reserved.
 Copyright (c) 2016 Brocade Communications Systems, Inc. All rights reserved.
 
@@ -34,6 +34,13 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
                         </Import-Package>
                     </instructions>
                 </configuration>
+            </plugin>
+            <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-checkstyle-plugin</artifactId>
+              <configuration>
+                <propertyExpansion>checkstyle.violationSeverity=error</propertyExpansion>
+              </configuration>
             </plugin>
         </plugins>
     </build>

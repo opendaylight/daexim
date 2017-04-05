@@ -8,15 +8,22 @@
  */
 package org.opendaylight.daexim.impl;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Optional;
+import com.google.common.base.Strings;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+import com.google.gson.stream.JsonWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Callable;
-
 import javax.annotation.WillClose;
-
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.controller.md.sal.common.api.data.ReadFailedException;
 import org.opendaylight.controller.md.sal.dom.api.DOMDataBroker;
@@ -43,21 +50,14 @@ import org.opendaylight.yangtools.yang.model.api.SchemaPath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Optional;
-import com.google.common.base.Strings;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import com.google.gson.stream.JsonWriter;
-
 public class ExportTask implements Callable<Void> {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ExportTask.class);
+
     private static final String FIELD_MODULE = "module";
     private static final String FIELD_NAMESPACE = "namespace";
     private static final String FIELD_REVISION = "revision-date";
-    private static final Logger LOG = LoggerFactory.getLogger(ExportTask.class);
+
     private final DOMDataBroker domDataBroker;
     private final JSONCodecFactory codecFactory;
     private final SchemaService schemaService;
@@ -131,7 +131,7 @@ public class ExportTask implements Callable<Void> {
     }
 
     private void writeEmptyStore(LogicalDatastoreType type) throws IOException {
-        try (final JsonWriter writer = createWriter(type, false)) {
+        try (JsonWriter writer = createWriter(type, false)) {
             writer.beginObject();
             writer.endObject();
             writer.flush();
@@ -146,8 +146,10 @@ public class ExportTask implements Callable<Void> {
         final NormalizedNode<?, ?> nn = opt.get();
         if (nn instanceof NormalizedNodeContainer) {
             @SuppressWarnings("unchecked")
-            final NormalizedNodeContainer<? extends PathArgument, ? extends PathArgument, ? extends NormalizedNode<?, ?>> nnContainer = (NormalizedNodeContainer<? extends PathArgument, ? extends PathArgument, ? extends NormalizedNode<?, ?>>) nn;
-            try (final JsonWriter jsonWriter = createWriter(type, false)) {
+            NormalizedNodeContainer<? extends PathArgument, ? extends PathArgument, ? extends NormalizedNode<?, ?>>
+                nnContainer = (NormalizedNodeContainer<? extends PathArgument, ? extends PathArgument,
+                        ? extends NormalizedNode<?, ?>>) nn;
+            try (JsonWriter jsonWriter = createWriter(type, false)) {
                 writeData(type, nnContainer.getValue(), jsonWriter);
             }
         } else {

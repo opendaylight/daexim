@@ -9,11 +9,12 @@
 package org.opendaylight.daexim.spi;
 
 /**
- * API to retrieve local node name
+ * API to retrieve local node name.
  */
 public interface NodeNameProvider {
+
     /**
-     * Return local node name
+     * Return local node name.
      */
     String getNodeName();
 }

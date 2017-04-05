@@ -8,31 +8,7 @@
  */
 package org.opendaylight.daexim.impl;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FilenameFilter;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.List;
-import java.util.Properties;
-import java.util.TimeZone;
-
-import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
-import org.opendaylight.daexim.impl.model.internal.Model;
-import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.DateAndTime;
-
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Charsets;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableBiMap;
@@ -40,11 +16,34 @@ import com.google.common.collect.ListMultimap;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FilenameFilter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
+import java.util.Properties;
+import java.util.TimeZone;
+import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
+import org.opendaylight.daexim.impl.model.internal.Model;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.DateAndTime;
 
-public class Util {
+public final class Util {
+
     private static final TimeZone TZ_UTC = TimeZone.getTimeZone("UTC");
-    private static final String[] DATE_AND_TIME_FORMATS = { "yyyy-MM-dd'T'HH:mm:ss'Z'",
-            "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" };
+    private static final String[] DATE_AND_TIME_FORMATS = {
+        "yyyy-MM-dd'T'HH:mm:ss'Z'",
+        "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" };
     public static final String FILE_PREFIX = "odl_backup_";
     public static final String LOCAL_CFG_FILE = "${karaf.etc}/daexim.cfg";
     public static final String DAEXIM_DIR_PROP = "daexim.dir";
@@ -83,7 +82,7 @@ public class Util {
     private static String getDaeximDirInternal() {
         final String propFile = interpolateProp(LOCAL_CFG_FILE, "karaf.etc", "." + File.separatorChar + "etc");
         final Properties props = new Properties();
-        try (final InputStream is = new FileInputStream(propFile)) {
+        try (InputStream is = new FileInputStream(propFile)) {
             props.load(is);
             if (props.containsKey(DAEXIM_DIR_PROP)) {
                 return props.getProperty(DAEXIM_DIR_PROP);
@@ -109,7 +108,7 @@ public class Util {
 
     public static List<Model> parseModels(final InputStream is) {
         final Gson g = new GsonBuilder().create();
-        final InputStreamReader reader = new InputStreamReader(is, Charsets.UTF_8);
+        final InputStreamReader reader = new InputStreamReader(is, StandardCharsets.UTF_8);
         return g.fromJson(reader, new TypeToken<List<Model>>() {
         }.getType());
     }
@@ -117,8 +116,8 @@ public class Util {
     /**
      * Attempts to parse given date string using patterns described
      * https://tools.ietf.org/html/rfc6991#page-11 with exception that ONLY UTC
-     * patterns are accepted
-     * 
+     * patterns are accepted.
+     *
      * @param dateStr
      *            date string to parse
      * @return {@link Date}
@@ -144,8 +143,8 @@ public class Util {
 
     /**
      * Transform given {@link Date} into {@link DateAndTime} using pattern
-     * yyyy-MM-dd'T'HH:mm:ss'Z'
-     * 
+     * yyyy-MM-dd'T'HH:mm:ss'Z'.
+     *
      * @param date
      *            date to format
      * @return {@link DateAndTime}
@@ -156,8 +155,8 @@ public class Util {
 
     /**
      * Transform given {@link Date} into {@link String} using pattern
-     * yyyy-MM-dd'T'HH:mm:ss'Z'
-     * 
+     * yyyy-MM-dd'T'HH:mm:ss'Z'.
+     *
      * @param date
      *            date to format
      * @return String
@@ -169,7 +168,7 @@ public class Util {
     }
 
     /**
-     * Collects all data files in dump directory
+     * Collects all data files in dump directory.
      */
     public static ListMultimap<LogicalDatastoreType, File> collectDataFiles() {
         final Path daeximDir = Paths.get(Util.getDaeximDir());
@@ -179,24 +178,15 @@ public class Util {
             dataFiles.putAll(dst, collectDatastoreFiles(daeximDir, dst));
             // sort them to honor order during import
             final List<File> unsorted = dataFiles.get(dst);
-            Collections.sort(unsorted, new Comparator<File>() {
-                @Override
-                public int compare(File f1, File f2) {
-                    return f1.getAbsolutePath().length() - f2.getAbsolutePath().length();
-                }
-            });
+            Collections.sort(unsorted, (f1, f2) -> f1.getAbsolutePath().length() - f2.getAbsolutePath().length());
         }
         return dataFiles;
     }
 
     private static List<File> collectDatastoreFiles(final Path daeximDir, final LogicalDatastoreType dst) {
-        final File[] arr = daeximDir.toFile().listFiles(new FilenameFilter() {
-            @Override
-            public boolean accept(File dir, String name) {
-                return name.startsWith(Util.FILE_PREFIX) && name.endsWith(".json")
-                        && (name.indexOf(Util.storeNameByType(dst).toLowerCase()) != -1);
-            }
-        });
+        final File[] arr = daeximDir.toFile()
+                .listFiles((FilenameFilter) (dir, name) -> name.startsWith(Util.FILE_PREFIX) && name.endsWith(".json")
+                        && name.indexOf(Util.storeNameByType(dst).toLowerCase()) != -1);
         return Arrays.asList(arr != null ? arr : new File[] {});
     }
 

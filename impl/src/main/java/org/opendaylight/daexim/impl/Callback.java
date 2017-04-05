@@ -9,8 +9,10 @@
 package org.opendaylight.daexim.impl;
 
 /**
- * Internal callback
+ * Internal callback.
  */
 public interface Callback {
+
     void call() throws Exception;
+
 }

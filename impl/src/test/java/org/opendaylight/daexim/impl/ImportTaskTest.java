@@ -15,13 +15,14 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 
+import com.google.common.collect.Lists;
+import com.google.common.io.ByteStreams;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Collection;
 import java.util.concurrent.ExecutionException;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -56,13 +57,13 @@ import org.opendaylight.yangtools.yang.model.api.SchemaContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Lists;
-import com.google.common.io.ByteStreams;
-
 public class ImportTaskTest extends AbstractDataBrokerTest {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ImportTaskTest.class);
+
     private static final String TOPO_ID = "topo-id";
     private static final String OLD_NODE_ID = "node-id-5";
-    private static final Logger LOG = LoggerFactory.getLogger(ImportTaskTest.class);
+
     private SchemaService schemaService;
     private SchemaContext schemaContext;
     private Path modelsFile;
@@ -106,17 +107,19 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
     private Collection<? extends NormalizedNode<?, ?>> readRoot() throws InterruptedException, ExecutionException {
         final DOMDataReadOnlyTransaction roTrx = getDomBroker().newReadOnlyTransaction();
         try {
-            final NormalizedNodeContainer<? extends PathArgument, ? extends PathArgument, ? extends NormalizedNode<?, ?>> nnc = (NormalizedNodeContainer<? extends PathArgument, ? extends PathArgument, ? extends NormalizedNode<?, ?>>) roTrx
-                    .read(LogicalDatastoreType.OPERATIONAL, YangInstanceIdentifier.EMPTY).get().get();
+            NormalizedNodeContainer<? extends PathArgument, ? extends PathArgument, ? extends NormalizedNode<?, ?>>
+                nnc = (NormalizedNodeContainer<? extends PathArgument, ? extends PathArgument,
+                        ? extends NormalizedNode<?, ?>>) roTrx.read(LogicalDatastoreType.OPERATIONAL,
+                                YangInstanceIdentifier.EMPTY).get().get();
             return nnc.getValue();
         } finally {
             roTrx.close();
         }
     }
 
-    private static void removeFile(Path p) throws IOException {
-        if (p.toFile().exists()) {
-            Files.delete(p);
+    private static void removeFile(Path path) throws IOException {
+        if (path.toFile().exists()) {
+            Files.delete(path);
         }
     }
 
@@ -127,10 +130,10 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
         return rt.call();
     }
 
-    private <D extends DataObject> void writeDataToRoot(InstanceIdentifier<D> ii, D dObj)
+    private <D extends DataObject> void writeDataToRoot(InstanceIdentifier<D> ii, D dataObject)
             throws TransactionCommitFailedException {
         final WriteTransaction wrTrx = getDataBroker().newWriteOnlyTransaction();
-        wrTrx.put(LogicalDatastoreType.OPERATIONAL, ii, dObj);
+        wrTrx.put(LogicalDatastoreType.OPERATIONAL, ii, dataObject);
         wrTrx.submit().checkedGet();
     }
 
@@ -154,8 +157,9 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
         final ImportOperationResult result = rt.call();
         assertTrue(result.getReason(), result.isResult());
         final DOMDataReadOnlyTransaction roTrx = getDomBroker().newReadOnlyTransaction();
-        final NormalizedNodeContainer<? extends PathArgument, ? extends PathArgument, ? extends NormalizedNode<?, ?>> nnc = (NormalizedNodeContainer<? extends PathArgument, ? extends PathArgument, ? extends NormalizedNode<?, ?>>) roTrx
-                .read(LogicalDatastoreType.OPERATIONAL, YangInstanceIdentifier.EMPTY).get().get();
+        NormalizedNodeContainer<? extends PathArgument, ? extends PathArgument, ? extends NormalizedNode<?, ?>> nnc
+            = (NormalizedNodeContainer<? extends PathArgument, ? extends PathArgument, ? extends NormalizedNode<?, ?>>)
+                roTrx.read(LogicalDatastoreType.OPERATIONAL, YangInstanceIdentifier.EMPTY).get().get();
         Collection<? extends NormalizedNode<?, ?>> children = nnc.getValue();
         assertEquals(1, children.size());
         NormalizedNode<?, ?> nn = children.iterator().next();

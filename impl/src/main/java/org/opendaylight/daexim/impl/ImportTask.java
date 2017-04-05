@@ -8,6 +8,12 @@
  */
 package org.opendaylight.daexim.impl;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Optional;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Sets;
+import com.google.gson.stream.JsonReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -18,7 +24,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Callable;
-
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.controller.md.sal.common.api.data.ReadFailedException;
 import org.opendaylight.controller.md.sal.common.api.data.TransactionCommitFailedException;
@@ -45,15 +50,10 @@ import org.opendaylight.yangtools.yang.model.api.Module;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Optional;
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.ListMultimap;
-import com.google.common.collect.Sets;
-import com.google.gson.stream.JsonReader;
-
 public class ImportTask implements Callable<ImportOperationResult> {
+
     private static final Logger LOG = LoggerFactory.getLogger(ImportTask.class);
+
     private final DOMDataBroker dataBroker;
     private final SchemaService schemaService;
     private final boolean mustValidate;
@@ -75,13 +75,14 @@ public class ImportTask implements Callable<ImportOperationResult> {
     }
 
     @Override
+    @SuppressWarnings("checkstyle:IllegalCatch")
     public ImportOperationResult call() throws Exception {
         callback.call();
         try {
             importInternal();
             return new ImportOperationResultBuilder().setResult(true).build();
-        } catch (Exception e) {
-            return new ImportOperationResultBuilder().setResult(false).setReason(e.getMessage()).build();
+        } catch (Exception exception) {
+            return new ImportOperationResultBuilder().setResult(false).setReason(exception.getMessage()).build();
         }
     }
 
@@ -101,7 +102,7 @@ public class ImportTask implements Callable<ImportOperationResult> {
             throws IOException, ModelsNotAvailableException, TransactionCommitFailedException, ReadFailedException {
         if (mustValidate) {
             if (Util.isModelFilePresent()) {
-                try (final InputStream is = openModelsFile()) {
+                try (InputStream is = openModelsFile()) {
                     validateModelAvailability(is);
                 }
             } else {
@@ -119,14 +120,14 @@ public class ImportTask implements Callable<ImportOperationResult> {
             throws ReadFailedException, TransactionCommitFailedException, IOException {
         final DOMDataReadWriteTransaction rwTrx = dataBroker.newReadWriteTransaction();
         boolean hasDataFile = isDataFilePresent(type);
-        if (DataStoreScope.All.equals(clearScope) || (DataStoreScope.Data.equals(clearScope) && hasDataFile)) {
+        if (DataStoreScope.All.equals(clearScope) || DataStoreScope.Data.equals(clearScope) && hasDataFile) {
             removeChildNodes(type, rwTrx);
         }
         if (!hasDataFile) {
             LOG.info("No data file for datastore {}, import skipped", type.name().toLowerCase());
         } else {
             for (final File f : dataFiles.get(type)) {
-                try (final InputStream is = new FileInputStream(f)) {
+                try (InputStream is = new FileInputStream(f)) {
                     LOG.info("Loading data into {} datastore from file {}", type.name().toLowerCase(),
                             f.getAbsolutePath());
                     final NormalizedNodeContainerBuilder<?, ?, ?, ?> builder = ImmutableContainerNodeBuilder.create()
@@ -175,7 +176,10 @@ public class ImportTask implements Callable<ImportOperationResult> {
             final NormalizedNode<?, ?> nn = rootNode.get();
             if (nn instanceof NormalizedNodeContainer) {
                 @SuppressWarnings("unchecked")
-                final NormalizedNodeContainer<? extends PathArgument, ? extends PathArgument, ? extends NormalizedNode<PathArgument, ?>> nnContainer = (NormalizedNodeContainer<? extends PathArgument, ? extends PathArgument, ? extends NormalizedNode<PathArgument, ?>>) nn;
+                final NormalizedNodeContainer<? extends PathArgument, ? extends PathArgument,
+                        ? extends NormalizedNode<PathArgument, ?>> nnContainer
+                                = (NormalizedNodeContainer<? extends PathArgument,
+                                        ? extends PathArgument, ? extends NormalizedNode<PathArgument, ?>>) nn;
                 for (final NormalizedNode<PathArgument, ?> child : nnContainer.getValue()) {
                     if (isInternalObject(child)) {
                         LOG.debug("Skipping removal of internal dataobject : {}", child.getIdentifier());
@@ -198,7 +202,10 @@ public class ImportTask implements Callable<ImportOperationResult> {
             final NormalizedNode<?, ?> data) throws TransactionCommitFailedException, ReadFailedException {
         if (data instanceof NormalizedNodeContainer) {
             @SuppressWarnings("unchecked")
-            final NormalizedNodeContainer<? extends PathArgument, ? extends PathArgument, ? extends NormalizedNode<YangInstanceIdentifier.PathArgument, ?>> nnContainer = ((NormalizedNodeContainer<? extends PathArgument, ? extends PathArgument, ? extends NormalizedNode<YangInstanceIdentifier.PathArgument, ?>>) data);
+            final NormalizedNodeContainer<? extends PathArgument, ? extends PathArgument,
+                    ? extends NormalizedNode<YangInstanceIdentifier.PathArgument, ?>> nnContainer
+                            = (NormalizedNodeContainer<? extends PathArgument, ? extends PathArgument,
+                                    ? extends NormalizedNode<YangInstanceIdentifier.PathArgument, ?>>) data;
             final Collection<? extends NormalizedNode<YangInstanceIdentifier.PathArgument, ?>> children = nnContainer
                     .getValue();
             for (NormalizedNode<YangInstanceIdentifier.PathArgument, ?> child : children) {

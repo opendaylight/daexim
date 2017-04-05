@@ -11,9 +11,6 @@ package org.opendaylight.daexim.impl.model.internal;
 public class ModelsNotAvailableException extends Exception {
     private static final long serialVersionUID = -2056800159703827029L;
 
-    public ModelsNotAvailableException() {
-    }
-
     public ModelsNotAvailableException(String message) {
         super(message);
     }

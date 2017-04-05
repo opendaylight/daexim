@@ -8,17 +8,15 @@
  */
 package org.opendaylight.daexim.impl;
 
-import org.opendaylight.daexim.spi.NodeNameProvider;
-
 import akka.actor.ActorSystem;
 import akka.cluster.Cluster;
+import org.opendaylight.daexim.spi.NodeNameProvider;
 
 /**
  * Implementation of {@link NodeNameProvider} which uses Akka cluster API to get
- * local cluster member name from ShardManager
- * 
- * @author rkosegi
+ * local cluster member name from ShardManager.
  *
+ * @author rkosegi
  */
 public class AkkaNodeNameProvider implements NodeNameProvider, AutoCloseable {
     private ActorSystem actorSystem;

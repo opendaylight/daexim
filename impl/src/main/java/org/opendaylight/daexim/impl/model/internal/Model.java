@@ -12,12 +12,12 @@ import com.google.gson.annotations.SerializedName;
 
 /**
  * This class represents internal storage structure for Yang model serialized as
- * JSON object
+ * JSON object.
  *
  * @author rkosegi
- *
  */
 public class Model {
+
     private String module;
     private String namespace;
     @SerializedName("revision-date")

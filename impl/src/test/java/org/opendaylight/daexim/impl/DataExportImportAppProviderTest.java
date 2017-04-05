@@ -15,8 +15,10 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.Sets;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermission;
@@ -24,7 +26,6 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -52,12 +53,11 @@ import org.opendaylight.yangtools.yang.model.api.SchemaContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Charsets;
-import com.google.common.collect.Sets;
-
 public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
+
     private static final Logger LOG = LoggerFactory.getLogger(DataExportImportAppProviderTest.class);
     private static Path tempDir;
+
     private DataExportImportAppProvider provider;
     private SchemaContext schemaContext;
     private NodeNameProvider nnp;
@@ -157,7 +157,7 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
         assertTrue(result.isSuccessful());
         for (;;) {
             final StatusExportOutput s = getStatus();
-            if(Status.Scheduled.equals(s.getStatus())) {
+            if (Status.Scheduled.equals(s.getStatus())) {
                 assertNotNull(s.getRunAt());
                 break;
             }
@@ -213,7 +213,7 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
         assertEquals(Status.Complete, provider.statusImport().get().getResult().getStatus());
         // Now, mess-up JSON file, so it fail
         final File f = Util.collectDataFiles().get(LogicalDatastoreType.OPERATIONAL).iterator().next();
-        Files.write(f.toPath(), "some-garbage".getBytes(Charsets.UTF_8));
+        Files.write(f.toPath(), "some-garbage".getBytes(StandardCharsets.UTF_8));
         importResult = provider.immediateImport(
                 new ImmediateImportInputBuilder().setClearStores(DataStoreScope.All).setCheckModels(true).build())
                 .get();
@@ -238,7 +238,7 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
             TimeUnit.MILLISECONDS.sleep(250);
         }
     }
-    
+
     private StatusExportOutput getStatus() throws InterruptedException, ExecutionException {
         return provider.statusExport().get().getResult();
     }

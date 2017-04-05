@@ -12,11 +12,11 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
+import com.google.common.collect.ListMultimap;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -24,32 +24,29 @@ import org.mockito.internal.matchers.EndsWith;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.controller.md.sal.dom.api.DOMDataBroker;
 import org.opendaylight.controller.sal.core.api.model.SchemaService;
-import org.opendaylight.daexim.impl.Callback;
-import org.opendaylight.daexim.impl.ImportTask;
-import org.opendaylight.daexim.impl.Util;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.ImmediateImportInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.ImmediateImportInputBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.ListMultimap;
-
 /**
  * Goal of this test is to ensure that all necessary files are correctly
- * identified and their order is honored during import
- * 
- * @author rkosegi
+ * identified and their order is honored during import.
  *
+ * @author rkosegi
  */
 public class CollectImportFilesTest {
+
     private static final Logger LOG = LoggerFactory.getLogger(CollectImportFilesTest.class);
+
     private Path daeximDir;
     private Path tempDir;
+
     private static final String[] FILE_NAMES = {
-            Util.FILE_PREFIX + LogicalDatastoreType.OPERATIONAL.name().toLowerCase() + ".json",
-            Util.FILE_PREFIX + LogicalDatastoreType.OPERATIONAL.name().toLowerCase() + "_opendaylight-inventory.json",
-            Util.FILE_PREFIX + LogicalDatastoreType.OPERATIONAL.name().toLowerCase()
-                    + "_opendaylight-inventory@2013-08-19.json" };
+        Util.FILE_PREFIX + LogicalDatastoreType.OPERATIONAL.name().toLowerCase() + ".json",
+        Util.FILE_PREFIX + LogicalDatastoreType.OPERATIONAL.name().toLowerCase() + "_opendaylight-inventory.json",
+        Util.FILE_PREFIX + LogicalDatastoreType.OPERATIONAL.name().toLowerCase()
+                + "_opendaylight-inventory@2013-08-19.json" };
 
     @Before
     public void setUp() throws IOException {
