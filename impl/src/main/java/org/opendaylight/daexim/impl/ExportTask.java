@@ -68,7 +68,7 @@ public class ExportTask implements Callable<Void> {
     public ExportTask(final List<ExcludedModules> excludedModules, final DOMDataBroker domDataBroker,
             final SchemaService schemaService, Callback callback) {
         this.domDataBroker = domDataBroker;
-        this.codecFactory = JSONCodecFactory.create(schemaService.getGlobalContext());
+        this.codecFactory = JSONCodecFactory.getShared(schemaService.getGlobalContext());
         this.schemaService = schemaService;
         this.excludedModules = ensureSelfExclusion(excludedModules);
         for (final ExcludedModules em : this.excludedModules) {
