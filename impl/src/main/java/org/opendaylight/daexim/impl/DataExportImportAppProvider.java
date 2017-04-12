@@ -18,7 +18,6 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.io.File;
 import java.util.Collection;
 import java.util.Date;
@@ -43,6 +42,7 @@ import org.opendaylight.controller.md.sal.common.api.data.TransactionCommitFaile
 import org.opendaylight.controller.md.sal.dom.api.DOMDataBroker;
 import org.opendaylight.controller.sal.core.api.model.SchemaService;
 import org.opendaylight.daexim.spi.NodeNameProvider;
+import org.opendaylight.infrautils.utils.concurrent.ThreadFactoryProvider;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.DateAndTime;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.internal.rev160921.Daexim;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.internal.rev160921.DaeximBuilder;
@@ -139,7 +139,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Aut
         });
         checkDatastructures();
         scheduledExecutorService = MoreExecutors.listeningDecorator(Executors.newScheduledThreadPool(10,
-                new ThreadFactoryBuilder().setNameFormat("daexim-scheduler-%d").build()));
+                ThreadFactoryProvider.builder().namePrefix("daexim-scheduler").logger(LOG).build().get()));
         LOG.info("Daexim Session Initiated, running on node '{}'", nodeNameProvider.getNodeName());
     }
 

@@ -24,6 +24,7 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
     <properties>
         <jsonpath.version>2.2.0</jsonpath.version>
         <controller.mdsal.version>1.6.0-SNAPSHOT</controller.mdsal.version>
+        <infrautils.version>1.2.0-SNAPSHOT</infrautils.version>
     </properties>
 
     <build>
@@ -140,6 +141,11 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
             <groupId>org.opendaylight.mdsal.model</groupId>
             <artifactId>ietf-yang-types-20130715</artifactId>
             <scope>provided</scope>
+        </dependency>
+        <dependency>
+          <groupId>org.opendaylight.infrautils</groupId>
+          <artifactId>infrautils-util</artifactId>
+          <version>${infrautils.version}</version>
         </dependency>
 
         <!-- Testing Dependencies -->
