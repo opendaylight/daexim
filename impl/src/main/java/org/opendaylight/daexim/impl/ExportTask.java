@@ -123,6 +123,7 @@ public class ExportTask implements Callable<Void> {
         }
     }
 
+    @SuppressWarnings("resource") // JsonWriter's close() will close new FileWriter
     private JsonWriter createWriter(LogicalDatastoreType type, boolean isModules) throws IOException {
         final String filePath = isModules ? Util.getModelsFilePath().toFile().getAbsolutePath()
                 : Util.getDaeximFilePath(type).toFile().getAbsolutePath();
@@ -201,19 +202,20 @@ public class ExportTask implements Callable<Void> {
             final JsonWriter jsonWriter) throws IOException {
 
         jsonWriter.beginObject();
-        final NormalizedNodeWriter nnWriter = NormalizedNodeWriter.forStreamWriter(
+        try (NormalizedNodeWriter nnWriter = NormalizedNodeWriter.forStreamWriter(
                 JSONNormalizedNodeStreamWriter.createNestedWriter(codecFactory, SchemaPath.ROOT, null, jsonWriter),
-                true);
+                true)) {
 
-        for (final NormalizedNode<?, ?> child : children) {
-            if (!isExcluded(type, child)) {
-                nnWriter.write(child);
-                nnWriter.flush();
-            } else {
-                LOG.info("Node excluded : {}", child.getIdentifier());
+            for (final NormalizedNode<?, ?> child : children) {
+                if (!isExcluded(type, child)) {
+                    nnWriter.write(child);
+                    nnWriter.flush();
+                } else {
+                    LOG.info("Node excluded : {}", child.getIdentifier());
+                }
             }
+            jsonWriter.endObject();
         }
-        jsonWriter.endObject();
     }
 
     private String getDataStoreFromExclusion(ExcludedModules excl) {

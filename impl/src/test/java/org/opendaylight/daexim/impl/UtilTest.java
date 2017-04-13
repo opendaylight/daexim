@@ -55,7 +55,9 @@ public class UtilTest {
 
     private void setPropertyFileContent(String content) throws IOException {
         try (ByteArrayInputStream is = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8))) {
-            ByteStreams.copy(is, new FileOutputStream(etcDir.resolve(CFG_FILE).toFile()));
+            try (FileOutputStream fos = new FileOutputStream(etcDir.resolve(CFG_FILE).toFile())) {
+                ByteStreams.copy(is, fos);
+            }
         }
     }
 

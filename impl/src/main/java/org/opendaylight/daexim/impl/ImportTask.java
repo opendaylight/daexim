@@ -133,13 +133,15 @@ public class ImportTask implements Callable<ImportOperationResult> {
                     final NormalizedNodeContainerBuilder<?, ?, ?, ?> builder = ImmutableContainerNodeBuilder.create()
                             .withNodeIdentifier(new YangInstanceIdentifier.NodeIdentifier(
                                     schemaService.getGlobalContext().getQName()));
-                    final NormalizedNodeStreamWriter writer = ImmutableNormalizedNodeStreamWriter.from(builder);
-                    final JsonParserStream jsonParser = JsonParserStream.create(writer,
-                            schemaService.getGlobalContext());
-                    final JsonReader reader = new JsonReader(new InputStreamReader(is));
-                    jsonParser.parse(reader);
-                    importFromNormalizedNode(rwTrx, type, builder.build());
-                    reader.close();
+                    try (NormalizedNodeStreamWriter writer = ImmutableNormalizedNodeStreamWriter.from(builder)) {
+                        try (JsonParserStream jsonParser = JsonParserStream
+                                .create(writer,schemaService.getGlobalContext())) {
+                            try (JsonReader reader = new JsonReader(new InputStreamReader(is))) {
+                                jsonParser.parse(reader);
+                                importFromNormalizedNode(rwTrx, type, builder.build());
+                            }
+                        }
+                    }
                 }
             }
         }
