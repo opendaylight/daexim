@@ -381,6 +381,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Aut
             outputBuilder.setResult(true);
             return Futures.immediateFuture(RpcResultBuilder.<CancelExportOutput>success(outputBuilder.build()).build());
         } catch (TransactionCommitFailedException e) {
+            LOG.error("cancelExport() failed", e);
             outputBuilder.setResult(false);
             outputBuilder.setReason(e.getMessage());
             return Futures.immediateFuture(
@@ -427,6 +428,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Aut
             return Futures
                     .immediateFuture(RpcResultBuilder.<ScheduleExportOutput>success(outputBuilder.build()).build());
         } catch (TransactionCommitFailedException e) {
+            LOG.error("scheduleExport() failed", e);
             outputBuilder.setResult(false);
             return Futures.immediateFuture(RpcResultBuilder.<ScheduleExportOutput>failed()
                     .withError(ErrorType.APPLICATION, e.getMessage()).withResult(outputBuilder.build()).build());
@@ -460,6 +462,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Aut
             builder.setNodes(tasks);
             return Futures.immediateFuture(RpcResultBuilder.<StatusExportOutput>success(builder.build()).build());
         } catch (ReadFailedException | TransactionCommitFailedException e) {
+            LOG.error("statusExport() failed", e);
             return Futures.immediateFuture(RpcResultBuilder.<StatusExportOutput>failed()
                     .withError(ErrorType.APPLICATION, e.getMessage()).build());
         }
@@ -541,6 +544,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Aut
             builder.setNodes(nodes);
             return Futures.immediateFuture(RpcResultBuilder.<StatusImportOutput>success(builder.build()).build());
         } catch (ReadFailedException | TransactionCommitFailedException e) {
+            LOG.error("statusImport() failed", e);
             return Futures.immediateFuture(RpcResultBuilder.<StatusImportOutput>failed()
                     .withError(ErrorType.APPLICATION, e.getMessage()).build());
         }
