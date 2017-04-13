@@ -185,15 +185,19 @@ module data-export-import {
             }
             enum scheduled {
                 value 1;
-                description "An export or task is scheduled to run.";
+                description "An export or import task is scheduled to run.";
             }
             enum in-progress {
                 value 2;
-                description "An export or task is in progress.";
+                description "An export or import task is in progress.";
             }
             enum complete {
                 value 3;
-                description "An export or task completed successfully.";
+                description "An export or import task completed successfully.";
+            }
+            enum boot-import-in-progress {
+                value 4;
+                description "An automatic-on-boot import is in progress.";
             }
             enum inconsistent {
                 value -1;
@@ -203,7 +207,11 @@ module data-export-import {
             }
             enum failed {
                 value -2;
-                description "An export or task did not complete successfully.";
+                description "An export or import task did not complete successfully.";
+            }
+            enum boot-import-failed {
+                value -3;
+                description "An automatic-on-boot import failed.";
             }
         }
     }

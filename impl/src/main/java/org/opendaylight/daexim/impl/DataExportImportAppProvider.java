@@ -1,12 +1,16 @@
 /*
  * Copyright (C) 2016 AT&T Intellectual Property. All rights reserved.
  * Copyright (c) 2016 Brocade Communications Systems, Inc. All rights reserved.
+ * Copyright (c) 2017 Red Hat, Inc. and others. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html
  */
 package org.opendaylight.daexim.impl;
+
+import static org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType.CONFIGURATION;
+import static org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType.OPERATIONAL;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
@@ -19,9 +23,14 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -36,11 +45,11 @@ import org.opendaylight.controller.md.sal.binding.api.DataTreeIdentifier;
 import org.opendaylight.controller.md.sal.binding.api.DataTreeModification;
 import org.opendaylight.controller.md.sal.binding.api.ReadOnlyTransaction;
 import org.opendaylight.controller.md.sal.binding.api.WriteTransaction;
-import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.controller.md.sal.common.api.data.ReadFailedException;
 import org.opendaylight.controller.md.sal.common.api.data.TransactionCommitFailedException;
 import org.opendaylight.controller.md.sal.dom.api.DOMDataBroker;
 import org.opendaylight.controller.sal.core.api.model.SchemaService;
+import org.opendaylight.daexim.DataImportBootService;
 import org.opendaylight.daexim.spi.NodeNameProvider;
 import org.opendaylight.infrautils.utils.concurrent.ThreadFactoryProvider;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.DateAndTime;
@@ -59,9 +68,12 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.AbsoluteTi
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.CancelExportOutput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.CancelExportOutputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.DataExportImportService;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.DataStoreScope;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.ImmediateImportInput;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.ImmediateImportInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.ImmediateImportOutput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.ImmediateImportOutputBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.OperationStatus;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.ScheduleExportInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.ScheduleExportInput.RunAt;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.ScheduleExportOutput;
@@ -83,11 +95,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Singleton
-public class DataExportImportAppProvider implements DataExportImportService, AutoCloseable {
+public class DataExportImportAppProvider implements DataExportImportService, DataImportBootService, AutoCloseable {
 
     private static final Logger LOG = LoggerFactory.getLogger(DataExportImportAppProvider.class);
 
-    private static final String LOG_MSG_SCHEDULING_EXPORT = "Scheduling export at %s, which is %d seconds in future";
+    private static final String LOG_MSG_SCHEDULING_EXPORT
+        = "Scheduling export at %s, which is %d seconds in the future";
 
     private final DataBroker dataBroker;
     private final DOMDataBroker domDataBroker;
@@ -129,7 +142,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Aut
         ipcII = InstanceIdentifier.create(Daexim.class).child(DaeximControl.class);
         nodeStatusII = InstanceIdentifier.create(Daexim.class).child(DaeximStatus.class).child(NodeStatus.class,
                 new NodeStatusKey(nodeNameProvider.getNodeName()));
-        ipcDTC = new DataTreeIdentifier<>(LogicalDatastoreType.OPERATIONAL, ipcII);
+        ipcDTC = new DataTreeIdentifier<>(OPERATIONAL, ipcII);
         dataBroker.registerDataTreeChangeListener(ipcDTC, (ClusteredDataTreeChangeListener<DaeximControl>) changes -> {
             try {
                 ipcHandler(changes);
@@ -141,12 +154,78 @@ public class DataExportImportAppProvider implements DataExportImportService, Aut
         scheduledExecutorService = MoreExecutors.listeningDecorator(Executors.newScheduledThreadPool(10,
                 ThreadFactoryProvider.builder().namePrefix("daexim-scheduler").logger(LOG).build().get()));
         LOG.info("Daexim Session Initiated, running on node '{}'", nodeNameProvider.getNodeName());
+
+        final File bootImportConfigurationDataFile = Util.getDaeximFilePath(true, CONFIGURATION).toFile();
+        final File bootImportOperationalDataFile = Util.getDaeximFilePath(true, OPERATIONAL).toFile();
+        LOG.info("Checking for presence of boot import data files ({}, {})",
+                bootImportConfigurationDataFile, bootImportOperationalDataFile);
+        if (bootImportOperationalDataFile.exists() || bootImportConfigurationDataFile.exists()) {
+            LOG.info("Daexim found files to import on boot...");
+            updateImportStatus(Status.BootImportInProgress);
+            Futures.addCallback(immediateImport(new ImmediateImportInputBuilder()
+                    .setCheckModels(true)
+                    .setClearStores(DataStoreScope.None)
+                .build(),
+                true), new FutureCallback<RpcResult<ImmediateImportOutput>>() {
+
+                    @Override
+                    public void onSuccess(RpcResult<ImmediateImportOutput> result) {
+                        if (!result.isSuccessful()
+                                || !result.getErrors().isEmpty()
+                                || !result.getResult().isResult()) {
+                            failed(null);
+                            return;
+                        } else {
+                            renameBootImportFiles();
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Throwable throwable) {
+                        failed(throwable);
+                    }
+
+                    private void failed(Throwable throwable) {
+                        renameBootImportFiles();
+                        if (throwable != null) {
+                            LOG.warn("Daexim import on boot failed :(", throwable);
+                        } else {
+                            LOG.warn("Daexim import on boot failed :(");
+                        }
+                    }
+                }, MoreExecutors.directExecutor());
+        }
+    }
+
+    private void renameBootImportFiles() {
+        boolean renamedAtLeastOneFile = false;
+        renamedAtLeastOneFile = renameFile(Util.getModelsFilePath(true));
+        renamedAtLeastOneFile |= renameFile(Util.getDaeximFilePath(true, CONFIGURATION));
+        renamedAtLeastOneFile |= renameFile(Util.getDaeximFilePath(true, OPERATIONAL));
+        if (renamedAtLeastOneFile) {
+            // LOG level warn instead of info just so that this message is logged in production where info may disabled
+            LOG.warn("Daexim import on boot succesfully completed; renamed files to prevent re-import on next boot");
+        }
+    }
+
+    private boolean renameFile(Path file) {
+        try {
+            if (file.toFile().exists()) {
+                Files.move(file,
+                        file.resolveSibling(file.getFileName().toString() + ".imported"),
+                        StandardCopyOption.ATOMIC_MOVE);
+            }
+            return true;
+        } catch (IOException e) {
+            LOG.error("Failed to rename file: {}", file.toString(), e);
+            return false;
+        }
     }
 
     private void checkDatastructures() {
         final ReadOnlyTransaction roTrx = dataBroker.newReadOnlyTransaction();
         try {
-            if (roTrx.read(LogicalDatastoreType.OPERATIONAL, globalStatusII).checkedGet().orNull() == null) {
+            if (roTrx.read(OPERATIONAL, globalStatusII).checkedGet().orNull() == null) {
                 rebuildGlobalStatus();
             } else {
                 updateNodeStatus();
@@ -166,7 +245,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Aut
                 .setImportStatus(importStatus).setNodeStatus(Lists.<NodeStatus>newArrayList(createNodeStatusData()))
                 .build();
         final WriteTransaction wTrx = dataBroker.newWriteOnlyTransaction();
-        wTrx.put(LogicalDatastoreType.OPERATIONAL, topII, new DaeximBuilder().setDaeximStatus(globalStatus).build());
+        wTrx.put(OPERATIONAL, topII, new DaeximBuilder().setDaeximStatus(globalStatus).build());
         wTrx.submit().checkedGet();
         return globalStatus;
     }
@@ -182,20 +261,17 @@ public class DataExportImportAppProvider implements DataExportImportService, Aut
             if (IpcType.Schedule.equals(newTask.getTaskType())) {
                 // Schedule
                 updateExportStatus(Status.Scheduled);
-                updateNodeStatus();
                 long scheduleAtTimestamp = Util.parseDate(newTask.getRunAt().getValue()).getTime();
                 exportSchedule = scheduledExecutorService.schedule(
                         new ExportTask(newTask.getIncludedModules(), newTask.getExcludedModules(),
                                 domDataBroker, schemaService, () -> {
                             updateExportStatus(Status.InProgress);
-                            updateNodeStatus();
                         }), scheduleAtTimestamp - System.currentTimeMillis(), TimeUnit.MILLISECONDS);
                 Futures.addCallback(exportSchedule, new FutureCallback<Void>() {
                     @Override
                     public void onSuccess(Void result) {
                         exportFailure = null;
                         updateExportStatus(Status.Complete);
-                        updateNodeStatus();
                         LOG.info("Export task success");
                     }
 
@@ -207,7 +283,6 @@ public class DataExportImportAppProvider implements DataExportImportService, Aut
                             LOG.error("Export failed", throwable);
                             exportFailure = throwable.getMessage();
                             updateExportStatus(Status.Failed);
-                            updateNodeStatus();
                         }
                     }
                 });
@@ -221,7 +296,6 @@ public class DataExportImportAppProvider implements DataExportImportService, Aut
                 // Cancel/Unschedule
                 cancelScheduleInternal();
                 updateExportStatus(newStatus);
-                updateNodeStatus();
                 return;
             }
         }
@@ -232,7 +306,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Aut
      */
     private void invokeIPC(DaeximControl ctl) throws TransactionCommitFailedException {
         final WriteTransaction wTrx = dataBroker.newWriteOnlyTransaction();
-        wTrx.put(LogicalDatastoreType.OPERATIONAL, ipcII, ctl);
+        wTrx.put(OPERATIONAL, ipcII, ctl);
         wTrx.submit().checkedGet();
     }
 
@@ -241,7 +315,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Aut
      */
     private void updateNodeStatus() {
         final WriteTransaction wTrx = dataBroker.newWriteOnlyTransaction();
-        wTrx.put(LogicalDatastoreType.OPERATIONAL, nodeStatusII, createNodeStatusData());
+        wTrx.put(OPERATIONAL, nodeStatusII, createNodeStatusData());
         try {
             wTrx.submit().checkedGet();
         } catch (TransactionCommitFailedException e) {
@@ -252,10 +326,10 @@ public class DataExportImportAppProvider implements DataExportImportService, Aut
     private NodeStatus createNodeStatusData() {
         final NodeStatusBuilder nsb = new NodeStatusBuilder().setExportStatus(exportStatus)
                 .setExportResult(exportFailure).setImportStatus(importStatus).setImportResult(importFailure)
-                .setDataFiles(Lists.transform(Lists.newArrayList(Util.collectDataFiles().values()),
+                .setDataFiles(Lists.transform(Lists.newArrayList(Util.collectDataFiles(false).values()),
                         File::getAbsolutePath))
                 .setNodeName(nodeNameProvider.getNodeName())
-                .setModelFile(Util.isModelFilePresent() ? Util.getModelsFilePath().toString() : null);
+                .setModelFile(Util.isModelFilePresent(false) ? Util.getModelsFilePath(false).toString() : null);
         nsb.setLastExportChange(
                 lastExportChanged != -1 ? new AbsoluteTime(Util.toDateAndTime(new Date(lastExportChanged))) : null);
         nsb.setLastImportChange(
@@ -268,7 +342,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Aut
     private DaeximControl readDaeximControl() throws ReadFailedException {
         final ReadOnlyTransaction roTrx = dataBroker.newReadOnlyTransaction();
         try {
-            return roTrx.read(LogicalDatastoreType.OPERATIONAL, ipcII).checkedGet().orNull();
+            return roTrx.read(OPERATIONAL, ipcII).checkedGet().orNull();
         } finally {
             roTrx.close();
         }
@@ -281,7 +355,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Aut
         final ReadOnlyTransaction roTrx = dataBroker.newReadOnlyTransaction();
         try {
             // After restore, our top level elements are gone
-            final Optional<DaeximStatus> opt = roTrx.read(LogicalDatastoreType.OPERATIONAL, globalStatusII)
+            final Optional<DaeximStatus> opt = roTrx.read(OPERATIONAL, globalStatusII)
                     .checkedGet();
             if (opt.isPresent()) {
                 return opt.get();
@@ -383,7 +457,9 @@ public class DataExportImportAppProvider implements DataExportImportService, Aut
     @Override
     @PreDestroy
     public void close() {
-        scheduledExecutorService.shutdownNow();
+        if (scheduledExecutorService != null) {
+            scheduledExecutorService.shutdownNow();
+        }
         LOG.info("{} closed", getClass().getSimpleName());
     }
 
@@ -416,6 +492,8 @@ public class DataExportImportAppProvider implements DataExportImportService, Aut
      */
     @Override
     public Future<RpcResult<ScheduleExportOutput>> scheduleExport(ScheduleExportInput input) {
+        Objects.requireNonNull(input, "input");
+        awaitBootImport("DataExportImport.scheduleExport()");
         long scheduleAtTimestamp;
         final ScheduleExportOutputBuilder outputBuilder = new ScheduleExportOutputBuilder();
         final RunAt runAt = input.getRunAt();
@@ -433,7 +511,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Aut
             logMsg = String.format(LOG_MSG_SCHEDULING_EXPORT, runAt.getAbsoluteTime().getValue(),
                     (scheduleAtTimestamp - System.currentTimeMillis()) / 1000);
         }
-        // verify that we are not trying to schedule in past
+        // verify that we are not trying to schedule in the past
         if (scheduleAtTimestamp < System.currentTimeMillis()) {
             return Futures.immediateFuture(RpcResultBuilder.<ScheduleExportOutput>failed()
                     .withError(ErrorType.PROTOCOL, "Attempt to schedule export in past").build());
@@ -496,32 +574,44 @@ public class DataExportImportAppProvider implements DataExportImportService, Aut
      */
     @Override
     public Future<RpcResult<ImmediateImportOutput>> immediateImport(ImmediateImportInput input) {
+        Objects.requireNonNull(input, "input");
+        awaitBootImport("DataExportImport.immediateImport()");
+        return immediateImport(input, false);
+    }
+
+    private ListenableFuture<RpcResult<ImmediateImportOutput>> immediateImport(
+            ImmediateImportInput input, boolean isBooting) {
         final ListenableFuture<ImportOperationResult> f = scheduledExecutorService
-                .submit(new ImportTask(input, domDataBroker, schemaService, () -> {
-                    updateImportStatus(Status.InProgress);
-                    updateNodeStatus();
+                .submit(new ImportTask(input, domDataBroker, schemaService, isBooting, () -> {
+                    if (!isBooting) {
+                        // if isBooting then we've set another status before calling this
+                        // (it's important that happens immediately, without waiting for the Executor)
+                        updateImportStatus(Status.InProgress);
+                    }
                 }));
         Futures.addCallback(f, new FutureCallback<ImportOperationResult>() {
             @Override
             public void onSuccess(ImportOperationResult result) {
                 LOG.info("Restore operation finished : {}", result);
                 if (!result.isResult()) {
-                    updateImportStatus(Status.Failed);
                     importFailure = result.getReason();
+                    if (isBooting) {
+                        updateImportStatus(Status.BootImportFailed);
+                    } else {
+                        updateImportStatus(Status.Failed);
+                    }
                 } else {
                     lastImportTimestamp = System.currentTimeMillis();
                     updateImportStatus(Status.Complete);
                 }
-                updateNodeStatus();
             }
 
             @Override
             public void onFailure(Throwable throwable) {
                 LOG.info("Restore operation failed", throwable);
                 lastImportTimestamp = -1;
-                updateImportStatus(Status.Failed);
                 importFailure = throwable.getMessage();
-                updateNodeStatus();
+                updateImportStatus(Status.Failed);
             }
         });
         return Futures.transform(f, (Function<ImportOperationResult, RpcResult<ImmediateImportOutput>>) input1 -> {
@@ -533,6 +623,33 @@ public class DataExportImportAppProvider implements DataExportImportService, Aut
             }
             return RpcResultBuilder.<ImmediateImportOutput>success(output.build()).build();
         });
+    }
+
+    @Override
+    public OperationStatus statusImportOnLocalNode() {
+        return new StatusImportOutputBuilder().setStatus(importStatus).setReason(importFailure).build();
+    }
+
+    @Override
+    public void awaitBootImport(String blockingWhat) throws IllegalStateException {
+        if (Status.BootImportFailed.equals(importStatus)) {
+            throw new IllegalStateException(importFailure);
+        } else if (Status.BootImportInProgress.equals(importStatus)) {
+            while (Status.BootImportInProgress.equals(importStatus)) {
+                LOG.warn("awaitBootImport() blocking {}, waiting 5s more...", blockingWhat);
+                try {
+                    Thread.sleep(5000);
+                } catch (InterruptedException e) {
+                    LOG.error("awaitBootImport() boot-import-in-progress InterruptedException "
+                            + "- import not finished, returning anyway", e);
+                    return;
+                }
+            }
+            // recursive self invocation just to avoid copy/paste of BootImportFailed handling
+            awaitBootImport(blockingWhat);
+        } else {
+            return;
+        }
     }
 
     /**
@@ -578,6 +695,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Aut
             lastExportChanged = System.currentTimeMillis();
             LOG.debug("Export status transition from {} to {} at {}", exportStatus, newStatus, lastExportChanged);
             exportStatus = newStatus;
+            updateNodeStatus();
         }
     }
 
@@ -586,6 +704,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Aut
             lastImportChanged = System.currentTimeMillis();
             LOG.debug("Import status transition from {} to {} at {}", importStatus, newStatus, lastImportChanged);
             importStatus = newStatus;
+            updateNodeStatus();
         }
     }
 

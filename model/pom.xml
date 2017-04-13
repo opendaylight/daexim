@@ -28,7 +28,7 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
                 <configuration>
                     <instructions>
                         <Import-Package>*</Import-Package>
-                        <Export-Package>org.opendaylight.yang.gen.v1.urn.opendaylight.daexim*</Export-Package>
+                        <Export-Package>org.opendaylight.daexim,org.opendaylight.yang.gen.v1.urn.opendaylight.daexim*</Export-Package>
                     </instructions>
                 </configuration>
             </plugin>

@@ -17,6 +17,7 @@ import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.gson.stream.JsonWriter;
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Collection;
@@ -129,8 +130,8 @@ public class ExportTask implements Callable<Void> {
 
     @SuppressWarnings("resource") // JsonWriter's close() will close new FileWriter
     private JsonWriter createWriter(LogicalDatastoreType type, boolean isModules) throws IOException {
-        final String filePath = isModules ? Util.getModelsFilePath().toFile().getAbsolutePath()
-                : Util.getDaeximFilePath(type).toFile().getAbsolutePath();
+        final File filePath = isModules ? Util.getModelsFilePath(false).toFile()
+                : Util.getDaeximFilePath(false, type).toFile();
         LOG.info("Creating JSON file : {}", filePath);
         return new JsonWriter(new FileWriter(filePath));
     }

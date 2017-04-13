@@ -1,6 +1,7 @@
 /*
  * Copyright (C) 2016 AT&T Intellectual Property. All rights reserved.
  * Copyright (c) 2016 Brocade Communications Systems, Inc. All rights reserved.
+ * Copyright (c) 2017 Red Hat, Inc. and others. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
@@ -12,25 +13,27 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType.OPERATIONAL;
 
 import com.google.common.collect.Sets;
+import com.google.common.io.Resources;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermission;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import org.apache.commons.io.FileUtils;
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
+import org.opendaylight.controller.md.sal.binding.api.ReadOnlyTransaction;
 import org.opendaylight.controller.md.sal.binding.test.AbstractDataBrokerTest;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.controller.sal.core.api.model.SchemaService;
@@ -47,6 +50,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.ScheduleEx
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.Status;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.StatusExportOutput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.StatusImportOutput;
+import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.Topology;
 import org.opendaylight.yangtools.yang.common.RpcError;
 import org.opendaylight.yangtools.yang.common.RpcResult;
 import org.opendaylight.yangtools.yang.model.api.SchemaContext;
@@ -56,29 +60,34 @@ import org.slf4j.LoggerFactory;
 public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
 
     private static final Logger LOG = LoggerFactory.getLogger(DataExportImportAppProviderTest.class);
-    private static Path tempDir;
 
+    private Path tempDir;
     private DataExportImportAppProvider provider;
     private SchemaContext schemaContext;
     private NodeNameProvider nnp;
 
-    @BeforeClass
-    public static void setupBeforeClass() throws IOException {
+    @Before
+    public void setUp() throws IOException {
         tempDir = Files.createTempDirectory("daexim-test-tmp");
         System.setProperty("karaf.home", tempDir.toString());
         LOG.info("Dump directory : {}", tempDir);
+
+        nnp = mock(NodeNameProvider.class);
+        when(nnp.getNodeName()).thenReturn("localhost");
+        SchemaService schemaService = mock(SchemaService.class);
+        when(schemaService.getGlobalContext()).thenReturn(schemaContext);
+        provider = new DataExportImportAppProvider(getDataBroker(), getDomBroker(), schemaService, nnp);
+        // Do NOT provider.init(); just yet; let each @Test do it;
+        // that is because, in some tests, we want to do something before..
     }
 
-    @AfterClass
-    public static void tearDownAfterClass() throws IOException {
-        for (final File f : Arrays.asList(tempDir.resolve(Util.DAEXIM_DIR).toFile().listFiles())) {
-            if (!f.isDirectory()) {
-                LOG.info("Removing file : {}", f);
-                Files.delete(f.toPath());
-            }
-        }
-        Files.delete(tempDir.resolve(Util.DAEXIM_DIR));
-        Files.delete(tempDir);
+    @After
+    public void tearDown() throws IOException {
+        Files.setPosixFilePermissions(tempDir.resolve(Util.DAEXIM_DIR), Sets.<PosixFilePermission>newHashSet(
+                PosixFilePermission.OWNER_EXECUTE,PosixFilePermission.OWNER_READ,PosixFilePermission.OWNER_WRITE
+                ));
+        FileUtils.deleteDirectory(tempDir.toFile());
+        provider.close();
     }
 
     @Override
@@ -87,26 +96,9 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
         this.schemaContext = context;
     }
 
-    @Before
-    public void setUp() throws Exception {
-        nnp = mock(NodeNameProvider.class);
-        when(nnp.getNodeName()).thenReturn("localhost");
-        SchemaService schemaService = mock(SchemaService.class);
-        when(schemaService.getGlobalContext()).thenReturn(schemaContext);
-        provider = new DataExportImportAppProvider(getDataBroker(), getDomBroker(), schemaService, nnp);
-        provider.init();
-    }
-
-    @After
-    public void tearDown() throws IOException {
-        Files.setPosixFilePermissions(tempDir.resolve(Util.DAEXIM_DIR), Sets.<PosixFilePermission>newHashSet(
-                PosixFilePermission.OWNER_EXECUTE,PosixFilePermission.OWNER_READ,PosixFilePermission.OWNER_WRITE
-                ));
-        provider.close();
-    }
-
     @Test(timeout = 15000)
     public void testExportStatusRPC() throws InterruptedException, ExecutionException {
+        provider.init();
         final RpcResult<StatusExportOutput> result = provider.statusExport().get();
         LOG.info("RPC result : {}", result);
         assertTrue(result.isSuccessful());
@@ -114,6 +106,7 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
 
     @Test(timeout = 15000)
     public void testImportStatusRPC() throws InterruptedException, ExecutionException {
+        provider.init();
         final RpcResult<StatusImportOutput> result = provider.statusImport().get();
         LOG.info("RPC result : {}", result);
         assertTrue(result.isSuccessful());
@@ -121,6 +114,7 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
 
     @Test(timeout = 15000)
     public void testScheduleMissingInfoRPC() throws InterruptedException, ExecutionException {
+        provider.init();
         final RpcResult<ScheduleExportOutput> result = provider.scheduleExport(new ScheduleExportInputBuilder().build())
                 .get();
         LOG.info("RPC result : {}", result);
@@ -131,6 +125,7 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
 
     @Test(timeout = 15000)
     public void testScheduleRelativeRPC() throws InterruptedException, ExecutionException {
+        provider.init();
         final RpcResult<ScheduleExportOutput> result = provider
                 .scheduleExport(new ScheduleExportInputBuilder().setRunAt(new RunAt(new RelativeTime(10L))).build())
                 .get();
@@ -146,11 +141,12 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
 
     @Test(timeout = 15000)
     public void testScheduleAbsoluteRPC() throws InterruptedException, ExecutionException {
+        provider.init();
         final RpcResult<ScheduleExportOutput> result = provider.scheduleExport(new ScheduleExportInputBuilder()
                 .setRunAt(new RunAt(new AbsoluteTime(Util.toDateAndTime(new Date(System.currentTimeMillis() + 5000)))))
                 .build()).get();
         LOG.info("[Schedule absolute] RPC result : {}", result);
-        assertTrue(result.isSuccessful());
+        assertTrue(result.toString(), result.isSuccessful());
         for (;;) {
             final StatusExportOutput s = getStatus();
             if (Status.Scheduled.equals(s.getStatus())) {
@@ -163,6 +159,7 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
 
     @Test(timeout = 15000)
     public void testCancelRPC() throws InterruptedException, ExecutionException {
+        provider.init();
         final RpcResult<ScheduleExportOutput> result = provider
                 .scheduleExport(new ScheduleExportInputBuilder().setRunAt(new RunAt(new RelativeTime(10000L))).build())
                 .get();
@@ -189,6 +186,7 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
 
     @Test(timeout = 15000)
     public void testImportRPC() throws InterruptedException, ExecutionException, IOException {
+        provider.init();
         final RpcResult<ScheduleExportOutput> result = provider
                 .scheduleExport(
                         new ScheduleExportInputBuilder().setRunAt(new RunAt(new RunAt(new RelativeTime(500L)))).build())
@@ -207,8 +205,8 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
                 .get();
         LOG.info("RPC result : {}", importResult);
         assertEquals(Status.Complete, provider.statusImport().get().getResult().getStatus());
-        // Now, mess-up JSON file, so it fail
-        final File f = Util.collectDataFiles().get(LogicalDatastoreType.OPERATIONAL).iterator().next();
+        // Now, mess-up JSON file, so it fails
+        final File f = Util.collectDataFiles(false).get(LogicalDatastoreType.OPERATIONAL).iterator().next();
         Files.write(f.toPath(), "some-garbage".getBytes(StandardCharsets.UTF_8));
         importResult = provider.immediateImport(
                 new ImmediateImportInputBuilder().setClearStores(DataStoreScope.All).setCheckModels(true).build())
@@ -217,8 +215,84 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
         assertEquals(Status.Failed, provider.statusImport().get().getResult().getStatus());
     }
 
+    /**
+     * Tests the "auto-import-on-boot" feature.
+     */
+    @Test
+    public void testImportOnBoot() throws Exception {
+        // Given
+        Resources.asByteSource(Resources.getResource("odl_backup_models.json"))
+            .copyTo(com.google.common.io.Files.asByteSink(Util.getModelsFilePath(true).toFile()));
+        File bootImportFile = Util.getDaeximFilePath(true, OPERATIONAL).toFile();
+        Resources.asByteSource(Resources.getResource("odl_backup_operational.json"))
+            .copyTo(com.google.common.io.Files.asByteSink(bootImportFile));
+
+        // When
+        provider.init();
+        provider.awaitBootImport("DataExportImportAppProviderTest.testImportOnBoot");
+
+        // Then
+        try (ReadOnlyTransaction tx = getDataBroker().newReadOnlyTransaction()) {
+            Topology topo = tx.read(OPERATIONAL, TestBackupData.TOPOLOGY_II).get().get();
+            assertEquals(TestBackupData.TOPOLGY_ID, topo.getTopologyId());
+        }
+        // Check that import-on-boot renamed processed file, to avoid continous re-import on every boot
+        assertFalse(bootImportFile.exists());
+    }
+
+    @Test
+    public void testImportOnBootWithNoFilesShouldNotBlockAwait() {
+        // Given nothing to auto-import-on-boot, await should immediately return
+        provider.init();
+        provider.awaitBootImport("DataExportImportAppProviderTest.testImportOnBootWithNoFilesShouldNotBlockAwait");
+    }
+
+    @Test
+    public void testImportOnBootWithBrokenJSON() throws Exception {
+        // Given
+        Resources.asByteSource(Resources.getResource("odl_backup_models.json"))
+            .copyTo(com.google.common.io.Files.asByteSink(Util.getModelsFilePath(true).toFile()));
+        File bootImportFile = Util.getDaeximFilePath(true, OPERATIONAL).toFile();
+        Files.write(bootImportFile.toPath(), "some-garbage".getBytes(StandardCharsets.UTF_8));
+
+        // When
+        provider.init();
+        try {
+            provider.awaitBootImport("DataExportImportAppProviderTest.testImportOnBootWithBrokenJSON");
+            fail("expected IllegalStateException");
+        } catch (IllegalStateException e) {
+            // OK, that's the expected outcome
+        }
+
+        // Check that even a failed import-on-boot renamed processed file,
+        // to avoid continuous re-import on every boot in case of failures
+        assertFalse(bootImportFile.exists());
+    }
+
+    @Test
+    public void testImportOnBootWithMissingModelsFile() throws Exception {
+        // Given
+        File bootImportFile = Util.getDaeximFilePath(true, OPERATIONAL).toFile();
+        Resources.asByteSource(Resources.getResource("odl_backup_operational.json"))
+            .copyTo(com.google.common.io.Files.asByteSink(bootImportFile));
+
+        // When
+        provider.init();
+        try {
+            provider.awaitBootImport("DataExportImportAppProviderTest.testImportOnBootWithMissingModelsFile");
+            fail("expected IllegalStateException");
+        } catch (IllegalStateException e) {
+            // OK, that's the expected outcome
+        }
+
+        // Check that import-on-boot renamed processed file,
+        // to avoid continuous re-import on every boot in case of failures
+        assertFalse(bootImportFile.exists());
+    }
+
     @Test
     public void testExportWithPermissionDenied() throws IOException, InterruptedException, ExecutionException {
+        provider.init();
         Files.setPosixFilePermissions(tempDir.resolve(Util.DAEXIM_DIR), Sets.<PosixFilePermission>newHashSet());
         final RpcResult<ScheduleExportOutput> result = provider
                 .scheduleExport(new ScheduleExportInputBuilder().setRunAt(new RunAt(new RelativeTime(10L))).build())

@@ -126,7 +126,7 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
     private ImportOperationResult runRestore(ImmediateImportInput input) throws Exception {
         final ImportTask rt = new ImportTask(
                 new ImmediateImportInputBuilder().setClearStores(DataStoreScope.All).setCheckModels(true).build(),
-                getDomBroker(), schemaService, mock(Callback.class));
+                getDomBroker(), schemaService, false, mock(Callback.class));
         return rt.call();
     }
 
@@ -153,7 +153,7 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
         doReturn(schemaContext).when(schemaService).getGlobalContext();
         final ImportTask rt = new ImportTask(
                 new ImmediateImportInputBuilder().setClearStores(DataStoreScope.All).setCheckModels(true).build(),
-                getDomBroker(), schemaService, mock(Callback.class));
+                getDomBroker(), schemaService, false, mock(Callback.class));
         final ImportOperationResult result = rt.call();
         assertTrue(result.getReason(), result.isResult());
         final DOMDataReadOnlyTransaction roTrx = getDomBroker().newReadOnlyTransaction();
