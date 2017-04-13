@@ -384,7 +384,10 @@ public class DataExportImportAppProvider implements DataExportImportService, Aut
             outputBuilder.setResult(false);
             outputBuilder.setReason(e.getMessage());
             return Futures.immediateFuture(
-                    RpcResultBuilder.<CancelExportOutput>failed().withResult(outputBuilder.build()).build());
+                    RpcResultBuilder.<CancelExportOutput>failed()
+                        .withResult(outputBuilder.build())
+                        .withError(ErrorType.APPLICATION, e.getMessage(), e)
+                        .build());
         }
     }
 
@@ -429,7 +432,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Aut
         } catch (TransactionCommitFailedException e) {
             outputBuilder.setResult(false);
             return Futures.immediateFuture(RpcResultBuilder.<ScheduleExportOutput>failed()
-                    .withError(ErrorType.APPLICATION, e.getMessage()).withResult(outputBuilder.build()).build());
+                    .withError(ErrorType.APPLICATION, e.getMessage(), e).withResult(outputBuilder.build()).build());
 
         }
     }
@@ -461,7 +464,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Aut
             return Futures.immediateFuture(RpcResultBuilder.<StatusExportOutput>success(builder.build()).build());
         } catch (ReadFailedException | TransactionCommitFailedException e) {
             return Futures.immediateFuture(RpcResultBuilder.<StatusExportOutput>failed()
-                    .withError(ErrorType.APPLICATION, e.getMessage()).build());
+                    .withError(ErrorType.APPLICATION, e.getMessage(), e).build());
         }
     }
 
@@ -542,7 +545,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Aut
             return Futures.immediateFuture(RpcResultBuilder.<StatusImportOutput>success(builder.build()).build());
         } catch (ReadFailedException | TransactionCommitFailedException e) {
             return Futures.immediateFuture(RpcResultBuilder.<StatusImportOutput>failed()
-                    .withError(ErrorType.APPLICATION, e.getMessage()).build());
+                    .withError(ErrorType.APPLICATION, e.getMessage(), e).build());
         }
     }
 
