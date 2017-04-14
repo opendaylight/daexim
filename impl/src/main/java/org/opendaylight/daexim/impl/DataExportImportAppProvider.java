@@ -385,7 +385,10 @@ public class DataExportImportAppProvider implements DataExportImportService, Aut
             outputBuilder.setResult(false);
             outputBuilder.setReason(e.getMessage());
             return Futures.immediateFuture(
-                    RpcResultBuilder.<CancelExportOutput>failed().withResult(outputBuilder.build()).build());
+                    RpcResultBuilder.<CancelExportOutput>failed()
+                        .withResult(outputBuilder.build())
+                        .withError(ErrorType.APPLICATION, e.getMessage(), e)
+                        .build());
         }
     }
 
@@ -431,7 +434,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Aut
             LOG.error("scheduleExport() failed", e);
             outputBuilder.setResult(false);
             return Futures.immediateFuture(RpcResultBuilder.<ScheduleExportOutput>failed()
-                    .withError(ErrorType.APPLICATION, e.getMessage()).withResult(outputBuilder.build()).build());
+                    .withError(ErrorType.APPLICATION, e.getMessage(), e).withResult(outputBuilder.build()).build());
 
         }
     }
@@ -464,7 +467,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Aut
         } catch (ReadFailedException | TransactionCommitFailedException e) {
             LOG.error("statusExport() failed", e);
             return Futures.immediateFuture(RpcResultBuilder.<StatusExportOutput>failed()
-                    .withError(ErrorType.APPLICATION, e.getMessage()).build());
+                    .withError(ErrorType.APPLICATION, e.getMessage(), e).build());
         }
     }
 
@@ -546,7 +549,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Aut
         } catch (ReadFailedException | TransactionCommitFailedException e) {
             LOG.error("statusImport() failed", e);
             return Futures.immediateFuture(RpcResultBuilder.<StatusImportOutput>failed()
-                    .withError(ErrorType.APPLICATION, e.getMessage()).build());
+                    .withError(ErrorType.APPLICATION, e.getMessage(), e).build());
         }
     }
 
