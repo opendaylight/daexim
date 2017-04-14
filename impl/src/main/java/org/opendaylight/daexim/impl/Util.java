@@ -37,8 +37,12 @@ import java.util.TimeZone;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.daexim.impl.model.internal.Model;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.DateAndTime;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class Util {
+
+    private static final Logger LOG = LoggerFactory.getLogger(Util.class);
 
     private static final TimeZone TZ_UTC = TimeZone.getTimeZone("UTC");
     private static final String[] DATE_AND_TIME_FORMATS = {
@@ -87,9 +91,11 @@ public final class Util {
             if (props.containsKey(DAEXIM_DIR_PROP)) {
                 return props.getProperty(DAEXIM_DIR_PROP);
             } else {
+                // This is caught immediately below (only; NOT propagated)
                 throw new IOException("Property '" + DAEXIM_DIR_PROP + "' was not found");
             }
         } catch (IOException e) {
+            LOG.error("Failed to load property file: {}", propFile, e);
             return interpolateProp(DEFAULT_DIR_LOCATION, "karaf.home", "." + File.separatorChar + DAEXIM_DIR);
         }
     }

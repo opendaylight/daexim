@@ -82,6 +82,7 @@ public class ImportTask implements Callable<ImportOperationResult> {
             importInternal();
             return new ImportOperationResultBuilder().setResult(true).build();
         } catch (Exception exception) {
+            LOG.error("ImportTask failed", exception);
             return new ImportOperationResultBuilder().setResult(false).setReason(exception.getMessage()).build();
         }
     }
