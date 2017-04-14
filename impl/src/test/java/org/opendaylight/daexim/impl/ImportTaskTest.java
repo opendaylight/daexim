@@ -41,10 +41,8 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.ImmediateI
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NetworkTopology;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NetworkTopologyBuilder;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
-import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.TopologyId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.Topology;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.TopologyBuilder;
-import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.TopologyKey;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.Node;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.NodeBuilder;
 import org.opendaylight.yangtools.yang.binding.DataObject;
@@ -61,7 +59,6 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
 
     private static final Logger LOG = LoggerFactory.getLogger(ImportTaskTest.class);
 
-    private static final String TOPO_ID = "topo-id";
     private static final String OLD_NODE_ID = "node-id-5";
 
     private DOMSchemaService schemaService;
@@ -82,12 +79,14 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
         Files.createDirectory(tmpDir.resolve(Util.DAEXIM_DIR));
         System.setProperty("karaf.home", tmpDir.toString());
         LOG.info("Created temp directory : {}", tmpDir);
+
         modelsFile = Files.createFile(tmpDir.resolve(Util.DAEXIM_DIR).resolve(Util.FILE_PREFIX + "models.json"));
         opDataFile = Files.createFile(tmpDir.resolve(Util.DAEXIM_DIR).resolve(Util.FILE_PREFIX + "operational.json"));
         ByteStreams.copy(this.getClass().getResourceAsStream('/' + Util.FILE_PREFIX + "models.json"),
                 Files.newOutputStream(modelsFile, StandardOpenOption.TRUNCATE_EXISTING));
         ByteStreams.copy(this.getClass().getResourceAsStream('/' + Util.FILE_PREFIX + "operational.json"),
                 Files.newOutputStream(opDataFile, StandardOpenOption.TRUNCATE_EXISTING));
+
         LOG.info("Copied models file to  : {}", modelsFile);
         System.setProperty("java.io.tmpdir", tmpDir.toString());
         schemaService = mock(DOMSchemaService.class);
@@ -138,11 +137,8 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
     }
 
     private <D extends DataObject> D readData(InstanceIdentifier<D> ii) throws ReadFailedException {
-        ReadOnlyTransaction roTrx = getDataBroker().newReadOnlyTransaction();
-        try {
+        try (ReadOnlyTransaction roTrx = getDataBroker().newReadOnlyTransaction()) {
             return roTrx.read(LogicalDatastoreType.OPERATIONAL, ii).checkedGet().get();
-        } finally {
-            roTrx.close();
         }
     }
 
@@ -175,7 +171,8 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
         Files.delete(opDataFile);
         // Write arbitrary data to datastore
         writeDataToRoot(InstanceIdentifier.create(NetworkTopology.class), new NetworkTopologyBuilder()
-                .setTopology(Lists.newArrayList(new TopologyBuilder().setTopologyId(new TopologyId(TOPO_ID)).build()))
+                .setTopology(
+                        Lists.newArrayList(new TopologyBuilder().setTopologyId(TestBackupData.TOPOLOGY_ID).build()))
                 .build());
         // perform restore
         result = runRestore(
@@ -198,7 +195,8 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
         Files.delete(opDataFile);
         // Write arbitrary data to datastore
         writeDataToRoot(InstanceIdentifier.create(NetworkTopology.class), new NetworkTopologyBuilder()
-                .setTopology(Lists.newArrayList(new TopologyBuilder().setTopologyId(new TopologyId(TOPO_ID)).build()))
+                .setTopology(
+                        Lists.newArrayList(new TopologyBuilder().setTopologyId(TestBackupData.TOPOLOGY_ID).build()))
                 .build());
         // perform restore
         result = runRestore(
@@ -219,15 +217,14 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
         writeDataToRoot(InstanceIdentifier.create(NetworkTopology.class),
                 new NetworkTopologyBuilder().setTopology(Lists.newArrayList(new TopologyBuilder()
                         .setNode(Lists.newArrayList(new NodeBuilder().setNodeId(new NodeId(OLD_NODE_ID)).build()))
-                        .setTopologyId(new TopologyId(TOPO_ID)).build())).build());
+                        .setTopologyId(TestBackupData.TOPOLOGY_ID).build())).build());
         // Perform restore with scope NONE
         ImportOperationResult result = runRestore(
                 new ImmediateImportInputBuilder().setClearStores(DataStoreScope.None).setCheckModels(true).build());
         assertTrue(result.getReason(), result.isResult());
         // verify data get overwritten by restore (topology from JSON file has
         // same topology-id, but different set of nodes
-        final Topology t = readData(InstanceIdentifier.create(NetworkTopology.class).child(Topology.class,
-                new TopologyKey(new TopologyId(TOPO_ID))));
+        final Topology t = readData(TestBackupData.TOPOLOGY_II);
         assertEquals(2, t.getNode().size());
         for (final Node node : t.getNode()) {
             // make sure none of 'new' nodes has 'old' node id

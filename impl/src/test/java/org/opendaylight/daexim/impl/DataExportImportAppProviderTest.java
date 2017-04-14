@@ -262,7 +262,7 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
         // Then
         try (ReadOnlyTransaction tx = getDataBroker().newReadOnlyTransaction()) {
             Topology topo = tx.read(OPERATIONAL, TestBackupData.TOPOLOGY_II).get().get();
-            assertEquals(TestBackupData.TOPOLGY_ID, topo.getTopologyId());
+            assertEquals(TestBackupData.TOPOLOGY_ID, topo.getTopologyId());
         }
         // Check that import-on-boot renamed processed file, to avoid continous re-import on every boot
         assertThat(bootImportFile.exists()).named(bootImportFile.toString() + " still exists").isFalse();

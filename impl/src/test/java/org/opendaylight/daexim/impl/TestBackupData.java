@@ -18,11 +18,11 @@ import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
  */
 public interface TestBackupData {
 
-    TopologyId TOPOLGY_ID = new TopologyId("topo-id");
+    TopologyId TOPOLOGY_ID = new TopologyId("topo-id");
 
     InstanceIdentifier<Topology> TOPOLOGY_II = InstanceIdentifier
             .create(NetworkTopology.class)
                 .child(Topology.class,
-                        new TopologyKey(TestBackupData.TOPOLGY_ID));
+                        new TopologyKey(TestBackupData.TOPOLOGY_ID));
 
 }
