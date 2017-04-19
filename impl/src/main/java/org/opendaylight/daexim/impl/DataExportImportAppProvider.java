@@ -168,7 +168,8 @@ public class DataExportImportAppProvider implements DataExportImportService, Aut
                 updateNodeStatus();
                 long scheduleAtTimestamp = Util.parseDate(newTask.getRunAt().getValue()).getTime();
                 exportSchedule = scheduledExecutorService.schedule(
-                        new ExportTask(newTask.getExcludedModules(), domDataBroker, schemaService, () -> {
+                        new ExportTask(newTask.getIncludedModules(), newTask.getExcludedModules(),
+                                domDataBroker, schemaService, () -> {
                             updateExportStatus(Status.InProgress);
                             updateNodeStatus();
                         }), scheduleAtTimestamp - System.currentTimeMillis(), TimeUnit.MILLISECONDS);
@@ -424,6 +425,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Aut
         try {
             final DaeximControlBuilder builder = new DaeximControlBuilder();
             builder.setTaskType(IpcType.Schedule);
+            builder.setIncludedModules(input.getIncludedModules());
             builder.setExcludedModules(input.getExcludedModules());
             builder.setRunAt(new AbsoluteTime(new DateAndTime(Util.toDateAndTime(new Date(scheduleAtTimestamp)))));
             invokeIPC(builder.build());

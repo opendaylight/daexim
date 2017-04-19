@@ -104,7 +104,7 @@ public class LocalExportTaskTest extends AbstractDataBrokerTest {
                 .build();
         wrTrx.put(LogicalDatastoreType.OPERATIONAL, ii, dObj);
         wrTrx.submit().checkedGet();
-        ExportTask lbt = new ExportTask(null, getDomBroker(), schemaService, mock(Callback.class));
+        ExportTask lbt = new ExportTask(null, null, getDomBroker(), schemaService, mock(Callback.class));
         lbt.call();
         final String jsonStr = new String(Files.readAllBytes(Util.collectDataFiles()
                 .get(LogicalDatastoreType.OPERATIONAL).get(0).toPath()), StandardCharsets.UTF_8);

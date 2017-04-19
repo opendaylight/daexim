@@ -55,7 +55,7 @@ module data-export-import {
          files.
 
          An export outputs a models declaration file and one or more data files.
-         An implementation may export all data for a data store into one file 
+         An implementation may export all data for a data store into one file
          representing the whole data store, may split the data by module into
          several files, or some combination of both. If data for a module is
          exported into both a base file and a module-specific file, then the
@@ -244,6 +244,27 @@ module data-export-import {
         uses arg-reason;
     }
 
+    grouping inclusions {
+        list included-modules {
+            description
+                "A list of module name, data store pairs to be included in an
+                 export.";
+            key "module-name data-store";
+            leaf module-name {
+                description
+                    "The name of the module to be included.";
+                mandatory true;
+                type yang:yang-identifier;
+            }
+            leaf data-store {
+                description
+                    "The data store to include for the corresponding module name.";
+                mandatory true;
+                type data-store;
+            }
+        }
+    }
+
     grouping exclusions {
         list excluded-modules {
             description
@@ -294,6 +315,14 @@ module data-export-import {
              time or a relative offset from the server clock. Attempts to
              schedule an export in the past will be rejected.
 
+             Both `inclusions` and/or `exclusions` may be specified.
+             If only `inclusions` are specified, then only those explicitly
+             'whitelisted' module/store pairs are exported, and no other ones.
+             If only only `exclusions` are specified, then all modules are exported
+             except the 'blacklisted' module/store pairs.
+             If both `inclusions` and `exclusions` are specified, then a module
+             is only exported if it is included (whilelisted) but not also excluded (blacklisted).
+
              Each file that is written will contain a JSON-encoded object that
              contains module data from the corresponding data store: module data
              is not included in the object for any module identified in the
@@ -310,6 +339,7 @@ module data-export-import {
                     type relative-time;
                 }
             }
+            uses inclusions;
             uses exclusions;
         }
         output {

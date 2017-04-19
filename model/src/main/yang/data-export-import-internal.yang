@@ -55,9 +55,11 @@ module data-export-import-internal {
                 "Export control, used to dispatch IPC to all node instances.
 
                  When `task-type` is `schedule` then `run-at` must be specified
-                 and `exclusions` may be specified.
+                 and `inclusions` and/or `exclusions` may be specified.  If
+                 both `inclusions` and `exclusions` are specified, then a module
+                 is only exported if it is included and not also excluded.
 
-                 When `task-type` is `cancel` then `run-at` and `exclusions`
+                 When `task-type` is `cancel` then `run-at`, `inclusions` and `exclusions`
                  are ignored. If there is an export running or scheduled then
                  `cancel` cancels it and resets status to its initial state.";
             leaf task-type {
@@ -70,6 +72,7 @@ module data-export-import-internal {
                      request.";
                 type daexim:absolute-time;
             }
+            uses daexim:inclusions;
             uses daexim:exclusions;
         }
 
