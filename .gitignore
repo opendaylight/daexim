@@ -4,5 +4,6 @@ target/
 .classpath
 *.swp
 maven-metadata-local.xml
-/target-ide/
+target-ide/
 .checkstyle
+.fbExcludeFilterFile
