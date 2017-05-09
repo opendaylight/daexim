@@ -43,7 +43,7 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
                         <configuration>
                             <artifacts>
                                 <artifact>
-                                    <file>src/main/config/daexim.cfg</file>
+                                    <file>src/main/config/org.opendaylight.daexim.cfg</file>
                                     <type>cfg</type>
                                 </artifact>
                             </artifacts>

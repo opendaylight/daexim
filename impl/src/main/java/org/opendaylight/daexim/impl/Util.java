@@ -49,7 +49,8 @@ public final class Util {
         "yyyy-MM-dd'T'HH:mm:ss'Z'",
         "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" };
     public static final String FILE_PREFIX = "odl_backup_";
-    public static final String LOCAL_CFG_FILE = "${karaf.etc}/daexim.cfg";
+    public static final String CFG_FILE_NAME = "org.opendaylight.daexim.cfg";
+    public static final String ETC_CFG_FILE = "${karaf.etc}/" + CFG_FILE_NAME;
     public static final String DAEXIM_DIR_PROP = "daexim.dir";
     public static final String DAEXIM_DIR = "daexim";
     public static final String DEFAULT_DIR_LOCATION = "${karaf.home}/" + DAEXIM_DIR;
@@ -84,12 +85,14 @@ public final class Util {
     }
 
     private static String getDaeximDirInternal() {
-        final String propFile = interpolateProp(LOCAL_CFG_FILE, "karaf.etc", "." + File.separatorChar + "etc");
+        final String propFile = interpolateProp(ETC_CFG_FILE, "karaf.etc", "." + File.separatorChar + "etc");
         final Properties props = new Properties();
         try (InputStream is = new FileInputStream(propFile)) {
             props.load(is);
             if (props.containsKey(DAEXIM_DIR_PROP)) {
-                return props.getProperty(DAEXIM_DIR_PROP);
+                String propVal = props.getProperty(DAEXIM_DIR_PROP);
+                // NB: java.util.Properties does NOT perform any property substitution (interpolation)
+                return interpolateProp(propVal, "karaf.home", "." + File.separatorChar + DAEXIM_DIR);
             } else {
                 // This is caught immediately below (only; NOT propagated)
                 throw new IOException("Property '" + DAEXIM_DIR_PROP + "' was not found");

@@ -8,14 +8,11 @@
  */
 package org.opendaylight.daexim.impl;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 
-import com.google.common.io.ByteStreams;
-import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.After;
@@ -29,7 +26,8 @@ public class UtilTest {
     private static final Logger LOG = LoggerFactory.getLogger(UtilTest.class);
 
     private static final String ALTERNATIVE_DIR = "SOME_DIR";
-    private static final String CFG_FILE = "daexim.cfg";
+    private static final String ANOTHER_DIR = "ANOTHER_DIR";
+    private static final String CFG_FILE = Util.CFG_FILE_NAME;
 
     private Path tempDir;
     private Path daeximDir;
@@ -40,6 +38,7 @@ public class UtilTest {
         tempDir = Files.createTempDirectory("daexim-test-tmp");
         etcDir = Files.createDirectory(tempDir.resolve("etc"));
         daeximDir = Files.createDirectory(tempDir.resolve(Util.DAEXIM_DIR));
+
         System.setProperty("karaf.home", tempDir.toString());
         System.setProperty("karaf.etc", etcDir.toString());
     }
@@ -48,23 +47,20 @@ public class UtilTest {
     public void tearDown() throws IOException {
         Files.delete(daeximDir);
         Files.deleteIfExists(etcDir.resolve(CFG_FILE));
+        Files.deleteIfExists(tempDir.resolve(ANOTHER_DIR));
         Files.deleteIfExists(tempDir.resolve(ALTERNATIVE_DIR));
         Files.delete(etcDir);
         Files.delete(tempDir);
     }
 
     private void setPropertyFileContent(String content) throws IOException {
-        try (ByteArrayInputStream is = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8))) {
-            try (FileOutputStream fos = new FileOutputStream(etcDir.resolve(CFG_FILE).toFile())) {
-                ByteStreams.copy(is, fos);
-            }
-        }
+        com.google.common.io.Files.write(content, etcDir.resolve(CFG_FILE).toFile(), UTF_8);
     }
 
     @Test
     public void testGetBackupDir() throws IOException {
         String path;
-        LOG.info("Scenario #1 - property file does not exists");
+        LOG.info("Scenario #1 - property file does not exist");
         path = Util.getDaeximDir();
         LOG.info("Directory : {}", path);
         assertEquals(daeximDir.toFile().getAbsolutePath(), path);
@@ -80,5 +76,11 @@ public class UtilTest {
         path = Util.getDaeximDir();
         LOG.info("Directory : {}", path);
         assertEquals(tempDir.toString() + File.separatorChar + ALTERNATIVE_DIR, path);
+
+        LOG.info("Scenario #4 - property file exists, property is set but using property substitution (interpolation)");
+        setPropertyFileContent(Util.DAEXIM_DIR_PROP + "=${karaf.home}/" + ANOTHER_DIR);
+        path = Util.getDaeximDir();
+        LOG.info("Directory : {}", path);
+        assertEquals(tempDir.toString() + File.separatorChar + ANOTHER_DIR, path);
     }
 }
