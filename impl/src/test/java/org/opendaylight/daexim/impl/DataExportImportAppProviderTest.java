@@ -91,13 +91,9 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
     public void setUp() throws Exception {
         nnp = mock(NodeNameProvider.class);
         when(nnp.getNodeName()).thenReturn("localhost");
-        provider = new DataExportImportAppProvider();
-        provider.setDataBroker(getDataBroker());
-        provider.setDomDataBroker(getDomBroker());
         SchemaService schemaService = mock(SchemaService.class);
         when(schemaService.getGlobalContext()).thenReturn(schemaContext);
-        provider.setSchemaService(schemaService);
-        provider.setNodeNameProvider(nnp);
+        provider = new DataExportImportAppProvider(getDataBroker(), getDomBroker(), schemaService, nnp);
         provider.init();
     }
 

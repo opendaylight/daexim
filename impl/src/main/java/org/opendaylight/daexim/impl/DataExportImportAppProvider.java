@@ -27,6 +27,10 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
+import javax.inject.Inject;
+import javax.inject.Singleton;
 import org.opendaylight.controller.md.sal.binding.api.ClusteredDataTreeChangeListener;
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.controller.md.sal.binding.api.DataTreeIdentifier;
@@ -74,19 +78,22 @@ import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 import org.opendaylight.yangtools.yang.common.RpcError.ErrorType;
 import org.opendaylight.yangtools.yang.common.RpcResult;
 import org.opendaylight.yangtools.yang.common.RpcResultBuilder;
-/* Logging */
+import org.ops4j.pax.cdi.api.OsgiService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Singleton
 public class DataExportImportAppProvider implements DataExportImportService, AutoCloseable {
 
     private static final Logger LOG = LoggerFactory.getLogger(DataExportImportAppProvider.class);
 
     private static final String LOG_MSG_SCHEDULING_EXPORT = "Scheduling export at %s, which is %d seconds in future";
 
-    private DOMDataBroker domDataBroker;
-    private SchemaService schemaService;
-    private NodeNameProvider nodeNameProvider;
+    private final DataBroker dataBroker;
+    private final DOMDataBroker domDataBroker;
+    private final SchemaService schemaService;
+    private final NodeNameProvider nodeNameProvider;
+
     private ListenableFuture<Void> exportSchedule;
     private ListeningScheduledExecutorService scheduledExecutorService;
     private volatile Status exportStatus = Status.Initial;
@@ -96,16 +103,26 @@ public class DataExportImportAppProvider implements DataExportImportService, Aut
     private volatile long lastImportTimestamp = -1;
     private volatile long lastImportChanged = -1;
     private volatile long lastExportChanged = -1;
-    private DataBroker dataBroker;
     private InstanceIdentifier<DaeximControl> ipcII;
     private InstanceIdentifier<NodeStatus> nodeStatusII;
     private InstanceIdentifier<DaeximStatus> globalStatusII;
     private DataTreeIdentifier<DaeximControl> ipcDTC;
     private InstanceIdentifier<Daexim> topII;
 
+    @Inject
+    public DataExportImportAppProvider(@OsgiService DataBroker dataBroker, @OsgiService DOMDataBroker domDataBroker,
+            @OsgiService SchemaService schemaService, @OsgiService NodeNameProvider nodeNameProvider) {
+        super();
+        this.dataBroker = dataBroker;
+        this.domDataBroker = domDataBroker;
+        this.schemaService = schemaService;
+        this.nodeNameProvider = nodeNameProvider;
+    }
+
     /**
      * Method called when the blueprint container is created.
      */
+    @PostConstruct
     public void init() {
         topII = InstanceIdentifier.create(Daexim.class);
         globalStatusII = InstanceIdentifier.create(Daexim.class).child(DaeximStatus.class);
@@ -364,6 +381,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Aut
      * Method called when provider is about to close.
      */
     @Override
+    @PreDestroy
     public void close() {
         scheduledExecutorService.shutdownNow();
         LOG.info("{} closed", getClass().getSimpleName());
@@ -571,23 +589,4 @@ public class DataExportImportAppProvider implements DataExportImportService, Aut
         }
     }
 
-    /*
-     * Public setters
-     */
-
-    public void setDomDataBroker(DOMDataBroker domDataBroker) {
-        this.domDataBroker = domDataBroker;
-    }
-
-    public void setSchemaService(SchemaService schemaService) {
-        this.schemaService = schemaService;
-    }
-
-    public void setNodeNameProvider(NodeNameProvider nodeNameProvider) {
-        this.nodeNameProvider = nodeNameProvider;
-    }
-
-    public void setDataBroker(DataBroker dataBroker) {
-        this.dataBroker = dataBroker;
-    }
 }

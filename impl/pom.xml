@@ -58,6 +58,10 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
                 <propertyExpansion>checkstyle.violationSeverity=error</propertyExpansion>
               </configuration>
             </plugin>
+            <plugin>
+              <groupId>org.apache.aries.blueprint</groupId>
+              <artifactId>blueprint-maven-plugin</artifactId>
+            </plugin>
         </plugins>
     </build>
     <dependencyManagement>
@@ -72,6 +76,17 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
         </dependencies>
     </dependencyManagement>
     <dependencies>
+        <dependency>
+             <groupId>javax.inject</groupId>
+             <artifactId>javax.inject</artifactId>
+             <optional>true</optional>
+        </dependency>
+        <dependency>
+             <groupId>org.ops4j.pax.cdi</groupId>
+             <artifactId>pax-cdi-api</artifactId>
+             <optional>true</optional>
+        </dependency>
+
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>daexim-model</artifactId>
