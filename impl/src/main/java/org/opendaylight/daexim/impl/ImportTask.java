@@ -112,14 +112,15 @@ public class ImportTask implements Callable<ImportOperationResult> {
         } else {
             LOG.warn("Modules availability check is disabled, import may fail if some of models are missing");
         }
+        final DOMDataReadWriteTransaction rwTrx = dataBroker.newReadWriteTransaction();
         for (final LogicalDatastoreType type : LogicalDatastoreType.values()) {
-            importDatastore(type);
+            importDatastore(type, rwTrx);
         }
+        rwTrx.submit().checkedGet();
     }
 
-    private void importDatastore(final LogicalDatastoreType type)
+    private void importDatastore(final LogicalDatastoreType type, final DOMDataReadWriteTransaction rwTrx)
             throws ReadFailedException, TransactionCommitFailedException, IOException {
-        final DOMDataReadWriteTransaction rwTrx = dataBroker.newReadWriteTransaction();
         boolean hasDataFile = isDataFilePresent(type);
         if (DataStoreScope.All.equals(clearScope) || DataStoreScope.Data.equals(clearScope) && hasDataFile) {
             removeChildNodes(type, rwTrx);
@@ -146,7 +147,6 @@ public class ImportTask implements Callable<ImportOperationResult> {
                 }
             }
         }
-        rwTrx.submit().checkedGet();
     }
 
     private void validateModelAvailability(final InputStream inputStream)
