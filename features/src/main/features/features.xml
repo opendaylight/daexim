@@ -1,4 +1,4 @@
-<!-- 
+<!--
 Copyright (C) 2016 AT&T Intellectual Property. All rights reserved.
 Copyright (c) 2016 Brocade Communications Systems, Inc. All rights reserved.
 
@@ -14,7 +14,11 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
     <repository>mvn:org.opendaylight.netconf/features-restconf/{{VERSION}}/xml/features</repository>
 
     <feature name='odl-daexim-all' description="Opendaylight :: Data export-import" version='${project.version}'>
-        <feature version="${project.version}">odl-daexim-depends</feature>
+        <feature version='${mdsal-model.version}'>odl-mdsal-models</feature>
+        <feature version='${mdsal.version}'>odl-mdsal-binding</feature>
+        <feature version='${config.version}'>odl-config-all</feature>
+        <feature version='${restconf.version}'>odl-restconf-all</feature>
+
         <bundle>mvn:org.opendaylight.daexim/daexim-model/${project.version}</bundle>
         <bundle>mvn:org.opendaylight.daexim/daexim-impl/${project.version}</bundle>
         <bundle>mvn:org.opendaylight.daexim/daexim-spi/${project.version}</bundle>
@@ -22,10 +26,4 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
         <configfile finalname="etc/org.opendaylight.daexim.cfg">mvn:org.opendaylight.daexim/daexim-impl/${project.version}/cfg</configfile>
     </feature>
 
-    <feature name='odl-daexim-depends' description="Opendaylight :: Data export-import dependencies" version='${project.version}'>
-        <feature version='${mdsal-model.version}'>odl-mdsal-models</feature>
-        <feature version='${mdsal.version}'>odl-mdsal-binding</feature>
-        <feature version='${config.version}'>odl-config-all</feature>
-        <feature version='${restconf.version}'>odl-restconf-all</feature>
-    </feature>
 </features>
