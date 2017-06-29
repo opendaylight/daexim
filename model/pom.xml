@@ -12,13 +12,13 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
     <parent>
         <groupId>org.opendaylight.mdsal</groupId>
         <artifactId>binding-parent</artifactId>
-        <version>0.10.0-SNAPSHOT</version>
+        <version>0.11.0-SNAPSHOT</version>
         <relativePath/>
     </parent>
     <groupId>org.opendaylight.daexim</groupId>
     <artifactId>daexim-model</artifactId>
     <packaging>bundle</packaging>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.2.0-SNAPSHOT</version>
     <build>
         <plugins>
             <plugin>
@@ -46,7 +46,7 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
             <dependency>
                 <groupId>org.opendaylight.mdsal.model</groupId>
                 <artifactId>mdsal-model-artifacts</artifactId>
-                <version>0.10.0-SNAPSHOT</version>
+                <version>0.11.0-SNAPSHOT</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
