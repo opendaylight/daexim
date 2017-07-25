@@ -25,7 +25,6 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
     <properties>
         <mdsal.version>2.3.0-SNAPSHOT</mdsal.version>
         <mdsal-model.version>0.11.0-SNAPSHOT</mdsal-model.version>
-        <config.version>0.7.0-SNAPSHOT</config.version>
         <restconf.version>1.6.0-SNAPSHOT</restconf.version>
     </properties>
     <dependencyManagement>
@@ -52,13 +51,6 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
                 <scope>import</scope>
             </dependency>
             <dependency>
-                <groupId>org.opendaylight.controller</groupId>
-                <artifactId>config-artifacts</artifactId>
-                <version>${config.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-            <dependency>
                 <groupId>org.opendaylight.netconf</groupId>
                 <artifactId>restconf-artifacts</artifactId>
                 <version>${restconf.version}</version>
@@ -79,13 +71,6 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
             <groupId>org.opendaylight.mdsal</groupId>
             <artifactId>odl-mdsal-binding</artifactId>
             <version>${mdsal.version}</version>
-            <type>xml</type>
-            <classifier>features</classifier>
-        </dependency>
-        <dependency>
-            <groupId>org.opendaylight.controller</groupId>
-            <artifactId>odl-config-all</artifactId>
-            <version>${config.version}</version>
             <type>xml</type>
             <classifier>features</classifier>
         </dependency>

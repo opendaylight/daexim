@@ -11,18 +11,19 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>org.opendaylight.controller</groupId>
-        <artifactId>config-parent</artifactId>
-        <version>0.7.0-SNAPSHOT</version>
+        <groupId>org.opendaylight.mdsal</groupId>
+        <artifactId>binding-parent</artifactId>
+        <version>0.11.0-SNAPSHOT</version>
         <relativePath/>
     </parent>
     <groupId>org.opendaylight.daexim</groupId>
     <artifactId>daexim-test-model</artifactId>
     <packaging>bundle</packaging>
     <version>1.2.0-SNAPSHOT</version>
+
     <properties>
-        <config.version>0.7.0-SNAPSHOT</config.version>
     </properties>
+
     <build>
         <plugins>
             <plugin>
@@ -39,28 +40,4 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
             </plugin>
         </plugins>
     </build>
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>org.opendaylight.mdsal.model</groupId>
-                <artifactId>mdsal-model-artifacts</artifactId>
-                <version>0.11.0-SNAPSHOT</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.opendaylight.controller</groupId>
-                <artifactId>config-artifacts</artifactId>
-                <version>${config.version}</version>
-                <scope>import</scope>
-                <type>pom</type>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
-    <dependencies>
-        <dependency>
-            <groupId>org.opendaylight.controller</groupId>
-            <artifactId>config-api</artifactId>
-        </dependency>
-    </dependencies>
 </project>

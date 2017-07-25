@@ -70,11 +70,6 @@
     "revision-date": "2014-06-17"
   },
   {
-    "module": "data-export-import-spi",
-    "namespace": "urn:opendaylight:daexim-spi",
-    "revision-date": "2016-08-16"
-  },
-  {
     "module": "actor-system-provider-service",
     "namespace": "urn:opendaylight:params:xml:ns:yang:controller:config:actor-system-provider:service",
     "revision-date": "2015-10-05"
