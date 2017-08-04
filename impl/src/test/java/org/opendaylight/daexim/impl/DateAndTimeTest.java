@@ -12,6 +12,7 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.Calendar;
 import java.util.Date;
+import java.util.TimeZone;
 import org.junit.Test;
 
 public class DateAndTimeTest {
@@ -19,7 +20,7 @@ public class DateAndTimeTest {
     @Test
     public void test() {
         Date date = Util.parseDate("2016-08-07T12:23:48Z");
-        Calendar calendar = Calendar.getInstance();
+        Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
         calendar.setTimeInMillis(date.getTime());
 
         assertEquals(calendar.get(Calendar.MILLISECOND), 0);
@@ -27,7 +28,7 @@ public class DateAndTimeTest {
         assertEquals(calendar.get(Calendar.MINUTE), 23);
 
         date = Util.parseDate("2016-08-07T12:23:48.812Z");
-        calendar = Calendar.getInstance();
+        calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
         calendar.setTimeInMillis(date.getTime());
         assertEquals(calendar.get(Calendar.MILLISECOND), 812);
         assertEquals(calendar.get(Calendar.MONTH), 7);
@@ -43,4 +44,5 @@ public class DateAndTimeTest {
     public void testInvalid_Grabage() {
         Util.parseDate("this-is-not-date-and-time");
     }
+
 }
