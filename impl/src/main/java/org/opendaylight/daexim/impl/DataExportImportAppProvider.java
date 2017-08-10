@@ -49,6 +49,7 @@ import org.opendaylight.controller.md.sal.common.api.data.ReadFailedException;
 import org.opendaylight.controller.md.sal.common.api.data.TransactionCommitFailedException;
 import org.opendaylight.controller.md.sal.dom.api.DOMDataBroker;
 import org.opendaylight.controller.sal.core.api.model.SchemaService;
+import org.opendaylight.daexim.DataImportBootReady;
 import org.opendaylight.daexim.DataImportBootService;
 import org.opendaylight.daexim.spi.NodeNameProvider;
 import org.opendaylight.infrautils.ready.SystemReadyMonitor;
@@ -92,6 +93,7 @@ import org.opendaylight.yangtools.yang.common.RpcError.ErrorType;
 import org.opendaylight.yangtools.yang.common.RpcResult;
 import org.opendaylight.yangtools.yang.common.RpcResultBuilder;
 import org.ops4j.pax.cdi.api.OsgiService;
+import org.osgi.framework.BundleContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -108,6 +110,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
     private final SchemaService schemaService;
     private final NodeNameProvider nodeNameProvider;
     private final SystemReadyMonitor systemReadyService;
+    private final BundleContext bundleContext;
 
     private ListenableFuture<Void> exportSchedule;
     private ListeningScheduledExecutorService scheduledExecutorService;
@@ -127,13 +130,14 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
     @Inject
     public DataExportImportAppProvider(@OsgiService DataBroker dataBroker, @OsgiService DOMDataBroker domDataBroker,
             @OsgiService SchemaService schemaService, @OsgiService NodeNameProvider nodeNameProvider,
-            @OsgiService SystemReadyMonitor systemReadyService) {
+            @OsgiService SystemReadyMonitor systemReadyService, BundleContext bundleContext) {
         super();
         this.dataBroker = dataBroker;
         this.domDataBroker = domDataBroker;
         this.schemaService = schemaService;
         this.nodeNameProvider = nodeNameProvider;
         this.systemReadyService = systemReadyService;
+        this.bundleContext = bundleContext;
     }
 
     /**
@@ -184,6 +188,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
                                 failed(null);
                                 return;
                             } else {
+                                registerDataImportBootReady();
                                 renameBootImportFiles();
                             }
                         }
@@ -204,7 +209,16 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
                     },
                     MoreExecutors.directExecutor());
             });
+        } else {
+            registerDataImportBootReady();
         }
+    }
+
+    void registerDataImportBootReady() {
+        // publish an instance of DataImportBootReady into the OSGi service registry
+        // TODO use FunctionalityReadyNotifier when https://git.opendaylight.org/gerrit/#/c/61480/ is available in infrautils
+        bundleContext.registerService(DataImportBootReady.class, new DataImportBootReady() { }, null);
+        LOG.info("Published OSGi service {}", DataImportBootReady.class);
     }
 
     private void renameBootImportFiles() {

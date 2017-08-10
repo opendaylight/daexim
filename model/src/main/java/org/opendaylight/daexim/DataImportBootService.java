@@ -36,8 +36,10 @@ public interface DataImportBootService {
      * then this throws an IllegalStateException.
      * </ul>
      * @param blockingWhat name of Class &amp; method being blocked (just for logging)
+     *
+     * @deprecated Using {@link DataImportBootReady} is, usually, a better alternative to this
      */
+    @Deprecated
     void awaitBootImport(String blockingWhat) throws IllegalStateException;
 
-    // TODO add a non-blocking await variant with a ListenableFuture<Void>
 }
