@@ -69,6 +69,13 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
     </dependencyManagement>
     <dependencies>
         <dependency>
+            <groupId>org.opendaylight.infrautils</groupId>
+            <artifactId>odl-infrautils-ready</artifactId>
+            <version>${infrautils.version}</version>
+            <type>xml</type>
+            <classifier>features</classifier>
+        </dependency>
+        <dependency>
             <groupId>org.opendaylight.mdsal.model</groupId>
             <artifactId>odl-mdsal-models</artifactId>
             <version>${mdsal-model.version}</version>

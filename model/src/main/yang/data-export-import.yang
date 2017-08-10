@@ -195,8 +195,12 @@ module data-export-import {
                 value 3;
                 description "An export or import task completed successfully.";
             }
-            enum boot-import-in-progress {
+            enum boot-import-scheduled {
                 value 4;
+                description "An automatic-on-boot import will start as soon as the system is fully ready.";
+            }
+            enum boot-import-in-progress {
+                value 5;
                 description "An automatic-on-boot import is in progress.";
             }
             enum inconsistent {

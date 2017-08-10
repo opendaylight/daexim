@@ -51,6 +51,7 @@ import org.opendaylight.controller.md.sal.dom.api.DOMDataBroker;
 import org.opendaylight.controller.sal.core.api.model.SchemaService;
 import org.opendaylight.daexim.DataImportBootService;
 import org.opendaylight.daexim.spi.NodeNameProvider;
+import org.opendaylight.infrautils.ready.SystemReadyMonitor;
 import org.opendaylight.infrautils.utils.concurrent.ThreadFactoryProvider;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.DateAndTime;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.internal.rev160921.Daexim;
@@ -106,6 +107,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
     private final DOMDataBroker domDataBroker;
     private final SchemaService schemaService;
     private final NodeNameProvider nodeNameProvider;
+    private final SystemReadyMonitor systemReadyService;
 
     private ListenableFuture<Void> exportSchedule;
     private ListeningScheduledExecutorService scheduledExecutorService;
@@ -124,12 +126,14 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
 
     @Inject
     public DataExportImportAppProvider(@OsgiService DataBroker dataBroker, @OsgiService DOMDataBroker domDataBroker,
-            @OsgiService SchemaService schemaService, @OsgiService NodeNameProvider nodeNameProvider) {
+            @OsgiService SchemaService schemaService, @OsgiService NodeNameProvider nodeNameProvider,
+            @OsgiService SystemReadyMonitor systemReadyService) {
         super();
         this.dataBroker = dataBroker;
         this.domDataBroker = domDataBroker;
         this.schemaService = schemaService;
         this.nodeNameProvider = nodeNameProvider;
+        this.systemReadyService = systemReadyService;
     }
 
     /**
@@ -160,40 +164,46 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
         LOG.info("Checking for presence of boot import data files ({}, {})",
                 bootImportConfigurationDataFile, bootImportOperationalDataFile);
         if (bootImportOperationalDataFile.exists() || bootImportConfigurationDataFile.exists()) {
-            LOG.info("Daexim found files to import on boot...");
-            updateImportStatus(Status.BootImportInProgress);
-            Futures.addCallback(immediateImport(new ImmediateImportInputBuilder()
-                    .setCheckModels(true)
-                    .setClearStores(DataStoreScope.None)
-                .build(),
-                true), new FutureCallback<RpcResult<ImmediateImportOutput>>() {
+            LOG.info("Daexim found files to import on boot, and will import them once the system is fully ready...");
+            updateImportStatus(Status.BootImportScheduled);
+            systemReadyService.registerListener(() -> {
+                updateImportStatus(Status.BootImportInProgress);
+                LOG.info("Daexim found files to import on boot; importing them now that the system is fully ready...");
 
-                    @Override
-                    public void onSuccess(RpcResult<ImmediateImportOutput> result) {
-                        if (!result.isSuccessful()
-                                || !result.getErrors().isEmpty()
-                                || !result.getResult().isResult()) {
-                            failed(null);
-                            return;
-                        } else {
+                Futures.addCallback(immediateImport(new ImmediateImportInputBuilder()
+                        .setCheckModels(true)
+                        .setClearStores(DataStoreScope.None)
+                    .build(),
+                    true), new FutureCallback<RpcResult<ImmediateImportOutput>>() {
+
+                        @Override
+                        public void onSuccess(RpcResult<ImmediateImportOutput> result) {
+                            if (!result.isSuccessful()
+                                    || !result.getErrors().isEmpty()
+                                    || !result.getResult().isResult()) {
+                                failed(null);
+                                return;
+                            } else {
+                                renameBootImportFiles();
+                            }
+                        }
+
+                        @Override
+                        public void onFailure(Throwable throwable) {
+                            failed(throwable);
+                        }
+
+                        private void failed(Throwable throwable) {
                             renameBootImportFiles();
+                            if (throwable != null) {
+                                LOG.warn("Daexim import on boot failed :(", throwable);
+                            } else {
+                                LOG.warn("Daexim import on boot failed :(");
+                            }
                         }
-                    }
-
-                    @Override
-                    public void onFailure(Throwable throwable) {
-                        failed(throwable);
-                    }
-
-                    private void failed(Throwable throwable) {
-                        renameBootImportFiles();
-                        if (throwable != null) {
-                            LOG.warn("Daexim import on boot failed :(", throwable);
-                        } else {
-                            LOG.warn("Daexim import on boot failed :(");
-                        }
-                    }
-                }, MoreExecutors.directExecutor());
+                    },
+                    MoreExecutors.directExecutor());
+            });
         }
     }
 
