@@ -59,15 +59,17 @@ public class ImportTask implements Callable<ImportOperationResult> {
     private final boolean mustValidate;
     private final DataStoreScope clearScope;
     private final Callback callback;
+    private final boolean isBooting;
     @VisibleForTesting
     final ListMultimap<LogicalDatastoreType, File> dataFiles;
 
     public ImportTask(final ImmediateImportInput input, DOMDataBroker domDataBroker, final SchemaService schemaService,
-            Callback callback) {
+            boolean isBooting, Callback callback) {
         this.dataBroker = domDataBroker;
         this.schemaService = schemaService;
         this.mustValidate = input.isCheckModels() != null && input.isCheckModels();
         this.clearScope = input.getClearStores();
+        this.isBooting = isBooting;
         this.callback = callback;
         dataFiles = ArrayListMultimap.create(LogicalDatastoreType.values().length, 4);
         collectFiles();
@@ -88,11 +90,11 @@ public class ImportTask implements Callable<ImportOperationResult> {
     }
 
     private void collectFiles() {
-        dataFiles.putAll(Util.collectDataFiles());
+        dataFiles.putAll(Util.collectDataFiles(isBooting));
     }
 
-    private static InputStream openModelsFile() throws IOException {
-        return Files.newInputStream(Util.getModelsFilePath());
+    private InputStream openModelsFile() throws IOException {
+        return Files.newInputStream(Util.getModelsFilePath(isBooting));
     }
 
     private boolean isDataFilePresent(final LogicalDatastoreType store) {
@@ -102,7 +104,7 @@ public class ImportTask implements Callable<ImportOperationResult> {
     private void importInternal()
             throws IOException, ModelsNotAvailableException, TransactionCommitFailedException, ReadFailedException {
         if (mustValidate) {
-            if (Util.isModelFilePresent()) {
+            if (Util.isModelFilePresent(isBooting)) {
                 try (InputStream is = openModelsFile()) {
                     validateModelAvailability(is);
                 }

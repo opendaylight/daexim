@@ -72,7 +72,7 @@ public class CollectImportFilesTest {
         final ImmediateImportInput input = new ImmediateImportInputBuilder().setCheckModels(true).build();
         final DOMDataBroker domDataBroker = mock(DOMDataBroker.class);
         final SchemaService schemaService = mock(SchemaService.class);
-        final ImportTask rt = new ImportTask(input, domDataBroker, schemaService, mock(Callback.class));
+        final ImportTask rt = new ImportTask(input, domDataBroker, schemaService, false, mock(Callback.class));
         final ListMultimap<LogicalDatastoreType, File> df = rt.dataFiles;
         assertTrue(df.get(LogicalDatastoreType.CONFIGURATION).isEmpty());
         assertThat(df.get(LogicalDatastoreType.OPERATIONAL).get(2).toString(), new EndsWith("@2013-08-19.json"));

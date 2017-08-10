@@ -18,6 +18,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
@@ -53,6 +54,7 @@ public final class Util {
     public static final String ETC_CFG_FILE = "${karaf.etc}/" + CFG_FILE_NAME;
     public static final String DAEXIM_DIR_PROP = "daexim.dir";
     public static final String DAEXIM_DIR = "daexim";
+    public static final String DAEXIM_BOOT_SUBDIR = "boot";
     public static final String DEFAULT_DIR_LOCATION = "${karaf.home}/" + DAEXIM_DIR;
 
     private static final BiMap<LogicalDatastoreType, String> STORE_NAME_MAPPINGS = ImmutableBiMap
@@ -72,12 +74,12 @@ public final class Util {
         return STORE_NAME_MAPPINGS.inverse().get(name);
     }
 
-    public static Path getDaeximFilePath(LogicalDatastoreType type) {
-        return Paths.get(getDaeximDir(), FILE_PREFIX + storeNameByType(type).toLowerCase() + ".json");
+    public static Path getDaeximFilePath(boolean isBooting, LogicalDatastoreType type) {
+        return Paths.get(getDaeximDir(isBooting), FILE_PREFIX + storeNameByType(type).toLowerCase() + ".json");
     }
 
-    public static Path getModelsFilePath() {
-        return Paths.get(getDaeximDir(), FILE_PREFIX + "models.json");
+    public static Path getModelsFilePath(boolean isBooting) {
+        return Paths.get(getDaeximDir(isBooting), FILE_PREFIX + "models.json");
     }
 
     private static String interpolateProp(final String source, final String propName, final String defValue) {
@@ -98,21 +100,28 @@ public final class Util {
                 throw new IOException("Property '" + DAEXIM_DIR_PROP + "' was not found");
             }
         } catch (IOException e) {
-            LOG.error("Failed to load property file: {}", propFile, e);
+            // FileNotFoundException is expected in tests when the src/main/config/daexim.cfg is not installed
+            if (e instanceof FileNotFoundException) {
+                LOG.warn("Configuration not found, so just using fixed ${karaf.home}/daexim/");
+            } else {
+                LOG.error("Failed to load existing property file (ignoring, and using fixed ${karaf.home}/daexim/): {}",
+                        propFile, e);
+            }
             return interpolateProp(DEFAULT_DIR_LOCATION, "karaf.home", "." + File.separatorChar + DAEXIM_DIR);
         }
     }
 
     @VisibleForTesting
-    static String getDaeximDir() {
-        final Path daeximDir = Paths.get(getDaeximDirInternal());
+    static String getDaeximDir(boolean isBooting) {
+        final Path daeximDir = isBooting
+                ? Paths.get(getDaeximDirInternal(), DAEXIM_BOOT_SUBDIR)
+                : Paths.get(getDaeximDirInternal());
         try {
             Files.createDirectories(daeximDir);
             return daeximDir.toFile().getAbsolutePath();
         } catch (IOException e) {
             throw new IllegalStateException("Unable to get location of daexim directory", e);
         }
-
     }
 
     public static List<Model> parseModels(final InputStream is) {
@@ -179,8 +188,8 @@ public final class Util {
     /**
      * Collects all data files in dump directory.
      */
-    public static ListMultimap<LogicalDatastoreType, File> collectDataFiles() {
-        final Path daeximDir = Paths.get(Util.getDaeximDir());
+    public static ListMultimap<LogicalDatastoreType, File> collectDataFiles(boolean isBooting) {
+        final Path daeximDir = Paths.get(Util.getDaeximDir(isBooting));
         final ListMultimap<LogicalDatastoreType, File> dataFiles = ArrayListMultimap.create();
         for (final LogicalDatastoreType dst : LogicalDatastoreType.values()) {
             // collect all json files related to given datastore
@@ -199,7 +208,8 @@ public final class Util {
         return Arrays.asList(arr != null ? arr : new File[] {});
     }
 
-    public static boolean isModelFilePresent() {
-        return Files.exists(getModelsFilePath());
+    public static boolean isModelFilePresent(boolean isBooting) {
+        return Files.exists(getModelsFilePath(isBooting));
     }
+
 }

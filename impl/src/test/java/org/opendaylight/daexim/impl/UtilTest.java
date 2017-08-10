@@ -61,25 +61,25 @@ public class UtilTest {
     public void testGetBackupDir() throws IOException {
         String path;
         LOG.info("Scenario #1 - property file does not exist");
-        path = Util.getDaeximDir();
+        path = Util.getDaeximDir(false);
         LOG.info("Directory : {}", path);
         assertEquals(daeximDir.toFile().getAbsolutePath(), path);
 
         LOG.info("Scenario #2 - property file exists, but property is not set");
         setPropertyFileContent("");
-        path = Util.getDaeximDir();
+        path = Util.getDaeximDir(false);
         LOG.info("Directory : {}", path);
         assertEquals(daeximDir.toFile().getAbsolutePath(), path);
 
         LOG.info("Scenario #3 - property file exists, property is set");
         setPropertyFileContent(Util.DAEXIM_DIR_PROP + "=" + tempDir.toString() + File.separatorChar + ALTERNATIVE_DIR);
-        path = Util.getDaeximDir();
+        path = Util.getDaeximDir(false);
         LOG.info("Directory : {}", path);
         assertEquals(tempDir.toString() + File.separatorChar + ALTERNATIVE_DIR, path);
 
         LOG.info("Scenario #4 - property file exists, property is set but using property substitution (interpolation)");
         setPropertyFileContent(Util.DAEXIM_DIR_PROP + "=${karaf.home}/" + ANOTHER_DIR);
-        path = Util.getDaeximDir();
+        path = Util.getDaeximDir(false);
         LOG.info("Directory : {}", path);
         assertEquals(tempDir.toString() + File.separatorChar + ANOTHER_DIR, path);
     }
