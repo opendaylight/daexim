@@ -235,9 +235,9 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
     private boolean renameFile(Path file) {
         try {
             if (file.toFile().exists()) {
-                Files.move(file,
-                        file.resolveSibling(file.getFileName().toString() + ".imported"),
-                        StandardCopyOption.ATOMIC_MOVE);
+                final Path renamedFile = file.resolveSibling(file.getFileName().toString() + ".imported");
+                Files.move(file, renamedFile, StandardCopyOption.ATOMIC_MOVE);
+                LOG.info("Renamed {} to {}", file.toString(), renamedFile.toString());
             }
             return true;
         } catch (IOException e) {

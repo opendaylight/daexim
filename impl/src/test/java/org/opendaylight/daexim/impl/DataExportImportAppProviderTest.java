@@ -9,6 +9,7 @@
  */
 package org.opendaylight.daexim.impl;
 
+import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -32,6 +33,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.commons.io.FileUtils;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.opendaylight.controller.md.sal.binding.api.ReadOnlyTransaction;
@@ -42,6 +44,7 @@ import org.opendaylight.daexim.spi.NodeNameProvider;
 import org.opendaylight.infrautils.ready.SystemReadyListener;
 import org.opendaylight.infrautils.ready.SystemReadyMonitor;
 import org.opendaylight.infrautils.ready.SystemState;
+import org.opendaylight.infrautils.testutils.LogRule;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.AbsoluteTime;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.CancelExportOutput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.DataStoreScope;
@@ -65,6 +68,8 @@ import org.slf4j.LoggerFactory;
 public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
 
     private static final Logger LOG = LoggerFactory.getLogger(DataExportImportAppProviderTest.class);
+
+    public @Rule LogRule logRule = new LogRule();
 
     private Path tempDir;
     private DataExportImportAppProvider provider;
@@ -254,7 +259,7 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
             assertEquals(TestBackupData.TOPOLGY_ID, topo.getTopologyId());
         }
         // Check that import-on-boot renamed processed file, to avoid continous re-import on every boot
-        assertFalse(bootImportFile.exists());
+        assertThat(bootImportFile.exists()).named(bootImportFile.toString() + " still exists").isFalse();
     }
 
     @Test
