@@ -33,7 +33,7 @@ import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.controller.md.sal.common.api.data.ReadFailedException;
 import org.opendaylight.controller.md.sal.common.api.data.TransactionCommitFailedException;
 import org.opendaylight.controller.md.sal.dom.api.DOMDataReadOnlyTransaction;
-import org.opendaylight.controller.sal.core.api.model.SchemaService;
+import org.opendaylight.mdsal.dom.api.DOMSchemaService;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.internal.rev160921.ImportOperationResult;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.DataStoreScope;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.ImmediateImportInput;
@@ -64,7 +64,7 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
     private static final String TOPO_ID = "topo-id";
     private static final String OLD_NODE_ID = "node-id-5";
 
-    private SchemaService schemaService;
+    private DOMSchemaService schemaService;
     private SchemaContext schemaContext;
     private Path modelsFile;
     private Path opDataFile;
@@ -90,7 +90,7 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
                 Files.newOutputStream(opDataFile, StandardOpenOption.TRUNCATE_EXISTING));
         LOG.info("Copied models file to  : {}", modelsFile);
         System.setProperty("java.io.tmpdir", tmpDir.toString());
-        schemaService = mock(SchemaService.class);
+        schemaService = mock(DOMSchemaService.class);
         doReturn(schemaContext).when(schemaService).getGlobalContext();
     }
 
@@ -149,7 +149,7 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
     @SuppressWarnings("unchecked")
     @Test
     public void test() throws Exception {
-        schemaService = mock(SchemaService.class);
+        schemaService = mock(DOMSchemaService.class);
         doReturn(schemaContext).when(schemaService).getGlobalContext();
         final ImportTask rt = new ImportTask(
                 new ImmediateImportInputBuilder().setClearStores(DataStoreScope.All).setCheckModels(true).build(),

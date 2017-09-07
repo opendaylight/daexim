@@ -23,7 +23,7 @@ import org.junit.Test;
 import org.mockito.internal.matchers.EndsWith;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.controller.md.sal.dom.api.DOMDataBroker;
-import org.opendaylight.controller.sal.core.api.model.SchemaService;
+import org.opendaylight.mdsal.dom.api.DOMSchemaService;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.ImmediateImportInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.ImmediateImportInputBuilder;
 import org.slf4j.Logger;
@@ -71,7 +71,7 @@ public class CollectImportFilesTest {
     public void test() throws IOException {
         final ImmediateImportInput input = new ImmediateImportInputBuilder().setCheckModels(true).build();
         final DOMDataBroker domDataBroker = mock(DOMDataBroker.class);
-        final SchemaService schemaService = mock(SchemaService.class);
+        final DOMSchemaService schemaService = mock(DOMSchemaService.class);
         final ImportTask rt = new ImportTask(input, domDataBroker, schemaService, false, mock(Callback.class));
         final ListMultimap<LogicalDatastoreType, File> df = rt.dataFiles;
         assertTrue(df.get(LogicalDatastoreType.CONFIGURATION).isEmpty());

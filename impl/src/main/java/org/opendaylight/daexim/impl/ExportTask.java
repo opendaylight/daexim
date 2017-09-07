@@ -30,8 +30,8 @@ import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.controller.md.sal.common.api.data.ReadFailedException;
 import org.opendaylight.controller.md.sal.dom.api.DOMDataBroker;
 import org.opendaylight.controller.md.sal.dom.api.DOMDataReadOnlyTransaction;
-import org.opendaylight.controller.sal.core.api.model.SchemaService;
 import org.opendaylight.daexim.impl.model.internal.Model;
+import org.opendaylight.mdsal.dom.api.DOMSchemaService;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.YangIdentifier;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.DataStore;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.exclusions.ExcludedModules;
@@ -63,14 +63,14 @@ public class ExportTask implements Callable<Void> {
 
     private final DOMDataBroker domDataBroker;
     private final JSONCodecFactory codecFactory;
-    private final SchemaService schemaService;
+    private final DOMSchemaService schemaService;
     private final List<IncludedModules> includedModules;
     private final List<ExcludedModules> excludedModules;
     private final Callback callback;
     private final Set<LogicalDatastoreType> excludedDss = Sets.newHashSet();
 
     public ExportTask(final List<IncludedModules> includedModules, final List<ExcludedModules> excludedModules,
-            final DOMDataBroker domDataBroker, final SchemaService schemaService, Callback callback) {
+            final DOMDataBroker domDataBroker, final DOMSchemaService schemaService, Callback callback) {
         this.domDataBroker = domDataBroker;
         this.codecFactory = JSONCodecFactory.getShared(schemaService.getGlobalContext());
         this.schemaService = schemaService;

@@ -29,9 +29,9 @@ import org.opendaylight.controller.md.sal.common.api.data.ReadFailedException;
 import org.opendaylight.controller.md.sal.common.api.data.TransactionCommitFailedException;
 import org.opendaylight.controller.md.sal.dom.api.DOMDataBroker;
 import org.opendaylight.controller.md.sal.dom.api.DOMDataReadWriteTransaction;
-import org.opendaylight.controller.sal.core.api.model.SchemaService;
 import org.opendaylight.daexim.impl.model.internal.Model;
 import org.opendaylight.daexim.impl.model.internal.ModelsNotAvailableException;
+import org.opendaylight.mdsal.dom.api.DOMSchemaService;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.internal.rev160921.ImportOperationResult;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.internal.rev160921.ImportOperationResultBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.DataStoreScope;
@@ -55,7 +55,7 @@ public class ImportTask implements Callable<ImportOperationResult> {
     private static final Logger LOG = LoggerFactory.getLogger(ImportTask.class);
 
     private final DOMDataBroker dataBroker;
-    private final SchemaService schemaService;
+    private final DOMSchemaService schemaService;
     private final boolean mustValidate;
     private final DataStoreScope clearScope;
     private final Callback callback;
@@ -63,8 +63,8 @@ public class ImportTask implements Callable<ImportOperationResult> {
     @VisibleForTesting
     final ListMultimap<LogicalDatastoreType, File> dataFiles;
 
-    public ImportTask(final ImmediateImportInput input, DOMDataBroker domDataBroker, final SchemaService schemaService,
-            boolean isBooting, Callback callback) {
+    public ImportTask(final ImmediateImportInput input, DOMDataBroker domDataBroker,
+            final DOMSchemaService schemaService, boolean isBooting, Callback callback) {
         this.dataBroker = domDataBroker;
         this.schemaService = schemaService;
         this.mustValidate = input.isCheckModels() != null && input.isCheckModels();

@@ -30,7 +30,7 @@ import org.junit.Test;
 import org.opendaylight.controller.md.sal.binding.api.WriteTransaction;
 import org.opendaylight.controller.md.sal.binding.test.AbstractDataBrokerTest;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
-import org.opendaylight.controller.sal.core.api.model.SchemaService;
+import org.opendaylight.mdsal.dom.api.DOMSchemaService;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NetworkTopology;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NetworkTopologyBuilder;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
@@ -49,7 +49,7 @@ public class LocalExportTaskTest extends AbstractDataBrokerTest {
     private static final Logger LOG = LoggerFactory.getLogger(LocalExportTaskTest.class);
 
     private SchemaContext schemaContext;
-    private SchemaService schemaService;
+    private DOMSchemaService schemaService;
     private Path tempDir;
 
     @Before
@@ -80,7 +80,7 @@ public class LocalExportTaskTest extends AbstractDataBrokerTest {
 
     @Test
     public void test() throws Exception {
-        schemaService = mock(SchemaService.class);
+        schemaService = mock(DOMSchemaService.class);
         when(schemaService.getGlobalContext()).thenReturn(schemaContext);
         final WriteTransaction wrTrx = getDataBroker().newWriteOnlyTransaction();
         final InstanceIdentifier<NetworkTopology> ii = InstanceIdentifier.create(NetworkTopology.class);

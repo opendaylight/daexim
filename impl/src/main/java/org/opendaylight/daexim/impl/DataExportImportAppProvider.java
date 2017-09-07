@@ -48,12 +48,12 @@ import org.opendaylight.controller.md.sal.binding.api.WriteTransaction;
 import org.opendaylight.controller.md.sal.common.api.data.ReadFailedException;
 import org.opendaylight.controller.md.sal.common.api.data.TransactionCommitFailedException;
 import org.opendaylight.controller.md.sal.dom.api.DOMDataBroker;
-import org.opendaylight.controller.sal.core.api.model.SchemaService;
 import org.opendaylight.daexim.DataImportBootReady;
 import org.opendaylight.daexim.DataImportBootService;
 import org.opendaylight.daexim.spi.NodeNameProvider;
 import org.opendaylight.infrautils.ready.SystemReadyMonitor;
 import org.opendaylight.infrautils.utils.concurrent.ThreadFactoryProvider;
+import org.opendaylight.mdsal.dom.api.DOMSchemaService;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.DateAndTime;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.internal.rev160921.Daexim;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.internal.rev160921.DaeximBuilder;
@@ -107,7 +107,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
 
     private final DataBroker dataBroker;
     private final DOMDataBroker domDataBroker;
-    private final SchemaService schemaService;
+    private final DOMSchemaService schemaService;
     private final NodeNameProvider nodeNameProvider;
     private final SystemReadyMonitor systemReadyService;
     private final BundleContext bundleContext;
@@ -129,7 +129,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
 
     @Inject
     public DataExportImportAppProvider(@OsgiService DataBroker dataBroker, @OsgiService DOMDataBroker domDataBroker,
-            @OsgiService SchemaService schemaService, @OsgiService NodeNameProvider nodeNameProvider,
+            @OsgiService DOMSchemaService schemaService, @OsgiService NodeNameProvider nodeNameProvider,
             @OsgiService SystemReadyMonitor systemReadyService, BundleContext bundleContext) {
         super();
         this.dataBroker = dataBroker;

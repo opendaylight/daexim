@@ -23,7 +23,7 @@ import org.junit.Test;
 import org.opendaylight.controller.md.sal.binding.test.AbstractDataBrokerTest;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.controller.md.sal.common.api.data.TransactionCommitFailedException;
-import org.opendaylight.controller.sal.core.api.model.SchemaService;
+import org.opendaylight.mdsal.dom.api.DOMSchemaService;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.YangIdentifier;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.DataStore;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.exclusions.ExcludedModules;
@@ -50,11 +50,11 @@ public class ModuleExclusionTest extends AbstractDataBrokerTest {
     private static final String REV2 = "2016-09-12";
 
     private SchemaContext schemaContext;
-    private SchemaService schemaService;
+    private DOMSchemaService schemaService;
 
     @Before
     public void setUp() throws TransactionCommitFailedException {
-        schemaService = mock(SchemaService.class);
+        schemaService = mock(DOMSchemaService.class);
         when(schemaService.getGlobalContext()).thenReturn(schemaContext);
     }
 

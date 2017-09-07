@@ -39,12 +39,12 @@ import org.mockito.Mockito;
 import org.opendaylight.controller.md.sal.binding.api.ReadOnlyTransaction;
 import org.opendaylight.controller.md.sal.binding.test.AbstractDataBrokerTest;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
-import org.opendaylight.controller.sal.core.api.model.SchemaService;
 import org.opendaylight.daexim.spi.NodeNameProvider;
 import org.opendaylight.infrautils.ready.SystemReadyListener;
 import org.opendaylight.infrautils.ready.SystemReadyMonitor;
 import org.opendaylight.infrautils.ready.SystemState;
 import org.opendaylight.infrautils.testutils.LogRule;
+import org.opendaylight.mdsal.dom.api.DOMSchemaService;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.AbsoluteTime;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.CancelExportOutput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.DataStoreScope;
@@ -84,7 +84,7 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
 
         nnp = mock(NodeNameProvider.class);
         when(nnp.getNodeName()).thenReturn("localhost");
-        SchemaService schemaService = mock(SchemaService.class);
+        DOMSchemaService schemaService = mock(DOMSchemaService.class);
         when(schemaService.getGlobalContext()).thenReturn(schemaContext);
         provider = new DataExportImportAppProvider(getDataBroker(), getDomBroker(), schemaService, nnp,
                 new SystemReadyMonitor() {
