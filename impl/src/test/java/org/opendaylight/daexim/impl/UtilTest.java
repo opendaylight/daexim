@@ -54,7 +54,8 @@ public class UtilTest {
     }
 
     private void setPropertyFileContent(String content) throws IOException {
-        com.google.common.io.Files.write(content, etcDir.resolve(CFG_FILE).toFile(), UTF_8);
+        File propertyFile = etcDir.resolve(CFG_FILE).toFile();
+        com.google.common.io.Files.asCharSink(propertyFile, UTF_8).write(content);
     }
 
     @Test
