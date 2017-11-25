@@ -3,6 +3,7 @@ target/
 .settings
 .classpath
 *.swp
+*.iml
 maven-metadata-local.xml
 target-ide/
 .checkstyle
