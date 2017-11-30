@@ -21,8 +21,28 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
     <artifactId>daexim-features</artifactId>
     <version>1.3.0-SNAPSHOT</version>
     <packaging>feature</packaging>
+    <name>ODL :: daexim :: ${project.artifactId}</name>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.opendaylight.daexim</groupId>
+                <artifactId>daexim-artifacts</artifactId>
+                <version>${project.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <dependencies>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>odl-daexim</artifactId>
+            <version>${project.version}</version>
+            <type>xml</type>
+            <classifier>features</classifier>
+        </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>odl-daexim-all</artifactId>

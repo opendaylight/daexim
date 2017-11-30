@@ -10,7 +10,7 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
 <features name="odl-daexim-${project.version}" xmlns="http://karaf.apache.org/xmlns/features/v1.2.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:schemaLocation="http://karaf.apache.org/xmlns/features/v1.2.0 http://karaf.apache.org/xmlns/features/v1.2.0">
 
-    <feature name='odl-daexim-all' description="Opendaylight :: Data export-import" version='${project.version}'>
+    <feature name='odl-daexim' version='${project.version}'>
         <configfile finalname="etc/org.opendaylight.daexim.cfg">mvn:org.opendaylight.daexim/daexim-impl/${project.version}/cfg</configfile>
     </feature>
 
