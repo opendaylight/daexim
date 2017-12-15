@@ -40,7 +40,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.exclusions
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.exclusions.ExcludedModulesModuleNameBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.inclusions.IncludedModules;
 import org.opendaylight.yangtools.yang.common.QName;
-import org.opendaylight.yangtools.yang.common.SimpleDateFormatUtil;
+import org.opendaylight.yangtools.yang.common.Revision;
 import org.opendaylight.yangtools.yang.data.api.YangInstanceIdentifier;
 import org.opendaylight.yangtools.yang.data.api.YangInstanceIdentifier.PathArgument;
 import org.opendaylight.yangtools.yang.data.api.schema.NormalizedNode;
@@ -110,7 +110,7 @@ public class ExportTask implements Callable<Void> {
                         if (m.getName().equals(moduleName)) {
                             final Model model = new Model();
                             model.setModule(moduleName);
-                            model.setRevision(SimpleDateFormatUtil.getRevisionFormat().format(m.getRevision()));
+                            model.setRevision(m.getRevision().map(Revision::toString).orElse(null));
                             model.setNamespace(m.getNamespace().toString());
                             return Optional.of(model);
                         }
@@ -193,8 +193,7 @@ public class ExportTask implements Callable<Void> {
             jsonWriter.beginObject();
             writeProperty(jsonWriter, FIELD_MODULE, mod.getName());
             writeProperty(jsonWriter, FIELD_NAMESPACE, mod.getNamespace().toString());
-            writeProperty(jsonWriter, FIELD_REVISION,
-                    SimpleDateFormatUtil.getRevisionFormat().format(mod.getRevision()));
+            writeProperty(jsonWriter, FIELD_REVISION, mod.getRevision().map(Revision::toString).orElse(null));
             jsonWriter.endObject();
         }
 

@@ -13,7 +13,7 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
     <parent>
         <groupId>org.opendaylight.odlparent</groupId>
         <artifactId>bundle-parent</artifactId>
-        <version>2.0.5</version>
+        <version>3.0.2</version>
         <relativePath />
     </parent>
     <groupId>org.opendaylight.daexim</groupId>
@@ -60,14 +60,12 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
     <dependencies>
         <dependency>
             <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-actor_${scala.version}</artifactId>
-            <version>${akka.version}</version>
+            <artifactId>akka-actor_2.12</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-cluster_${scala.version}</artifactId>
-            <version>${akka.version}</version>
+            <artifactId>akka-cluster_2.12</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>

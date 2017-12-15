@@ -27,7 +27,7 @@ public interface DataImportBootService {
     OperationStatus statusImportOnLocalNode();
 
     /**
-     * Await {@link #statusImportOnLocalNode()} OK:
+     * Await {@link #statusImportOnLocalNode()} OK.
      * <ul><li>If there were no files to "auto-import-on-boot",
      * or if there were but meanwhile they have been processed, then this returns (fast).
      * <li>If there is a "auto-import-on-boot" in progress,

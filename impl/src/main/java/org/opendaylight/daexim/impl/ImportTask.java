@@ -9,6 +9,7 @@
 package org.opendaylight.daexim.impl;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
@@ -36,7 +37,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.internal.rev160921.I
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.internal.rev160921.ImportOperationResultBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.DataStoreScope;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.ImmediateImportInput;
-import org.opendaylight.yangtools.yang.common.SimpleDateFormatUtil;
+import org.opendaylight.yangtools.yang.common.Revision;
 import org.opendaylight.yangtools.yang.data.api.YangInstanceIdentifier;
 import org.opendaylight.yangtools.yang.data.api.YangInstanceIdentifier.PathArgument;
 import org.opendaylight.yangtools.yang.data.api.schema.NormalizedNode;
@@ -161,7 +162,7 @@ public class ImportTask implements Callable<ImportOperationResult> {
             boolean found = false;
             for (final Module mod : modules) {
                 if (mod.getName().equals(m.getModule()) && mod.getNamespace().toString().equals(m.getNamespace())
-                        && SimpleDateFormatUtil.getRevisionFormat().format(mod.getRevision()).equals(m.getRevision())) {
+                        && Objects.equal(mod.getRevision().map(Revision::toString).orElse(null), m.getRevision())) {
                     found = true;
                 }
             }
