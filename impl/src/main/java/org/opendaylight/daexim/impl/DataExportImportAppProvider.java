@@ -282,6 +282,14 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
         final DaeximControl newTask = changes.iterator().next().getRootNode().getDataAfter();
         if (newTask != null) {
             LOG.info("IPC received : {}", newTask);
+            if (newTask.getRunOnNode() != null
+                    && !Objects.equals(newTask.getRunOnNode(), nodeNameProvider.getNodeName())) {
+                exportFailure = null;
+                updateExportStatus(Status.Skipped);
+                updateNodeStatus();
+                LOG.info("Export task skipped");
+                return;
+            }
             if (IpcType.Schedule.equals(newTask.getTaskType())) {
                 // Schedule
                 updateExportStatus(Status.Scheduled);
@@ -548,6 +556,9 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
             builder.setIncludedModules(input.getIncludedModules());
             builder.setExcludedModules(input.getExcludedModules());
             builder.setRunAt(new AbsoluteTime(new DateAndTime(Util.toDateAndTime(new Date(scheduleAtTimestamp)))));
+            if (Objects.equals(input.isLocalNodeOnly(), Boolean.TRUE)) {
+                builder.setRunOnNode(nodeNameProvider.getNodeName());
+            }
             invokeIPC(builder.build());
             outputBuilder.setResult(true);
             return Futures
