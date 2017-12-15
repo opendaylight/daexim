@@ -72,6 +72,11 @@ module data-export-import-internal {
                      request.";
                 type daexim:absolute-time;
             }
+            leaf run-on-node {
+                description
+                    "Name of node where the export should be executed.";
+                type string;
+            }
             uses daexim:inclusions;
             uses daexim:exclusions;
         }
