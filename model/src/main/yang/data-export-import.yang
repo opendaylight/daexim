@@ -203,6 +203,10 @@ module data-export-import {
                 value 5;
                 description "An automatic-on-boot import is in progress.";
             }
+            enum skipped {
+                value 6;
+                description "An export or task was skipped.";
+            }
             enum inconsistent {
                 value -1;
                 description
@@ -350,6 +354,12 @@ module data-export-import {
                     type absolute-time;
                     type relative-time;
                 }
+            }
+            leaf local-node-only {
+                description
+                    "Indicates if export should be performed only on
+                     the node receiving this request.";
+                type boolean;
             }
             uses inclusions;
             uses exclusions;
