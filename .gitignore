@@ -8,3 +8,5 @@ maven-metadata-local.xml
 target-ide/
 .checkstyle
 .fbExcludeFilterFile
+.idea/
+
