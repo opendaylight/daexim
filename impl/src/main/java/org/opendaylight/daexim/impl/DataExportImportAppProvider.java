@@ -56,7 +56,6 @@ import org.opendaylight.infrautils.utils.concurrent.ThreadFactoryProvider;
 import org.opendaylight.mdsal.dom.api.DOMSchemaService;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.DateAndTime;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.internal.rev160921.Daexim;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.internal.rev160921.DaeximBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.internal.rev160921.ImportOperationResult;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.internal.rev160921.IpcType;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.internal.rev160921.daexim.DaeximControl;
@@ -158,7 +157,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
                 LOG.error("Failure while processing IPC request", e);
             }
         });
-        checkDatastructures();
+        updateNodeStatus();
         scheduledExecutorService = MoreExecutors.listeningDecorator(Executors.newScheduledThreadPool(10,
                 ThreadFactoryProvider.builder().namePrefix("daexim-scheduler").logger(LOG).build().get()));
         LOG.info("Daexim Session Initiated, running on node '{}'", nodeNameProvider.getNodeName());
@@ -244,34 +243,6 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
             LOG.error("Failed to rename file: {}", file.toString(), e);
             return false;
         }
-    }
-
-    private void checkDatastructures() {
-        final ReadOnlyTransaction roTrx = dataBroker.newReadOnlyTransaction();
-        try {
-            if (roTrx.read(OPERATIONAL, globalStatusII).checkedGet().orNull() == null) {
-                rebuildGlobalStatus();
-            } else {
-                updateNodeStatus();
-            }
-        } catch (ReadFailedException | TransactionCommitFailedException e) {
-            LOG.error("Failed to check global status structure", e);
-        } finally {
-            roTrx.close();
-        }
-    }
-
-    private DaeximStatus rebuildGlobalStatus() throws TransactionCommitFailedException {
-        exportStatus = Status.Initial;
-        importStatus = Status.Initial;
-        LOG.info("Global status is not yet created");
-        final DaeximStatus globalStatus = new DaeximStatusBuilder().setExportStatus(exportStatus)
-                .setImportStatus(importStatus).setNodeStatus(Lists.<NodeStatus>newArrayList(createNodeStatusData()))
-                .build();
-        final WriteTransaction wTrx = dataBroker.newWriteOnlyTransaction();
-        wTrx.put(OPERATIONAL, topII, new DaeximBuilder().setDaeximStatus(globalStatus).build());
-        wTrx.submit().checkedGet();
-        return globalStatus;
     }
 
     /*
@@ -397,6 +368,20 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
         } finally {
             roTrx.close();
         }
+    }
+
+    /*
+     * Initializes status of local node and return global status with local node's
+     * status included in it
+     */
+    private DaeximStatus rebuildGlobalStatus() throws TransactionCommitFailedException {
+        exportStatus = Status.Initial;
+        importStatus = Status.Initial;
+        LOG.info("Global status is not yet created");
+        updateNodeStatus();
+        final DaeximStatus globalStatus =
+                new DaeximStatusBuilder().setNodeStatus(Lists.<NodeStatus>newArrayList(createNodeStatusData())).build();
+        return globalStatus;
     }
 
     /**
