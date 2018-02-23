@@ -19,7 +19,7 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
     <packaging>pom</packaging>
     <groupId>org.opendaylight.daexim</groupId>
     <artifactId>daexim</artifactId>
-    <version>1.2.2-SNAPSHOT</version>
+    <version>1.2.3-SNAPSHOT</version>
     <dependencyManagement>
         <dependencies>
             <dependency>
