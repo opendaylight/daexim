@@ -20,34 +20,14 @@
     "revision-date": "2010-09-24"
   },
   {
-    "module": "network-topology",
-    "namespace": "urn:TBD:params:xml:ns:yang:network-topology",
-    "revision-date": "2013-07-12"
-  },
-  {
-    "module": "l3-unicast-igp-topology",
-    "namespace": "urn:TBD:params:xml:ns:yang:nt:l3-unicast-igp-topology",
-    "revision-date": "2013-07-12"
-  },
-  {
     "module": "ted",
     "namespace": "urn:TBD:params:xml:ns:yang:network:ted",
     "revision-date": "2013-10-21"
   },
   {
-    "module": "ted",
-    "namespace": "urn:TBD:params:xml:ns:yang:network:ted",
-    "revision-date": "2013-07-12"
-  },
-  {
-    "module": "general-entity",
-    "namespace": "urn:opendaylight:params:xml:ns:yang:controller:md:sal:core:general-entity",
-    "revision-date": "2015-08-20"
-  },
-  {
-    "module": "ospf-topology",
-    "namespace": "urn:ietf:params:xml:ns:yang:ospf-topology",
-    "revision-date": "2013-07-12"
+    "module": "odl-general-entity",
+    "namespace": "urn:opendaylight:params:xml:ns:yang:mdsal:core:general-entity",
+    "revision-date": "2015-09-30"
   },
   {
     "module": "config",
