@@ -9,6 +9,7 @@ package org.opendaylight.daexim;
 
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.DataExportImportService;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.OperationStatus;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.StatusImportInput;
 
 /**
  * Service API for the "auto-import-on-boot" feature.
@@ -19,10 +20,10 @@ public interface DataImportBootService {
     /**
      * Check last import status, of this node only. Does not return status about
      * restore operation on per-node basis; see
-     * {@link DataExportImportService#statusImport()} for that. This is a very
-     * light weight operation (i.e. no data store access &amp; no RPC overhead), suitable to be
-     * invoked very frequently (contrary to
-     * {@link DataExportImportService#statusImport()}).
+     * {@link DataExportImportService#statusImport(StatusImportInput)} for that.
+     * This is a very light weight operation (i.e. no data store access &amp; no RPC
+     * overhead), suitable to be invoked very frequently (contrary to
+     * {@link DataExportImportService#statusImport(StatusImportInput)}).
      */
     OperationStatus statusImportOnLocalNode();
 

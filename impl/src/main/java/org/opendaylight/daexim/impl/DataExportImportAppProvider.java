@@ -33,7 +33,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -66,6 +65,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.internal.rev160921.d
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.internal.rev160921.daexim.daexim.status.NodeStatusBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.internal.rev160921.daexim.daexim.status.NodeStatusKey;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.AbsoluteTime;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.CancelExportInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.CancelExportOutput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.CancelExportOutputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.DataExportImportService;
@@ -80,8 +80,10 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.ScheduleEx
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.ScheduleExportOutput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.ScheduleExportOutputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.Status;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.StatusExportInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.StatusExportOutput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.StatusExportOutputBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.StatusImportInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.StatusImportOutput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.StatusImportOutputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.status.export.output.Nodes;
@@ -486,7 +488,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
      * Cancels any pending or active export tasks.
      */
     @Override
-    public Future<RpcResult<CancelExportOutput>> cancelExport() {
+    public ListenableFuture<RpcResult<CancelExportOutput>> cancelExport(CancelExportInput input) {
         final CancelExportOutputBuilder outputBuilder = new CancelExportOutputBuilder();
         try {
             invokeIPC(new DaeximControlBuilder().setTaskType(IpcType.Cancel).build());
@@ -508,7 +510,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
      * Schedule export.
      */
     @Override
-    public Future<RpcResult<ScheduleExportOutput>> scheduleExport(ScheduleExportInput input) {
+    public ListenableFuture<RpcResult<ScheduleExportOutput>> scheduleExport(ScheduleExportInput input) {
         Objects.requireNonNull(input, "input");
         awaitBootImport("DataExportImport.scheduleExport()");
         long scheduleAtTimestamp;
@@ -561,18 +563,19 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
      * Pending export status.
      */
     @Override
-    public Future<RpcResult<StatusExportOutput>> statusExport() {
+    public ListenableFuture<RpcResult<StatusExportOutput>> statusExport(StatusExportInput input) {
+
         final StatusExportOutputBuilder builder = new StatusExportOutputBuilder();
         try {
             final DaeximStatus gs = readGlobalStatus();
             final List<Nodes> tasks = Lists
-                    .<Nodes>newArrayList(Iterables.transform(gs.getNodeStatus(), input -> {
-                        final NodesBuilder nb = new NodesBuilder().setReason(input.getExportResult())
-                                .setKey(new NodesKey(input.getNodeName())).setStatus(input.getExportStatus());
-                        if (Status.Complete.equals(input.getExportStatus())) {
-                            nb.setModelFile(input.getModelFile()).setDataFiles(input.getDataFiles());
+                    .<Nodes>newArrayList(Iterables.transform(gs.getNodeStatus(), nodeStatus -> {
+                        final NodesBuilder nb = new NodesBuilder().setReason(nodeStatus.getExportResult())
+                                .setKey(new NodesKey(nodeStatus.getNodeName())).setStatus(nodeStatus.getExportStatus());
+                        if (Status.Complete.equals(nodeStatus.getExportStatus())) {
+                            nb.setModelFile(nodeStatus.getModelFile()).setDataFiles(nodeStatus.getDataFiles());
                         }
-                        nb.setLastChange(input.getLastExportChange());
+                        nb.setLastChange(nodeStatus.getLastExportChange());
                         return nb.build();
                     }));
             final Status s = calculateStatus(tasks);
@@ -593,7 +596,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
      * Immediate restore operation.
      */
     @Override
-    public Future<RpcResult<ImmediateImportOutput>> immediateImport(ImmediateImportInput input) {
+    public ListenableFuture<RpcResult<ImmediateImportOutput>> immediateImport(ImmediateImportInput input) {
         Objects.requireNonNull(input, "input");
         awaitBootImport("DataExportImport.immediateImport()");
         return immediateImport(input, false);
@@ -676,28 +679,28 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
      * Import status RPC.
      */
     @Override
-    public Future<RpcResult<StatusImportOutput>> statusImport() {
+    public ListenableFuture<RpcResult<StatusImportOutput>> statusImport(StatusImportInput input) {
         final StatusImportOutputBuilder builder = new StatusImportOutputBuilder();
         try {
             final DaeximStatus gs = readGlobalStatus();
             final List<org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.status._import.output.Nodes> nodes
                 = Lists.newArrayList(
-                    Iterables.transform(gs.getNodeStatus(), input -> {
+                    Iterables.transform(gs.getNodeStatus(), nodeStatus -> {
                         final org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.status._import.output
                                .NodesBuilder nb = new org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921
                                        .status._import.output.NodesBuilder();
-                        if (Status.Complete.equals(input.getImportStatus())) {
-                            nb.setImportedAt(input.getImportedAt());
+                        if (Status.Complete.equals(nodeStatus.getImportStatus())) {
+                            nb.setImportedAt(nodeStatus.getImportedAt());
                         }
-                        nb.setReason(input.getImportResult());
-                        nb.setModelFile(input.getModelFile());
-                        nb.setDataFiles(input.getDataFiles());
-                        nb.setStatus(input.getImportStatus());
-                        if (input.getLastImportChange() != null) {
-                            nb.setLastChange(input.getLastImportChange());
+                        nb.setReason(nodeStatus.getImportResult());
+                        nb.setModelFile(nodeStatus.getModelFile());
+                        nb.setDataFiles(nodeStatus.getDataFiles());
+                        nb.setStatus(nodeStatus.getImportStatus());
+                        if (nodeStatus.getLastImportChange() != null) {
+                            nb.setLastChange(nodeStatus.getLastImportChange());
                         }
                         nb.setKey(new org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921
-                                .status._import.output.NodesKey(input.getNodeName()));
+                                .status._import.output.NodesKey(nodeStatus.getNodeName()));
                         return nb.build();
                     }));
             builder.setStatus(importStatus);

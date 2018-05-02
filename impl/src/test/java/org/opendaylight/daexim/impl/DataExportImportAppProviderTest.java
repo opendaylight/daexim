@@ -46,6 +46,7 @@ import org.opendaylight.infrautils.ready.SystemState;
 import org.opendaylight.infrautils.testutils.LogRule;
 import org.opendaylight.mdsal.dom.api.DOMSchemaService;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.AbsoluteTime;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.CancelExportInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.CancelExportOutput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.DataStoreScope;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.ImmediateImportInputBuilder;
@@ -55,7 +56,9 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.ScheduleEx
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.ScheduleExportInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.ScheduleExportOutput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.Status;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.StatusExportInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.StatusExportOutput;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.StatusImportInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.StatusImportOutput;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.Topology;
 import org.opendaylight.yangtools.yang.common.RpcError;
@@ -121,7 +124,7 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
     @Test(timeout = 15000)
     public void testExportStatusRPC() throws InterruptedException, ExecutionException {
         provider.init();
-        final RpcResult<StatusExportOutput> result = provider.statusExport().get();
+        RpcResult<StatusExportOutput> result = provider.statusExport(new StatusExportInputBuilder().build()).get();
         LOG.info("RPC result : {}", result);
         assertTrue(result.isSuccessful());
     }
@@ -129,7 +132,7 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
     @Test(timeout = 15000)
     public void testImportStatusRPC() throws InterruptedException, ExecutionException {
         provider.init();
-        final RpcResult<StatusImportOutput> result = provider.statusImport().get();
+        RpcResult<StatusImportOutput> result = provider.statusImport(new StatusImportInputBuilder().build()).get();
         LOG.info("RPC result : {}", result);
         assertTrue(result.isSuccessful());
     }
@@ -194,7 +197,8 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
             }
             TimeUnit.MILLISECONDS.sleep(250);
         }
-        final RpcResult<CancelExportOutput> cancelResult = provider.cancelExport().get();
+        RpcResult<CancelExportOutput> cancelResult = provider.cancelExport(new CancelExportInputBuilder().build())
+                .get();
         LOG.info("RPC result : {}", cancelResult);
         assertTrue(cancelResult.isSuccessful());
         // wait for initial status after cancellation
@@ -226,7 +230,8 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
                 new ImmediateImportInputBuilder().setClearStores(DataStoreScope.All).setCheckModels(true).build())
                 .get();
         LOG.info("RPC result : {}", importResult);
-        assertEquals(Status.Complete, provider.statusImport().get().getResult().getStatus());
+        assertEquals(Status.Complete,
+                provider.statusImport(new StatusImportInputBuilder().build()).get().getResult().getStatus());
         // Now, mess-up JSON file, so it fails
         final File f = Util.collectDataFiles(false).get(LogicalDatastoreType.OPERATIONAL).iterator().next();
         Files.write(f.toPath(), "some-garbage".getBytes(StandardCharsets.UTF_8));
@@ -234,7 +239,8 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
                 new ImmediateImportInputBuilder().setClearStores(DataStoreScope.All).setCheckModels(true).build())
                 .get();
         LOG.info("RPC result : {}", importResult);
-        assertEquals(Status.Failed, provider.statusImport().get().getResult().getStatus());
+        assertEquals(Status.Failed,
+                provider.statusImport(new StatusImportInputBuilder().build()).get().getResult().getStatus());
     }
 
     /**
@@ -332,6 +338,6 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
     }
 
     private StatusExportOutput getStatus() throws InterruptedException, ExecutionException {
-        return provider.statusExport().get().getResult();
+        return provider.statusExport(new StatusExportInputBuilder().build()).get().getResult();
     }
 }
