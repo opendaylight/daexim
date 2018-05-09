@@ -571,7 +571,8 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
             final List<Nodes> tasks = Lists
                     .<Nodes>newArrayList(Iterables.transform(gs.getNodeStatus(), nodeStatus -> {
                         final NodesBuilder nb = new NodesBuilder().setReason(nodeStatus.getExportResult())
-                                .setKey(new NodesKey(nodeStatus.getNodeName())).setStatus(nodeStatus.getExportStatus());
+                                .withKey(new NodesKey(nodeStatus.getNodeName()))
+                                .setStatus(nodeStatus.getExportStatus());
                         if (Status.Complete.equals(nodeStatus.getExportStatus())) {
                             nb.setModelFile(nodeStatus.getModelFile()).setDataFiles(nodeStatus.getDataFiles());
                         }
@@ -699,7 +700,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
                         if (nodeStatus.getLastImportChange() != null) {
                             nb.setLastChange(nodeStatus.getLastImportChange());
                         }
-                        nb.setKey(new org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921
+                        nb.withKey(new org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921
                                 .status._import.output.NodesKey(nodeStatus.getNodeName()));
                         return nb.build();
                     }));

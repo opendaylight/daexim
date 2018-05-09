@@ -238,7 +238,7 @@ public class ExportTask implements Callable<Void> {
                 // the include list, so try the next item in exclude list.
                 continue;
             }
-            final Optional<Model> mod = moduleCache.getUnchecked(incl.getKey().getModuleName().getValue());
+            final Optional<Model> mod = moduleCache.getUnchecked(incl.key().getModuleName().getValue());
             if (mod.isPresent()) {
                 // SchemaService found the module being excluded. Compare it to
                 // the node being written, matching only the namespace and ignoring the revision.
@@ -261,7 +261,7 @@ public class ExportTask implements Callable<Void> {
                 continue;
             }
             final Optional<Model> mod = moduleCache
-                    .getUnchecked(excl.getKey().getModuleName().getYangIdentifier().getValue());
+                    .getUnchecked(excl.key().getModuleName().getYangIdentifier().getValue());
             if (mod.isPresent()) {
                 // SchemaService found the module being excluded. Compare it to
                 // the node being written, matching only the namespace and ignoring the revision.

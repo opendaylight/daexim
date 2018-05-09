@@ -236,7 +236,7 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
         assertEquals(2, t.getNode().size());
         for (final Node node : t.getNode()) {
             // make sure none of 'new' nodes has 'old' node id
-            assertFalse(OLD_NODE_ID.equals(node.getKey().getNodeId().getValue()));
+            assertFalse(OLD_NODE_ID.equals(node.key().getNodeId().getValue()));
         }
     }
 }
