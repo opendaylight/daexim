@@ -10,7 +10,6 @@ package org.opendaylight.daexim.impl;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.when;
@@ -30,8 +29,6 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.exclusions
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.exclusions.ExcludedModules.ModuleName;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.exclusions.ExcludedModulesBuilder;
 import org.opendaylight.yangtools.yang.common.QName;
-import org.opendaylight.yangtools.yang.data.api.YangInstanceIdentifier.PathArgument;
-import org.opendaylight.yangtools.yang.data.api.schema.NormalizedNode;
 import org.opendaylight.yangtools.yang.model.api.SchemaContext;
 
 public class ModuleExclusionTest extends AbstractDataBrokerTest {
@@ -73,44 +70,35 @@ public class ModuleExclusionTest extends AbstractDataBrokerTest {
     public void test() throws Exception {
         ExportTask task;
         // 'config' node at A@R1 is excluded by [{"data-store": "config", "module-name": "A"}]
-        task = new ExportTask(null, EXCL_CFG, getDomBroker(), schemaService, mock(Callback.class));
-        assertTrue(task.isExcluded(LogicalDatastoreType.CONFIGURATION, constructNode("testA", REV1, "A")));
+        task = new ExportTask(null, EXCL_CFG, true, getDomBroker(), schemaService, mock(Callback.class));
+        assertTrue(task.isExcluded(LogicalDatastoreType.CONFIGURATION, QName.create("testA", REV1, "A")));
 
         // 'operational' node at A@R1 is excluded by [{"data-store": "operational", "module-name": "A"}]
-        task = new ExportTask(null, EXCL_OP, getDomBroker(), schemaService, mock(Callback.class));
-        assertTrue(task.isExcluded(LogicalDatastoreType.OPERATIONAL, constructNode("testA", REV1, "A")));
+        task = new ExportTask(null, EXCL_OP, true, getDomBroker(), schemaService, mock(Callback.class));
+        assertTrue(task.isExcluded(LogicalDatastoreType.OPERATIONAL, QName.create("testA", REV1, "A")));
 
         // 'config' node at A@R2 is excluded by [{"data-store": "config", "module-name": "A"}]
-        task = new ExportTask(null, EXCL_CFG, getDomBroker(), schemaService, mock(Callback.class));
-        assertTrue(task.isExcluded(LogicalDatastoreType.CONFIGURATION, constructNode("testA", REV2, "A")));
+        task = new ExportTask(null, EXCL_CFG, true, getDomBroker(), schemaService, mock(Callback.class));
+        assertTrue(task.isExcluded(LogicalDatastoreType.CONFIGURATION, QName.create("testA", REV2, "A")));
 
         // 'operational' node at A@R1 is excluded by [{"data-store": "operational", "module-name": "A"}]
-        task = new ExportTask(null, EXCL_OP, getDomBroker(), schemaService, mock(Callback.class));
-        assertTrue(task.isExcluded(LogicalDatastoreType.OPERATIONAL, constructNode("testA", REV1, "A")));
+        task = new ExportTask(null, EXCL_OP, true, getDomBroker(), schemaService, mock(Callback.class));
+        assertTrue(task.isExcluded(LogicalDatastoreType.OPERATIONAL, QName.create("testA", REV1, "A")));
 
         // 'config' node at A@R1 is NOT excluded by [{"data-store": "operational", "module-name": "A"}]
-        task = new ExportTask(null, EXCL_OP, getDomBroker(), schemaService, mock(Callback.class));
-        assertFalse(task.isExcluded(LogicalDatastoreType.CONFIGURATION, constructNode("testA", REV1, "A")));
+        task = new ExportTask(null, EXCL_OP, true, getDomBroker(), schemaService, mock(Callback.class));
+        assertFalse(task.isExcluded(LogicalDatastoreType.CONFIGURATION, QName.create("testA", REV1, "A")));
 
         //'operational' node at A@R1 is NOT excluded by [{"data-store": "config", "module-name": "A"}]
-        task = new ExportTask(null, EXCL_CFG, getDomBroker(), schemaService, mock(Callback.class));
-        assertFalse(task.isExcluded(LogicalDatastoreType.OPERATIONAL, constructNode("testA", REV1, "A")));
+        task = new ExportTask(null, EXCL_CFG, true, getDomBroker(), schemaService, mock(Callback.class));
+        assertFalse(task.isExcluded(LogicalDatastoreType.OPERATIONAL, QName.create("testA", REV1, "A")));
 
         // 'config' node at B@R1 is NOT excluded by [{"data-store": "config", "module-name": "A"}]
-        task = new ExportTask(null, EXCL_CFG, getDomBroker(), schemaService, mock(Callback.class));
-        assertFalse(task.isExcluded(LogicalDatastoreType.CONFIGURATION, constructNode("testB", REV1, "B")));
+        task = new ExportTask(null, EXCL_CFG, true, getDomBroker(), schemaService, mock(Callback.class));
+        assertFalse(task.isExcluded(LogicalDatastoreType.CONFIGURATION, QName.create("testB", REV1, "B")));
 
         // 'operational' node at B@R1 is NOT excluded by [{"data-store": "operational", "module-name": "A"}]
-        task = new ExportTask(null, EXCL_OP, getDomBroker(), schemaService, mock(Callback.class));
-        assertFalse(task.isExcluded(LogicalDatastoreType.OPERATIONAL, constructNode("testB", REV1, "B")));
-    }
-
-    private NormalizedNode<?, ?> constructNode(String namespace, String revision, String module) {
-        @SuppressWarnings("unchecked")
-        final NormalizedNode<PathArgument, ?> nn = mock(NormalizedNode.class);
-        PathArgument pa = mock(PathArgument.class);
-        doReturn(QName.create(namespace, revision, module)).when(pa).getNodeType();
-        doReturn(pa).when(nn).getIdentifier();
-        return nn;
+        task = new ExportTask(null, EXCL_OP, true, getDomBroker(), schemaService, mock(Callback.class));
+        assertFalse(task.isExcluded(LogicalDatastoreType.OPERATIONAL, QName.create("testB", REV1, "B")));
     }
 }

@@ -84,6 +84,15 @@ module data-export-import-internal {
                     "Name of node where the export should be executed.";
                 type string;
             }
+            leaf strict-data-consistency {
+                description
+                    "Indicates if strict data consistency needs to be
+                     maintained while exporting data. This value determines
+                     how data is read from the datastore during export -
+                     in one shot (true) or in smaller chunks (false).";
+                type boolean;
+                default true;
+            }
             uses daexim:inclusions;
             uses daexim:exclusions;
         }

@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.stream.Collectors;
 import javax.annotation.WillClose;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.controller.md.sal.common.api.data.ReadFailedException;
@@ -42,12 +43,12 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.inclusions
 import org.opendaylight.yangtools.yang.common.QName;
 import org.opendaylight.yangtools.yang.common.Revision;
 import org.opendaylight.yangtools.yang.data.api.YangInstanceIdentifier;
-import org.opendaylight.yangtools.yang.data.api.YangInstanceIdentifier.PathArgument;
 import org.opendaylight.yangtools.yang.data.api.schema.NormalizedNode;
 import org.opendaylight.yangtools.yang.data.api.schema.NormalizedNodeContainer;
 import org.opendaylight.yangtools.yang.data.api.schema.stream.NormalizedNodeWriter;
 import org.opendaylight.yangtools.yang.data.codec.gson.JSONCodecFactory;
 import org.opendaylight.yangtools.yang.data.codec.gson.JSONNormalizedNodeStreamWriter;
+import org.opendaylight.yangtools.yang.model.api.DataSchemaNode;
 import org.opendaylight.yangtools.yang.model.api.Module;
 import org.opendaylight.yangtools.yang.model.api.SchemaPath;
 import org.slf4j.Logger;
@@ -68,9 +69,11 @@ public class ExportTask implements Callable<Void> {
     private final List<ExcludedModules> excludedModules;
     private final Callback callback;
     private final Set<LogicalDatastoreType> excludedDss = Sets.newHashSet();
+    private final boolean strictDataConsistency;
 
     public ExportTask(final List<IncludedModules> includedModules, final List<ExcludedModules> excludedModules,
-            final DOMDataBroker domDataBroker, final DOMSchemaService schemaService, Callback callback) {
+            final boolean strictDataConsistency, final DOMDataBroker domDataBroker,
+            final DOMSchemaService schemaService, final Callback callback) {
         this.domDataBroker = domDataBroker;
         this.codecFactory = JSONCodecFactory.getShared(schemaService.getGlobalContext());
         this.schemaService = schemaService;
@@ -83,6 +86,7 @@ public class ExportTask implements Callable<Void> {
             }
         }
         this.callback = callback;
+        this.strictDataConsistency = strictDataConsistency;
     }
 
     /*
@@ -119,15 +123,6 @@ public class ExportTask implements Callable<Void> {
                 }
             });
 
-    private Optional<NormalizedNode<?, ?>> getRootNode(LogicalDatastoreType type) throws ReadFailedException {
-        final DOMDataReadOnlyTransaction roTrx = domDataBroker.newReadOnlyTransaction();
-        try {
-            return roTrx.read(type, YangInstanceIdentifier.EMPTY).checkedGet();
-        } finally {
-            roTrx.close();
-        }
-    }
-
     @SuppressWarnings("resource") // JsonWriter's close() will close new FileWriter
     private JsonWriter createWriter(LogicalDatastoreType type, boolean isModules) throws IOException {
         final File filePath = isModules ? Util.getModelsFilePath(false).toFile()
@@ -145,21 +140,79 @@ public class ExportTask implements Callable<Void> {
     }
 
     private void writeStore(LogicalDatastoreType type) throws IOException, ReadFailedException {
+        final Collection<NormalizedNode<?, ?>> nodes = readDatastore(type);
+        LOG.debug("Number of nodes for export after handling inclusions/exclusions : {}", nodes.size());
+        try (JsonWriter jsonWriter = createWriter(type, false)) {
+            writeData(type, nodes, jsonWriter);
+        }
+    }
+
+    private Collection<NormalizedNode<?, ?>> readDatastore(final LogicalDatastoreType type) throws ReadFailedException {
+        if (strictDataConsistency) {
+            return readDatastoreOneShot(type);
+        } else {
+            return readDatastorePerChild(type);
+        }
+    }
+
+    /*
+     * Read datastore in one shot and then handle inclusions/exclusions
+     */
+    private Collection<NormalizedNode<?, ?>> readDatastoreOneShot(final LogicalDatastoreType type)
+            throws ReadFailedException {
         final Optional<NormalizedNode<?, ?>> opt = getRootNode(type);
         if (!opt.isPresent()) {
             throw new IllegalStateException("Root node is not present");
         }
-        final NormalizedNode<?, ?> nn = opt.get();
-        if (nn instanceof NormalizedNodeContainer) {
+        final NormalizedNode<?, ?> root = opt.get();
+        if (root instanceof NormalizedNodeContainer) {
             @SuppressWarnings("unchecked")
-            NormalizedNodeContainer<? extends PathArgument, ? extends PathArgument, ? extends NormalizedNode<?, ?>>
-                nnContainer = (NormalizedNodeContainer<? extends PathArgument, ? extends PathArgument,
-                        ? extends NormalizedNode<?, ?>>) nn;
-            try (JsonWriter jsonWriter = createWriter(type, false)) {
-                writeData(type, nnContainer.getValue(), jsonWriter);
-            }
+            final Collection<NormalizedNode<?, ?>> nodes = (Collection<NormalizedNode<?, ?>>) root.getValue();
+            return nodes.stream().filter(node -> isIncludedOrNotExcluded(type, node.getIdentifier().getNodeType()))
+                    .collect(Collectors.toSet());
         } else {
             throw new IllegalStateException("Root node is not instance of NormalizedNodeContainer");
+        }
+    }
+
+    /*
+     * Handle inclusions/exclusions and then read datastore one node at a time
+     */
+    private Collection<NormalizedNode<?, ?>> readDatastorePerChild(final LogicalDatastoreType type)
+            throws ReadFailedException {
+        final Collection<NormalizedNode<?, ?>> nodes = Sets.newHashSet();
+        for (final DataSchemaNode schemaNode : schemaService.getGlobalContext().getChildNodes()) {
+            if (!isIncludedOrNotExcluded(type, schemaNode.getQName())) {
+                continue;
+            }
+            LOG.trace("Handling child node : {}", schemaNode.getQName());
+            final Optional<NormalizedNode<?, ?>> opt = getNode(type, YangInstanceIdentifier.of(schemaNode.getQName()));
+            if (!opt.isPresent()) {
+                LOG.trace("Data for child is not present : {}", schemaNode.getQName());
+                continue;
+            }
+            final NormalizedNode<?, ?> nn = opt.get();
+            if (!(nn instanceof NormalizedNodeContainer)) {
+                LOG.warn("Data for child is not an instance of NormalizedNodeContainer : {}", schemaNode.getQName());
+                continue;
+            }
+            nodes.add(nn);
+        }
+        return nodes;
+    }
+
+    private Optional<NormalizedNode<?, ?>> getRootNode(final LogicalDatastoreType type) throws ReadFailedException {
+        return getNode(type, YangInstanceIdentifier.EMPTY);
+    }
+
+    private Optional<NormalizedNode<?, ?>> getNode(final LogicalDatastoreType type,
+            final YangInstanceIdentifier nodeIID) throws ReadFailedException {
+        final DOMDataReadOnlyTransaction roTrx = domDataBroker.newReadOnlyTransaction();
+        try {
+            LOG.trace("Reading data for node : {}", nodeIID);
+            return roTrx.read(type, nodeIID).checkedGet();
+        } finally {
+            roTrx.close();
         }
     }
 
@@ -211,28 +264,29 @@ public class ExportTask implements Callable<Void> {
                 true)) {
 
             for (final NormalizedNode<?, ?> child : children) {
-                if (isIncludedOrNotExcluded(type, child)) {
-                    nnWriter.write(child);
-                    nnWriter.flush();
-                } else {
-                    LOG.info("Node excluded : {}", child.getIdentifier());
-                }
+                nnWriter.write(child);
+                nnWriter.flush();
             }
             jsonWriter.endObject();
         }
     }
 
-    private boolean isIncludedOrNotExcluded(LogicalDatastoreType type, NormalizedNode<?, ?> node) {
+    private boolean isIncludedOrNotExcluded(final LogicalDatastoreType type, final QName nodeQName) {
+        final boolean selected;
         if (includedModules.isEmpty()) {
-            return !isExcluded(type, node);
+            selected = !isExcluded(type, nodeQName);
         } else {
-            return !isExcluded(type, node) && isIncluded(type, node);
+            selected = !isExcluded(type, nodeQName) && isIncluded(type, nodeQName);
         }
+        if (!selected) {
+            LOG.info("Node excluded from export : {}", nodeQName);
+        }
+        return selected;
     }
 
-    private boolean isIncluded(LogicalDatastoreType type, NormalizedNode<?, ?> node) {
+    private boolean isIncluded(final LogicalDatastoreType type, final QName nodeQName) {
         for (final IncludedModules incl : includedModules) {
-            LOG.debug("Checking for inclusion of {} in {} against {}", node, type, incl);
+            LOG.debug("Checking for inclusion of {} in {} against {}", nodeQName, type, incl);
             if (!Util.storeNameByType(type).equalsIgnoreCase(getDataStoreFromInclusion(incl))) {
                 // The datastore type being written does not match the one in
                 // the include list, so try the next item in exclude list.
@@ -240,10 +294,9 @@ public class ExportTask implements Callable<Void> {
             }
             final Optional<Model> mod = moduleCache.getUnchecked(incl.getKey().getModuleName().getValue());
             if (mod.isPresent()) {
-                // SchemaService found the module being excluded. Compare it to
-                // the node being written, matching only the namespace and ignoring the revision.
-                final QName nodeType = node.getIdentifier().getNodeType();
-                if (mod.get().getNamespace().equals(nodeType.getNamespace().toString())) {
+                // SchemaService found the module being excluded. Compare it to the node being
+                // written, matching only the namespace and ignoring the revision.
+                if (mod.get().getNamespace().equals(nodeQName.getNamespace().toString())) {
                     return true;
                 }
             }
@@ -252,9 +305,9 @@ public class ExportTask implements Callable<Void> {
     }
 
     @VisibleForTesting
-    boolean isExcluded(final LogicalDatastoreType type, final NormalizedNode<?, ?> node) {
+    boolean isExcluded(final LogicalDatastoreType type, final QName nodeQName) {
         for (final ExcludedModules excl : excludedModules) {
-            LOG.debug("Checking for exclusion of {} in {} against {}", node, type, excl);
+            LOG.debug("Checking for exclusion of {} in {} against {}", nodeQName, type, excl);
             if (!Util.storeNameByType(type).equalsIgnoreCase(getDataStoreFromExclusion(excl))) {
                 // The datastore type being written does not match the one in
                 // the exclude list, so try the next item in exclude list.
@@ -263,10 +316,9 @@ public class ExportTask implements Callable<Void> {
             final Optional<Model> mod = moduleCache
                     .getUnchecked(excl.getKey().getModuleName().getYangIdentifier().getValue());
             if (mod.isPresent()) {
-                // SchemaService found the module being excluded. Compare it to
-                // the node being written, matching only the namespace and ignoring the revision.
-                final QName nodeType = node.getIdentifier().getNodeType();
-                if (mod.get().getNamespace().equals(nodeType.getNamespace().toString())) {
+                // SchemaService found the module being excluded. Compare it to the node being
+                // written, matching only the namespace and ignoring the revision.
+                if (mod.get().getNamespace().equals(nodeQName.getNamespace().toString())) {
                     return true;
                 }
             }

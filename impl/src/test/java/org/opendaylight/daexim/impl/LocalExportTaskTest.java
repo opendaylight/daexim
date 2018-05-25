@@ -13,6 +13,7 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -82,6 +83,7 @@ public class LocalExportTaskTest extends AbstractDataBrokerTest {
     public void test() throws Exception {
         schemaService = mock(DOMSchemaService.class);
         when(schemaService.getGlobalContext()).thenReturn(schemaContext);
+
         final WriteTransaction wrTrx = getDataBroker().newWriteOnlyTransaction();
         final InstanceIdentifier<NetworkTopology> ii = InstanceIdentifier.create(NetworkTopology.class);
         final NetworkTopology dObj = new NetworkTopologyBuilder()
@@ -104,14 +106,23 @@ public class LocalExportTaskTest extends AbstractDataBrokerTest {
                 .build();
         wrTrx.put(LogicalDatastoreType.OPERATIONAL, ii, dObj);
         wrTrx.submit().checkedGet();
-        ExportTask lbt = new ExportTask(null, null, getDomBroker(), schemaService, mock(Callback.class));
-        lbt.call();
-        final String jsonStr = new String(Files.readAllBytes(Util.collectDataFiles(false)
+
+        ExportTask exportTaskOneShot = new ExportTask(null, null, true, getDomBroker(), schemaService,
+                mock(Callback.class));
+        exportTaskOneShot.call();
+        final String jsonStrOneShot = new String(Files.readAllBytes(Util.collectDataFiles(false)
                 .get(LogicalDatastoreType.OPERATIONAL).get(0).toPath()), StandardCharsets.UTF_8);
-        final Object json = Configuration.defaultConfiguration().jsonProvider().parse(jsonStr);
+        final Object json = Configuration.defaultConfiguration().jsonProvider().parse(jsonStrOneShot);
         assertThat(json,
                 hasJsonPath("$.network-topology:network-topology.topology[0].topology-id", equalTo("topo-id")));
         assertThat(json, hasJsonPath("$.network-topology:network-topology.topology[0].node[*]", hasSize(2)));
         assertThat(json, hasJsonPath("$..termination-point[0].tp-id", contains("eth0")));
+
+        ExportTask exportTaskPerChild = new ExportTask(null, null, false, getDomBroker(), schemaService,
+                mock(Callback.class));
+        exportTaskPerChild.call();
+        final String jsonStrPerChild = new String(Files.readAllBytes(Util.collectDataFiles(false)
+                .get(LogicalDatastoreType.OPERATIONAL).get(0).toPath()), StandardCharsets.UTF_8);
+        assertTrue(jsonStrOneShot.equals(jsonStrPerChild));
     }
 }
