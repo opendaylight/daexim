@@ -269,7 +269,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
                 long scheduleAtTimestamp = Util.parseDate(newTask.getRunAt().getValue()).getTime();
                 exportSchedule = scheduledExecutorService.schedule(
                         new ExportTask(newTask.getIncludedModules(), newTask.getExcludedModules(),
-                                domDataBroker, schemaService, () -> {
+                                newTask.isStrictDataConsistency(), domDataBroker, schemaService, () -> {
                             updateExportStatus(Status.InProgress);
                         }), scheduleAtTimestamp - System.currentTimeMillis(), TimeUnit.MILLISECONDS);
                 Futures.addCallback(exportSchedule, new FutureCallback<Void>() {
@@ -540,6 +540,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
         try {
             final DaeximControlBuilder builder = new DaeximControlBuilder();
             builder.setTaskType(IpcType.Schedule);
+            builder.setStrictDataConsistency(input.isStrictDataConsistency());
             builder.setIncludedModules(input.getIncludedModules());
             builder.setExcludedModules(input.getExcludedModules());
             builder.setRunAt(new AbsoluteTime(new DateAndTime(Util.toDateAndTime(new Date(scheduleAtTimestamp)))));

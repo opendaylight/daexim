@@ -368,6 +368,15 @@ module data-export-import {
                      the node receiving this request.";
                 type boolean;
             }
+            leaf strict-data-consistency {
+                description
+                    "Indicates if strict data consistency needs to be
+                     maintained while exporting data. This value determines
+                     how data is read from the datastore during export -
+                     in one shot (true) or in smaller chunks (false).";
+                type boolean;
+                default true;
+            }
             uses inclusions;
             uses exclusions;
         }

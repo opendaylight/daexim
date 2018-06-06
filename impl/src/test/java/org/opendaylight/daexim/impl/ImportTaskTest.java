@@ -156,15 +156,10 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
                 getDomBroker(), schemaService, false, mock(Callback.class));
         final ImportOperationResult result = rt.call();
         assertTrue(result.getReason(), result.isResult());
-        final DOMDataReadOnlyTransaction roTrx = getDomBroker().newReadOnlyTransaction();
-        NormalizedNodeContainer<? extends PathArgument, ? extends PathArgument, ? extends NormalizedNode<?, ?>> nnc
-            = (NormalizedNodeContainer<? extends PathArgument, ? extends PathArgument, ? extends NormalizedNode<?, ?>>)
-                roTrx.read(LogicalDatastoreType.OPERATIONAL, YangInstanceIdentifier.EMPTY).get().get();
-        Collection<? extends NormalizedNode<?, ?>> children = nnc.getValue();
+        Collection<? extends NormalizedNode<?, ?>> children = readRoot();
         assertEquals(1, children.size());
         NormalizedNode<?, ?> nn = children.iterator().next();
         assertEquals("network-topology", nn.getNodeType().getLocalName());
-        roTrx.close();
     }
 
     /**

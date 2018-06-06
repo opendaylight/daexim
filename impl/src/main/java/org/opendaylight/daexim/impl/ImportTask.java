@@ -10,7 +10,6 @@ package org.opendaylight.daexim.impl;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Objects;
-import com.google.common.base.Optional;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Sets;
@@ -37,6 +36,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.internal.rev160921.I
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.internal.rev160921.ImportOperationResultBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.DataStoreScope;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.ImmediateImportInput;
+import org.opendaylight.yangtools.yang.common.QName;
 import org.opendaylight.yangtools.yang.common.Revision;
 import org.opendaylight.yangtools.yang.data.api.YangInstanceIdentifier;
 import org.opendaylight.yangtools.yang.data.api.YangInstanceIdentifier.PathArgument;
@@ -47,6 +47,7 @@ import org.opendaylight.yangtools.yang.data.codec.gson.JsonParserStream;
 import org.opendaylight.yangtools.yang.data.impl.schema.ImmutableNormalizedNodeStreamWriter;
 import org.opendaylight.yangtools.yang.data.impl.schema.builder.api.NormalizedNodeContainerBuilder;
 import org.opendaylight.yangtools.yang.data.impl.schema.builder.impl.ImmutableContainerNodeBuilder;
+import org.opendaylight.yangtools.yang.model.api.DataSchemaNode;
 import org.opendaylight.yangtools.yang.model.api.Module;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -177,31 +178,23 @@ public class ImportTask implements Callable<ImportOperationResult> {
 
     private void removeChildNodes(final LogicalDatastoreType type, final DOMDataReadWriteTransaction rwTrx)
             throws ReadFailedException {
-        final Optional<NormalizedNode<?, ?>> rootNode = rwTrx.read(type, YangInstanceIdentifier.EMPTY).checkedGet();
-        if (rootNode.isPresent()) {
-            final NormalizedNode<?, ?> nn = rootNode.get();
-            if (nn instanceof NormalizedNodeContainer) {
-                @SuppressWarnings("unchecked")
-                final NormalizedNodeContainer<? extends PathArgument, ? extends PathArgument,
-                        ? extends NormalizedNode<PathArgument, ?>> nnContainer
-                                = (NormalizedNodeContainer<? extends PathArgument,
-                                        ? extends PathArgument, ? extends NormalizedNode<PathArgument, ?>>) nn;
-                for (final NormalizedNode<PathArgument, ?> child : nnContainer.getValue()) {
-                    if (isInternalObject(child)) {
-                        LOG.debug("Skipping removal of internal dataobject : {}", child.getIdentifier());
-                        continue;
-                    }
-                    LOG.debug("Will delete : {}", child.getIdentifier());
-                    rwTrx.delete(type, YangInstanceIdentifier.create(child.getIdentifier()));
-                }
+        for (final DataSchemaNode child : schemaService.getGlobalContext().getChildNodes()) {
+            if (isInternalObject(child.getQName())) {
+                LOG.debug("Skipping removal of internal dataobject : {}", child.getQName());
+                continue;
+            }
+            final YangInstanceIdentifier nodeIID = YangInstanceIdentifier.of(child.getQName());
+            if (rwTrx.read(type, nodeIID).checkedGet().isPresent()) {
+                LOG.debug("Will delete : {}", child.getQName());
+                rwTrx.delete(type, nodeIID);
             } else {
-                LOG.warn("Root node is not instance of NormalizedNodeContainer, delete skipped");
+                LOG.trace("Dataobject not present in {} datastore : {}", type.name().toLowerCase(), child.getQName());
             }
         }
     }
 
-    private boolean isInternalObject(NormalizedNode<YangInstanceIdentifier.PathArgument, ?> child) {
-        return child.getIdentifier().getNodeType().getLocalName().equals(Util.INTERNAL_LOCAL_NAME);
+    private boolean isInternalObject(final QName childQName) {
+        return childQName.getLocalName().equals(Util.INTERNAL_LOCAL_NAME);
     }
 
     private void importFromNormalizedNode(final DOMDataReadWriteTransaction rwTrx, final LogicalDatastoreType type,
@@ -215,7 +208,7 @@ public class ImportTask implements Callable<ImportOperationResult> {
             final Collection<? extends NormalizedNode<YangInstanceIdentifier.PathArgument, ?>> children = nnContainer
                     .getValue();
             for (NormalizedNode<YangInstanceIdentifier.PathArgument, ?> child : children) {
-                if (isInternalObject(child)) {
+                if (isInternalObject(child.getIdentifier().getNodeType())) {
                     LOG.debug("Skipping import of internal dataobject : {}", child.getIdentifier());
                     continue;
                 }
