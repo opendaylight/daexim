@@ -19,7 +19,7 @@ public class MetadataParsingTest {
     public void testParseModules() {
         List<Model> models = Util
                 .parseModels(this.getClass().getResourceAsStream('/' + Util.FILE_PREFIX + "models.json"));
-        assertEquals(23, models.size());
+        assertEquals(10, models.size());
         assertEquals("2015-08-04", models.get(0).getRevision());
         assertEquals("urn:opendaylight:params:xml:ns:yang:controller:md:sal:clustering:entity-owners",
                 models.get(0).getNamespace());
