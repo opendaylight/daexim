@@ -16,6 +16,7 @@ import com.google.common.collect.ListMultimap;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -35,6 +36,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Properties;
 import java.util.TimeZone;
+
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.daexim.impl.model.internal.Model;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.DateAndTime;
@@ -50,6 +52,7 @@ public final class Util {
         "yyyy-MM-dd'T'HH:mm:ss'Z'",
         "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" };
     public static final String FILE_PREFIX = "odl_backup_";
+    public static final String FILE_SUFFIX = ".json";
     public static final String CFG_FILE_NAME = "org.opendaylight.daexim.cfg";
     public static final String ETC_CFG_FILE = "${karaf.etc}/" + CFG_FILE_NAME;
     public static final String DAEXIM_DIR_PROP = "daexim.dir";
@@ -202,14 +205,13 @@ public final class Util {
     }
 
     private static List<File> collectDatastoreFiles(final Path daeximDir, final LogicalDatastoreType dst) {
-        final File[] arr = daeximDir.toFile()
-                .listFiles((FilenameFilter) (dir, name) -> name.startsWith(Util.FILE_PREFIX) && name.endsWith(".json")
-                        && name.indexOf(Util.storeNameByType(dst).toLowerCase()) != -1);
+        final File[] arr = daeximDir.toFile().listFiles((FilenameFilter)
+            (dir, name) -> name.startsWith(Util.FILE_PREFIX + Util.storeNameByType(dst).toLowerCase())
+                                && name.endsWith(FILE_SUFFIX));
         return Arrays.asList(arr != null ? arr : new File[] {});
     }
 
     public static boolean isModelFilePresent(boolean isBooting) {
-        return Files.exists(getModelsFilePath(isBooting));
+        return getModelsFilePath(isBooting).toFile().exists();
     }
-
 }

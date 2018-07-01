@@ -93,6 +93,7 @@ module data-export-import-internal {
                 type boolean;
                 default true;
             }
+            uses daexim:split-by-module-options;
             uses daexim:inclusions;
             uses daexim:exclusions;
         }

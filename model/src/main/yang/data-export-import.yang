@@ -331,6 +331,16 @@ module data-export-import {
         }
     }
 
+    grouping split-by-module-options {
+        leaf split-by-module {
+            description
+                "In context of data export, this flag indicate if exported data
+                should be split by module into separate files.";
+            type boolean;
+            default false;
+        }
+    }
+
     rpc schedule-export {
         description
             "A request to export the system at a specific time in the future.
@@ -377,6 +387,7 @@ module data-export-import {
                 type boolean;
                 default true;
             }
+            uses split-by-module-options;
             uses inclusions;
             uses exclusions;
         }

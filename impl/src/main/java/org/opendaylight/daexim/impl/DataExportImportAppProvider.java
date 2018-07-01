@@ -270,7 +270,8 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
                 long scheduleAtTimestamp = Util.parseDate(newTask.getRunAt().getValue()).getTime();
                 exportSchedule = scheduledExecutorService.schedule(
                         new ExportTask(newTask.getIncludedModules(), newTask.getExcludedModules(),
-                                newTask.isStrictDataConsistency(), domDataBroker, schemaService, () -> {
+                                newTask.isStrictDataConsistency(), newTask.isSplitByModule(),
+                                domDataBroker, schemaService, () -> {
                             updateExportStatus(Status.InProgress);
                         }), scheduleAtTimestamp - System.currentTimeMillis(), TimeUnit.MILLISECONDS);
                 Futures.addCallback(exportSchedule, new FutureCallback<Void>() {
@@ -291,7 +292,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
                             updateExportStatus(Status.Failed);
                         }
                     }
-                });
+                }, MoreExecutors.directExecutor());
                 return;
             }
             if (IpcType.Cancel.equals(newTask.getTaskType())) {
@@ -545,6 +546,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
             builder.setIncludedModules(input.getIncludedModules());
             builder.setExcludedModules(input.getExcludedModules());
             builder.setRunAt(new AbsoluteTime(new DateAndTime(Util.toDateAndTime(new Date(scheduleAtTimestamp)))));
+            builder.setSplitByModule(input.isSplitByModule());
             if (Objects.equals(input.isLocalNodeOnly(), Boolean.TRUE)) {
                 builder.setRunOnNode(nodeNameProvider.getNodeName());
             }

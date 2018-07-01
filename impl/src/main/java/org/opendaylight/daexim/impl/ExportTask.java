@@ -17,16 +17,21 @@ import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.gson.stream.JsonWriter;
+
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
+
 import javax.annotation.WillClose;
+
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.controller.md.sal.common.api.data.ReadFailedException;
 import org.opendaylight.controller.md.sal.dom.api.DOMDataBroker;
@@ -43,6 +48,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.inclusions
 import org.opendaylight.yangtools.yang.common.QName;
 import org.opendaylight.yangtools.yang.common.Revision;
 import org.opendaylight.yangtools.yang.data.api.YangInstanceIdentifier;
+import org.opendaylight.yangtools.yang.data.api.YangInstanceIdentifier.NodeIdentifier;
 import org.opendaylight.yangtools.yang.data.api.schema.NormalizedNode;
 import org.opendaylight.yangtools.yang.data.api.schema.NormalizedNodeContainer;
 import org.opendaylight.yangtools.yang.data.api.schema.stream.NormalizedNodeWriter;
@@ -70,10 +76,11 @@ public class ExportTask implements Callable<Void> {
     private final Callback callback;
     private final Set<LogicalDatastoreType> excludedDss = Sets.newHashSet();
     private final boolean strictDataConsistency;
+    private final boolean isPerModuleExport;
 
     public ExportTask(final List<IncludedModules> includedModules, final List<ExcludedModules> excludedModules,
-            final boolean strictDataConsistency, final DOMDataBroker domDataBroker,
-            final DOMSchemaService schemaService, final Callback callback) {
+            final boolean strictDataConsistency, final boolean isPerModuleExport,
+            final DOMDataBroker domDataBroker, final DOMSchemaService schemaService, final Callback callback) {
         this.domDataBroker = domDataBroker;
         this.codecFactory = JSONCodecFactory.getShared(schemaService.getGlobalContext());
         this.schemaService = schemaService;
@@ -87,6 +94,7 @@ public class ExportTask implements Callable<Void> {
         }
         this.callback = callback;
         this.strictDataConsistency = strictDataConsistency;
+        this.isPerModuleExport = isPerModuleExport;
     }
 
     /*
@@ -131,6 +139,30 @@ public class ExportTask implements Callable<Void> {
         return new JsonWriter(new FileWriter(filePath));
     }
 
+    private JsonWriter createPerModuleWriter(LogicalDatastoreType store, NodeIdentifier ni) throws IOException {
+        final StringBuilder fileName = new StringBuilder();
+        fileName.append(Util.FILE_PREFIX);
+        fileName.append(Util.storeNameByType(store));
+        java.util.Optional<Module> mod = schemaService.getGlobalContext().findModule(ni.getNodeType().getNamespace(),
+                ni.getNodeType().getRevision());
+        if (mod.isPresent()) {
+            fileName.append('_');
+            fileName.append(mod.get().getName());
+            appendRevision(fileName, mod.get().getRevision());
+        }
+        fileName.append(Util.FILE_SUFFIX);
+        final Path filePath = Paths.get(Util.getDaeximDir(false), fileName.toString());
+        LOG.info("Creating JSON file : {}", filePath);
+        return new JsonWriter(new FileWriter(filePath.toFile()));
+    }
+
+    private void appendRevision(final StringBuilder fileName, java.util.Optional<Revision> optional) {
+        if (optional.isPresent()) {
+            fileName.append('@');
+            fileName.append(optional.get().toString());
+        }
+    }
+
     private void writeEmptyStore(LogicalDatastoreType type) throws IOException {
         try (JsonWriter writer = createWriter(type, false)) {
             writer.beginObject();
@@ -142,8 +174,14 @@ public class ExportTask implements Callable<Void> {
     private void writeStore(LogicalDatastoreType type) throws IOException, ReadFailedException {
         final Collection<NormalizedNode<?, ?>> nodes = readDatastore(type);
         LOG.debug("Number of nodes for export after handling inclusions/exclusions : {}", nodes.size());
-        try (JsonWriter jsonWriter = createWriter(type, false)) {
-            writeData(type, nodes, jsonWriter);
+        if (isPerModuleExport) {
+            for (NormalizedNode<?, ?> nn : nodes) {
+                writeModuleData(nn, createPerModuleWriter(type, (NodeIdentifier) nn.getIdentifier()));
+            }
+        } else {
+            try (JsonWriter jsonWriter = createWriter(type, false)) {
+                writeData(nodes, jsonWriter);
+            }
         }
     }
 
@@ -255,8 +293,19 @@ public class ExportTask implements Callable<Void> {
         jsonWriter.close();
     }
 
-    private void writeData(final LogicalDatastoreType type, final Collection<? extends NormalizedNode<?, ?>> children,
-            final JsonWriter jsonWriter) throws IOException {
+    private void writeModuleData(final NormalizedNode<?, ?> node, final JsonWriter jsonWriter) throws IOException {
+        jsonWriter.beginObject();
+        try (NormalizedNodeWriter nnWriter = NormalizedNodeWriter.forStreamWriter(
+                JSONNormalizedNodeStreamWriter.createNestedWriter(codecFactory, SchemaPath.ROOT, null, jsonWriter),
+                true)) {
+            nnWriter.write(node);
+            nnWriter.flush();
+            jsonWriter.endObject();
+        }
+    }
+
+    private void writeData(final Collection<? extends NormalizedNode<?, ?>> children, final JsonWriter jsonWriter)
+            throws IOException {
 
         jsonWriter.beginObject();
         try (NormalizedNodeWriter nnWriter = NormalizedNodeWriter.forStreamWriter(

@@ -70,35 +70,35 @@ public class ModuleExclusionTest extends AbstractDataBrokerTest {
     public void test() throws Exception {
         ExportTask task;
         // 'config' node at A@R1 is excluded by [{"data-store": "config", "module-name": "A"}]
-        task = new ExportTask(null, EXCL_CFG, true, getDomBroker(), schemaService, mock(Callback.class));
+        task = new ExportTask(null, EXCL_CFG, true, false, getDomBroker(), schemaService, mock(Callback.class));
         assertTrue(task.isExcluded(LogicalDatastoreType.CONFIGURATION, QName.create("testA", REV1, "A")));
 
         // 'operational' node at A@R1 is excluded by [{"data-store": "operational", "module-name": "A"}]
-        task = new ExportTask(null, EXCL_OP, true, getDomBroker(), schemaService, mock(Callback.class));
+        task = new ExportTask(null, EXCL_OP, true, false, getDomBroker(), schemaService, mock(Callback.class));
         assertTrue(task.isExcluded(LogicalDatastoreType.OPERATIONAL, QName.create("testA", REV1, "A")));
 
         // 'config' node at A@R2 is excluded by [{"data-store": "config", "module-name": "A"}]
-        task = new ExportTask(null, EXCL_CFG, true, getDomBroker(), schemaService, mock(Callback.class));
+        task = new ExportTask(null, EXCL_CFG, true, false, getDomBroker(), schemaService, mock(Callback.class));
         assertTrue(task.isExcluded(LogicalDatastoreType.CONFIGURATION, QName.create("testA", REV2, "A")));
 
         // 'operational' node at A@R1 is excluded by [{"data-store": "operational", "module-name": "A"}]
-        task = new ExportTask(null, EXCL_OP, true, getDomBroker(), schemaService, mock(Callback.class));
+        task = new ExportTask(null, EXCL_OP, true, false, getDomBroker(), schemaService, mock(Callback.class));
         assertTrue(task.isExcluded(LogicalDatastoreType.OPERATIONAL, QName.create("testA", REV1, "A")));
 
         // 'config' node at A@R1 is NOT excluded by [{"data-store": "operational", "module-name": "A"}]
-        task = new ExportTask(null, EXCL_OP, true, getDomBroker(), schemaService, mock(Callback.class));
+        task = new ExportTask(null, EXCL_OP, true, false, getDomBroker(), schemaService, mock(Callback.class));
         assertFalse(task.isExcluded(LogicalDatastoreType.CONFIGURATION, QName.create("testA", REV1, "A")));
 
         //'operational' node at A@R1 is NOT excluded by [{"data-store": "config", "module-name": "A"}]
-        task = new ExportTask(null, EXCL_CFG, true, getDomBroker(), schemaService, mock(Callback.class));
+        task = new ExportTask(null, EXCL_CFG, true, false, getDomBroker(), schemaService, mock(Callback.class));
         assertFalse(task.isExcluded(LogicalDatastoreType.OPERATIONAL, QName.create("testA", REV1, "A")));
 
         // 'config' node at B@R1 is NOT excluded by [{"data-store": "config", "module-name": "A"}]
-        task = new ExportTask(null, EXCL_CFG, true, getDomBroker(), schemaService, mock(Callback.class));
+        task = new ExportTask(null, EXCL_CFG, true, false, getDomBroker(), schemaService, mock(Callback.class));
         assertFalse(task.isExcluded(LogicalDatastoreType.CONFIGURATION, QName.create("testB", REV1, "B")));
 
         // 'operational' node at B@R1 is NOT excluded by [{"data-store": "operational", "module-name": "A"}]
-        task = new ExportTask(null, EXCL_OP, true, getDomBroker(), schemaService, mock(Callback.class));
+        task = new ExportTask(null, EXCL_OP, true, false, getDomBroker(), schemaService, mock(Callback.class));
         assertFalse(task.isExcluded(LogicalDatastoreType.OPERATIONAL, QName.create("testB", REV1, "B")));
     }
 }

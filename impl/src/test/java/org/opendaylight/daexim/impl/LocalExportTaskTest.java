@@ -19,12 +19,14 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.Lists;
 import com.jayway.jsonpath.Configuration;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -107,9 +109,14 @@ public class LocalExportTaskTest extends AbstractDataBrokerTest {
         wrTrx.put(LogicalDatastoreType.OPERATIONAL, ii, dObj);
         wrTrx.submit().checkedGet();
 
-        ExportTask exportTaskOneShot = new ExportTask(null, null, true, getDomBroker(), schemaService,
+        ExportTask perModuleExport = new ExportTask(null, null, false, true, getDomBroker(), schemaService, () -> {
+        });
+        perModuleExport.call();
+
+        ExportTask exportTaskOneShot = new ExportTask(null, null, true, false, getDomBroker(), schemaService,
                 mock(Callback.class));
         exportTaskOneShot.call();
+
         final String jsonStrOneShot = new String(Files.readAllBytes(Util.collectDataFiles(false)
                 .get(LogicalDatastoreType.OPERATIONAL).get(0).toPath()), StandardCharsets.UTF_8);
         final Object json = Configuration.defaultConfiguration().jsonProvider().parse(jsonStrOneShot);
@@ -118,7 +125,7 @@ public class LocalExportTaskTest extends AbstractDataBrokerTest {
         assertThat(json, hasJsonPath("$.network-topology:network-topology.topology[0].node[*]", hasSize(2)));
         assertThat(json, hasJsonPath("$..termination-point[0].tp-id", contains("eth0")));
 
-        ExportTask exportTaskPerChild = new ExportTask(null, null, false, getDomBroker(), schemaService,
+        ExportTask exportTaskPerChild = new ExportTask(null, null, false, false, getDomBroker(), schemaService,
                 mock(Callback.class));
         exportTaskPerChild.call();
         final String jsonStrPerChild = new String(Files.readAllBytes(Util.collectDataFiles(false)
