@@ -226,18 +226,16 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
             }
             TimeUnit.MILLISECONDS.sleep(250);
         }
-        RpcResult<ImmediateImportOutput> importResult = provider.immediateImport(
-                new ImmediateImportInputBuilder().setClearStores(DataStoreScope.All).setCheckModels(true).build())
-                .get();
+        RpcResult<ImmediateImportOutput> importResult = provider.immediateImport(new ImmediateImportInputBuilder()
+                .setClearStores(DataStoreScope.All).setCheckModels(true).setStrictDataConsistency(true).build()).get();
         LOG.info("RPC result : {}", importResult);
         assertEquals(Status.Complete,
                 provider.statusImport(new StatusImportInputBuilder().build()).get().getResult().getStatus());
         // Now, mess-up JSON file, so it fails
         final File f = Util.collectDataFiles(false).get(LogicalDatastoreType.OPERATIONAL).iterator().next();
         Files.write(f.toPath(), "some-garbage".getBytes(StandardCharsets.UTF_8));
-        importResult = provider.immediateImport(
-                new ImmediateImportInputBuilder().setClearStores(DataStoreScope.All).setCheckModels(true).build())
-                .get();
+        importResult = provider.immediateImport(new ImmediateImportInputBuilder().setClearStores(DataStoreScope.All)
+                .setCheckModels(true).setStrictDataConsistency(true).build()).get();
         LOG.info("RPC result : {}", importResult);
         assertEquals(Status.Failed,
                 provider.statusImport(new StatusImportInputBuilder().build()).get().getResult().getStatus());

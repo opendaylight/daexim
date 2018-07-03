@@ -10,6 +10,7 @@ package org.opendaylight.daexim.impl;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Objects;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Sets;
@@ -20,6 +21,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.file.Files;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -60,6 +62,7 @@ public class ImportTask implements Callable<ImportOperationResult> {
     private final DOMSchemaService schemaService;
     private final boolean mustValidate;
     private final DataStoreScope clearScope;
+    private final boolean strictDataConsistency;
     private final Callback callback;
     private final boolean isBooting;
     @VisibleForTesting
@@ -71,6 +74,7 @@ public class ImportTask implements Callable<ImportOperationResult> {
         this.schemaService = schemaService;
         this.mustValidate = input.isCheckModels() != null && input.isCheckModels();
         this.clearScope = input.getClearStores();
+        this.strictDataConsistency = input.isStrictDataConsistency();
         this.isBooting = isBooting;
         this.callback = callback;
         dataFiles = ArrayListMultimap.create(LogicalDatastoreType.values().length, 4);
@@ -116,15 +120,21 @@ public class ImportTask implements Callable<ImportOperationResult> {
         } else {
             LOG.warn("Modules availability check is disabled, import may fail if some of models are missing");
         }
-        final DOMDataReadWriteTransaction rwTrx = dataBroker.newReadWriteTransaction();
-        for (final LogicalDatastoreType type : LogicalDatastoreType.values()) {
-            importDatastore(type, rwTrx);
+        // Import operational data before config data
+        for (final LogicalDatastoreType type : Arrays.asList(LogicalDatastoreType.OPERATIONAL,
+                LogicalDatastoreType.CONFIGURATION)) {
+            importDatastore(type);
         }
-        rwTrx.submit().checkedGet();
     }
 
-    private void importDatastore(final LogicalDatastoreType type, final DOMDataReadWriteTransaction rwTrx)
+    private void importDatastore(final LogicalDatastoreType type)
             throws ReadFailedException, TransactionCommitFailedException, IOException {
+        final DOMDataReadWriteTransaction rwTrx;
+        if (strictDataConsistency) {
+            rwTrx = dataBroker.newReadWriteTransaction();
+        } else {
+            rwTrx = null;
+        }
         boolean hasDataFile = isDataFilePresent(type);
         if (DataStoreScope.All.equals(clearScope) || DataStoreScope.Data.equals(clearScope) && hasDataFile) {
             removeChildNodes(type, rwTrx);
@@ -150,6 +160,9 @@ public class ImportTask implements Callable<ImportOperationResult> {
                     }
                 }
             }
+        }
+        if (strictDataConsistency) {
+            rwTrx.submit().checkedGet();
         }
     }
 
@@ -177,19 +190,29 @@ public class ImportTask implements Callable<ImportOperationResult> {
     }
 
     private void removeChildNodes(final LogicalDatastoreType type, final DOMDataReadWriteTransaction rwTrx)
-            throws ReadFailedException {
+            throws ReadFailedException, TransactionCommitFailedException {
+        final DOMDataReadWriteTransaction removeTrx;
+        if (strictDataConsistency) {
+            Preconditions.checkNotNull(rwTrx);
+            removeTrx = rwTrx;
+        } else {
+            removeTrx = dataBroker.newReadWriteTransaction();
+        }
         for (final DataSchemaNode child : schemaService.getGlobalContext().getChildNodes()) {
             if (isInternalObject(child.getQName())) {
                 LOG.debug("Skipping removal of internal dataobject : {}", child.getQName());
                 continue;
             }
             final YangInstanceIdentifier nodeIID = YangInstanceIdentifier.of(child.getQName());
-            if (rwTrx.read(type, nodeIID).checkedGet().isPresent()) {
+            if (removeTrx.read(type, nodeIID).checkedGet().isPresent()) {
                 LOG.debug("Will delete : {}", child.getQName());
-                rwTrx.delete(type, nodeIID);
+                removeTrx.delete(type, nodeIID);
             } else {
                 LOG.trace("Dataobject not present in {} datastore : {}", type.name().toLowerCase(), child.getQName());
             }
+        }
+        if (!strictDataConsistency) {
+            removeTrx.submit().checkedGet();
         }
     }
 
@@ -213,7 +236,14 @@ public class ImportTask implements Callable<ImportOperationResult> {
                     continue;
                 }
                 LOG.debug("Will import : {}", child.getIdentifier());
-                rwTrx.put(type, YangInstanceIdentifier.create(child.getIdentifier()), child);
+                if (strictDataConsistency) {
+                    Preconditions.checkNotNull(rwTrx);
+                    rwTrx.put(type, YangInstanceIdentifier.create(child.getIdentifier()), child);
+                } else {
+                    final DOMDataReadWriteTransaction childTrx = dataBroker.newReadWriteTransaction();
+                    childTrx.put(type, YangInstanceIdentifier.create(child.getIdentifier()), child);
+                    childTrx.submit().checkedGet();
+                }
             }
         } else {
             throw new IllegalStateException("Root node is not instance of NormalizedNodeContainer");

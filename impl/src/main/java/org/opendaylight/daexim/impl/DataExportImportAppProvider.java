@@ -178,6 +178,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
                 Futures.addCallback(immediateImport(new ImmediateImportInputBuilder()
                         .setCheckModels(true)
                         .setClearStores(DataStoreScope.None)
+                        .setStrictDataConsistency(true)
                     .build(),
                     true), new FutureCallback<RpcResult<ImmediateImportOutput>>() {
 

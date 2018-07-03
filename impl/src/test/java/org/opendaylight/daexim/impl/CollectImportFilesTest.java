@@ -69,7 +69,8 @@ public class CollectImportFilesTest {
 
     @Test
     public void test() throws IOException {
-        final ImmediateImportInput input = new ImmediateImportInputBuilder().setCheckModels(true).build();
+        final ImmediateImportInput input =
+                new ImmediateImportInputBuilder().setCheckModels(true).setStrictDataConsistency(true).build();
         final DOMDataBroker domDataBroker = mock(DOMDataBroker.class);
         final DOMSchemaService schemaService = mock(DOMSchemaService.class);
         final ImportTask rt = new ImportTask(input, domDataBroker, schemaService, false, mock(Callback.class));

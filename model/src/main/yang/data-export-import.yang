@@ -485,6 +485,15 @@ module data-export-import {
                 type data-store-scope;
                 default all;
             }
+            leaf strict-data-consistency {
+                description
+                    "Indicates if strict data consistency needs to be
+                     maintained while importing data. This value determines
+                     how data is written to the datastore during import -
+                     in one shot (true) or in smaller chunks (false).";
+                type boolean;
+                default true;
+            }
         }
         output {
             uses arg-result;
