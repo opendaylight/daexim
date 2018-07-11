@@ -205,9 +205,9 @@ public final class Util {
     }
 
     private static List<File> collectDatastoreFiles(final Path daeximDir, final LogicalDatastoreType dst) {
-        final File[] arr = daeximDir.toFile().listFiles((FilenameFilter)
-            (dir, name) -> name.startsWith(Util.FILE_PREFIX + Util.storeNameByType(dst).toLowerCase())
-                                && name.endsWith(FILE_SUFFIX));
+        final File[] arr = daeximDir.toFile().listFiles((FilenameFilter) (dir, name)
+            -> name.startsWith(Util.FILE_PREFIX + Util.storeNameByType(dst).toLowerCase())
+            && name.endsWith(Util.FILE_SUFFIX));
         return Arrays.asList(arr != null ? arr : new File[] {});
     }
 

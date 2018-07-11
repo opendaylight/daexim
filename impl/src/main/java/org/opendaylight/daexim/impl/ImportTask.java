@@ -11,6 +11,7 @@ package org.opendaylight.daexim.impl;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Sets;
@@ -26,6 +27,10 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.function.Predicate;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.controller.md.sal.common.api.data.ReadFailedException;
 import org.opendaylight.controller.md.sal.common.api.data.TransactionCommitFailedException;
@@ -67,6 +72,20 @@ public class ImportTask implements Callable<ImportOperationResult> {
     private final boolean isBooting;
     @VisibleForTesting
     final ListMultimap<LogicalDatastoreType, File> dataFiles;
+    private final Predicate<File> dataFileFilter;
+
+    private final class DataFileMatcher implements Predicate<File> {
+        final Pattern pattern;
+
+        private DataFileMatcher(final String pattern) {
+            this.pattern = Pattern.compile(pattern);
+        }
+
+        @Override
+        public boolean test(final File file) {
+            return pattern.matcher(file.getName()).matches();
+        }
+    }
 
     public ImportTask(final ImmediateImportInput input, DOMDataBroker domDataBroker,
             final DOMSchemaService schemaService, boolean isBooting, Callback callback) {
@@ -78,6 +97,8 @@ public class ImportTask implements Callable<ImportOperationResult> {
         this.isBooting = isBooting;
         this.callback = callback;
         dataFiles = ArrayListMultimap.create(LogicalDatastoreType.values().length, 4);
+        this.dataFileFilter = Strings.isNullOrEmpty(input.getFileNameFilter()) ? t -> true
+                : new DataFileMatcher(input.getFileNameFilter());
         collectFiles();
         LOG.info("Created import task : {}, collected dump files : {}", input, dataFiles);
     }
@@ -96,7 +117,16 @@ public class ImportTask implements Callable<ImportOperationResult> {
     }
 
     private void collectFiles() {
-        dataFiles.putAll(Util.collectDataFiles(isBooting));
+        final ListMultimap<LogicalDatastoreType, File> unfiltered = ArrayListMultimap.create(2, 10);
+        unfiltered.putAll(Util.collectDataFiles(isBooting));
+        for (final LogicalDatastoreType store : unfiltered.asMap().keySet()) {
+            final List<File> filtered = unfiltered.asMap()
+                    .get(store)
+                    .stream()
+                    .filter(dataFileFilter)
+                    .collect(Collectors.toList());
+            dataFiles.putAll(store, filtered);
+        }
     }
 
     private InputStream openModelsFile() throws IOException {

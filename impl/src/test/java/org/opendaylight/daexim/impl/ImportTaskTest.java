@@ -74,7 +74,7 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
     }
 
     @Before
-    public void setUp() throws IOException {
+    public void setUp() throws Exception {
         tmpDir = Files.createTempDirectory("daexim-test-tmp");
         Files.createDirectory(tmpDir.resolve(Util.DAEXIM_DIR));
         System.setProperty("karaf.home", tmpDir.toString());
@@ -123,10 +123,7 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
     }
 
     private ImportOperationResult runRestore(ImmediateImportInput input) throws Exception {
-        final ImportTask rt = new ImportTask(
-                new ImmediateImportInputBuilder().setClearStores(DataStoreScope.All).setCheckModels(true)
-                        .setStrictDataConsistency(true).build(),
-                getDomBroker(), schemaService, false, mock(Callback.class));
+        final ImportTask rt = new ImportTask(input, getDomBroker(), schemaService, false, mock(Callback.class));
         return rt.call();
     }
 
@@ -207,9 +204,9 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
     }
 
     /**
-     * Test case : {@link DataStoreScope} is Data, but not data file is present.
+     * Test case : {@link DataStoreScope} is Data, but no data file is present.
      * <br />
-     * expected behavior: any data in that datastore will be removed, but no new
+     * expected behavior: any data in that datastore will be retained, but no new
      * data is imported
      */
     @Test
@@ -227,7 +224,7 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
                 .setStrictDataConsistency(true).build());
         assertTrue(result.getReason(), result.isResult());
         // verify : no data present
-        assertTrue(readRoot().isEmpty());
+        assertFalse(readRoot().isEmpty());
     }
 
     /**
@@ -255,4 +252,27 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
             assertFalse(OLD_NODE_ID.equals(node.key().getNodeId().getValue()));
         }
     }
+
+    @Test
+    public void testWithFilterNonExistent() throws Exception {
+        ImportOperationResult result = runRestore(new ImmediateImportInputBuilder().setClearStores(DataStoreScope.None)
+                .setCheckModels(true).setFileNameFilter("non-existent")
+                .setStrictDataConsistency(true).build());
+        assertTrue(result.getReason(), result.isResult());
+
+        Collection<? extends NormalizedNode<?, ?>> childrenAfter = readRoot();
+        assertEquals(0,childrenAfter.size());
+    }
+
+    @Test
+    public void testWithFilter() throws Exception {
+        ImportOperationResult result = runRestore(new ImmediateImportInputBuilder().setClearStores(DataStoreScope.None)
+                .setCheckModels(true).setFileNameFilter("odl_backup_operational.*")
+                .setStrictDataConsistency(true).build());
+        assertTrue(result.getReason(), result.isResult());
+
+        Collection<? extends NormalizedNode<?, ?>> childrenAfter = readRoot();
+        assertEquals(1,childrenAfter.size());
+    }
+
 }

@@ -505,6 +505,17 @@ module data-export-import {
                 type boolean;
                 default true;
             }
+            leaf file-name-filter {
+                description
+                    "This pattern can be used to filter import data files.
+                     Value must be valid regular expression.
+                     When this pattern is not specified or it is empty string
+                     then all files matching daexim naming format are accepted
+                     for import. Otherwise files are accepted for import only
+                     if they match this regular expression (path is not taken
+                     into account, only file name).";
+                type string;
+            }
         }
         output {
             uses arg-result;
