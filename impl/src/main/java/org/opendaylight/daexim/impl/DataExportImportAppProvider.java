@@ -316,7 +316,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
     /*
      * Update status of local node
      */
-    private void updateNodeStatus() {
+    private synchronized void updateNodeStatus() {
         final WriteTransaction wTrx = dataBroker.newWriteOnlyTransaction();
         wTrx.put(OPERATIONAL, nodeStatusII, createNodeStatusData());
         try {
