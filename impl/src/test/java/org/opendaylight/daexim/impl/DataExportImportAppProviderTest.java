@@ -98,6 +98,11 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
                     public SystemState getSystemState() {
                         return SystemState.ACTIVE;
                     }
+
+                    @Override
+                    public String getFailureCause() {
+                        return "";
+                    }
                 }, Mockito.mock(BundleContext.class));
         // Do NOT provider.init(); just yet; let each @Test do it;
         // that is because, in some tests, we want to do something before..
