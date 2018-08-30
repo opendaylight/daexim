@@ -18,13 +18,13 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
     </parent>
     <groupId>org.opendaylight.daexim</groupId>
     <artifactId>odl-daexim</artifactId>
-    <version>1.4.0-SNAPSHOT</version>
+    <version>1.4.1-SNAPSHOT</version>
     <packaging>feature</packaging>
     <name>OpenDaylight :: daexim (Karaf feature)</name>
     <properties>
-        <mdsal.version>2.5.0-SNAPSHOT</mdsal.version>
-        <infrautils.version>1.4.0-SNAPSHOT</infrautils.version>
-        <controller.version>1.8.0-SNAPSHOT</controller.version>
+        <mdsal.version>2.5.1-SNAPSHOT</mdsal.version>
+        <infrautils.version>1.4.1-SNAPSHOT</infrautils.version>
+        <controller.version>1.8.1-SNAPSHOT</controller.version>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -39,7 +39,7 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
                 <groupId>org.opendaylight.mdsal.model</groupId>
                 <artifactId>mdsal-model-artifacts</artifactId>
                 <type>pom</type>
-                <version>0.13.0-SNAPSHOT</version>
+                <version>0.13.1-SNAPSHOT</version>
                 <scope>import</scope>
             </dependency>
         </dependencies>
