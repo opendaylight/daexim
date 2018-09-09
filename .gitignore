@@ -10,3 +10,7 @@ target-ide/
 .fbExcludeFilterFile
 .idea/
 
+# Sphinx documentation
+.tox/
+docs/_build/
+
