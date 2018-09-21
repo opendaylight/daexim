@@ -13,7 +13,7 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
     <parent>
         <groupId>org.opendaylight.mdsal</groupId>
         <artifactId>binding-parent</artifactId>
-        <version>0.14.0-SNAPSHOT</version>
+        <version>3.0.1</version>
         <relativePath />
     </parent>
     <groupId>org.opendaylight.daexim</groupId>
@@ -99,11 +99,10 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
              <optional>true</optional>
         </dependency>
         <dependency>
-             <groupId>org.ops4j.pax.cdi</groupId>
-             <artifactId>pax-cdi-api</artifactId>
-             <optional>true</optional>
+            <groupId>org.apache.aries.blueprint</groupId>
+            <artifactId>blueprint-maven-plugin-annotation</artifactId>
+            <optional>true</optional>
         </dependency>
-
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>daexim-model</artifactId>
@@ -145,12 +144,10 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
         <dependency>
             <groupId>org.opendaylight.controller</groupId>
             <artifactId>sal-binding-api</artifactId>
-            <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>org.opendaylight.mdsal.model</groupId>
-            <artifactId>ietf-yang-types-20130715</artifactId>
-            <scope>provided</scope>
+            <groupId>org.opendaylight.mdsal.binding.model.ietf</groupId>
+            <artifactId>rfc6991-ietf-yang-types</artifactId>
         </dependency>
         <dependency>
           <groupId>org.opendaylight.infrautils</groupId>
@@ -217,6 +214,10 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
             <groupId>org.opendaylight.mdsal</groupId>
             <artifactId>mdsal-binding-dom-adapter</artifactId>
             <type>test-jar</type>
+        </dependency>
+        <dependency>
+            <groupId>com.google.truth</groupId>
+            <artifactId>truth</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

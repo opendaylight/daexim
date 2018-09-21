@@ -43,6 +43,7 @@ import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import org.apache.aries.blueprint.annotation.service.Reference;
 import org.opendaylight.daexim.DataImportBootReady;
 import org.opendaylight.daexim.DataImportBootService;
 import org.opendaylight.daexim.spi.NodeNameProvider;
@@ -97,7 +98,6 @@ import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 import org.opendaylight.yangtools.yang.common.RpcError.ErrorType;
 import org.opendaylight.yangtools.yang.common.RpcResult;
 import org.opendaylight.yangtools.yang.common.RpcResultBuilder;
-import org.ops4j.pax.cdi.api.OsgiService;
 import org.osgi.framework.BundleContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -131,9 +131,9 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
     private static final DataTreeIdentifier<DaeximControl> IPC_DTC = DataTreeIdentifier.create(OPERATIONAL, IPC_II);
 
     @Inject
-    public DataExportImportAppProvider(@OsgiService DataBroker dataBroker, @OsgiService DOMDataBroker domDataBroker,
-            @OsgiService DOMSchemaService schemaService, @OsgiService NodeNameProvider nodeNameProvider,
-            @OsgiService SystemReadyMonitor systemReadyService, BundleContext bundleContext) {
+    public DataExportImportAppProvider(@Reference DataBroker dataBroker, @Reference DOMDataBroker domDataBroker,
+            @Reference DOMSchemaService schemaService, @Reference NodeNameProvider nodeNameProvider,
+            @Reference SystemReadyMonitor systemReadyService, BundleContext bundleContext) {
         this.dataBroker = dataBroker;
         this.domDataBroker = domDataBroker;
         this.schemaService = schemaService;

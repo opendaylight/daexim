@@ -8,8 +8,7 @@
  */
 package org.opendaylight.daexim.impl;
 
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static com.google.common.truth.Truth.assertThat;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ListMultimap;
@@ -23,7 +22,6 @@ import java.util.function.Consumer;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.internal.matchers.EndsWith;
 import org.opendaylight.mdsal.common.api.LogicalDatastoreType;
 import org.opendaylight.mdsal.dom.api.DOMDataBroker;
 import org.opendaylight.mdsal.dom.api.DOMSchemaService;
@@ -40,7 +38,6 @@ import org.slf4j.LoggerFactory;
  */
 public class CollectImportFilesTest {
     private static final Logger LOG = LoggerFactory.getLogger(CollectImportFilesTest.class);
-
     private Path daeximDir;
     private Path tempDir;
 
@@ -71,19 +68,21 @@ public class CollectImportFilesTest {
 
     @Test
     public void test() throws IOException {
-        final ImmediateImportInput input =
-                new ImmediateImportInputBuilder().setCheckModels(true).setStrictDataConsistency(true).build();
+        final ImmediateImportInput input = new ImmediateImportInputBuilder().setCheckModels(true)
+                .setStrictDataConsistency(true)
+                .build();
         final DOMDataBroker domDataBroker = mock(DOMDataBroker.class);
         final DOMSchemaService schemaService = mock(DOMSchemaService.class);
         @SuppressWarnings("unchecked")
         final ImportTask rt = new ImportTask(input, domDataBroker, schemaService, false,
                 (Consumer<Void>) mock(Consumer.class));
         final ListMultimap<LogicalDatastoreType, File> df = rt.dataFiles;
-        assertTrue(df.get(LogicalDatastoreType.CONFIGURATION).isEmpty());
-        assertThat(df.get(LogicalDatastoreType.OPERATIONAL).get(2).toString(), new EndsWith("@2013-08-19.json"));
-        assertThat(df.get(LogicalDatastoreType.OPERATIONAL).get(1).toString(),
-                new EndsWith("opendaylight-inventory.json"));
-        assertThat(df.get(LogicalDatastoreType.OPERATIONAL).get(0).toString(),
-                new EndsWith(LogicalDatastoreType.OPERATIONAL.name().toLowerCase() + ".json"));
+        assertThat(df.get(LogicalDatastoreType.CONFIGURATION)).isEmpty();
+        assertThat(df.get(LogicalDatastoreType.OPERATIONAL).get(2).toString()).endsWith("@2013-08-19.json");
+        assertThat(df.get(LogicalDatastoreType.OPERATIONAL).get(1).toString()).endsWith("opendaylight-inventory.json");
+        assertThat(df.get(LogicalDatastoreType.OPERATIONAL)
+                .get(0)
+                .toString())
+                .endsWith(LogicalDatastoreType.OPERATIONAL.name().toLowerCase() + ".json");
     }
 }
