@@ -38,9 +38,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.opendaylight.daexim.spi.NodeNameProvider;
-import org.opendaylight.infrautils.ready.SystemReadyListener;
-import org.opendaylight.infrautils.ready.SystemReadyMonitor;
-import org.opendaylight.infrautils.ready.SystemState;
+import org.opendaylight.infrautils.ready.testutils.TestSystemReadyMonitor;
+import org.opendaylight.infrautils.ready.testutils.TestSystemReadyMonitor.Behaviour;
 import org.opendaylight.infrautils.testutils.LogRule;
 import org.opendaylight.mdsal.binding.api.ReadTransaction;
 import org.opendaylight.mdsal.binding.dom.adapter.test.AbstractDataBrokerTest;
@@ -91,23 +90,7 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
         DOMSchemaService schemaService = mock(DOMSchemaService.class);
         when(schemaService.getGlobalContext()).thenReturn(schemaContext);
         provider = new DataExportImportAppProvider(getDataBroker(), getDomBroker(), schemaService, nnp,
-                new SystemReadyMonitor() {
-
-                    @Override
-                    public void registerListener(SystemReadyListener listener) {
-                        listener.onSystemBootReady();
-                    }
-
-                    @Override
-                    public SystemState getSystemState() {
-                        return SystemState.ACTIVE;
-                    }
-
-                    @Override
-                    public String getFailureCause() {
-                        return "";
-                    }
-                }, Mockito.mock(BundleContext.class));
+                new TestSystemReadyMonitor(Behaviour.IMMEDIATE), Mockito.mock(BundleContext.class));
         // Do NOT provider.init(); just yet; let each @Test do it;
         // that is because, in some tests, we want to do something before..
     }
