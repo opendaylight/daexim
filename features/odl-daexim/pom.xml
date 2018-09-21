@@ -22,7 +22,6 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
     <packaging>feature</packaging>
     <name>OpenDaylight :: daexim (Karaf feature)</name>
     <properties>
-        <mdsal.version>2.6.0-SNAPSHOT</mdsal.version>
         <infrautils.version>1.5.0-SNAPSHOT</infrautils.version>
         <controller.version>1.9.0-SNAPSHOT</controller.version>
     </properties>
@@ -61,7 +60,6 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
         <dependency>
             <groupId>org.opendaylight.mdsal</groupId>
             <artifactId>odl-mdsal-binding</artifactId>
-            <version>${mdsal.version}</version>
             <type>xml</type>
             <classifier>features</classifier>
         </dependency>
