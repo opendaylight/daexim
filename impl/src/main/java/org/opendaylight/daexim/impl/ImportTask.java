@@ -16,6 +16,7 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Sets;
 import com.google.gson.stream.JsonReader;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -27,17 +28,17 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
-import org.opendaylight.controller.md.sal.common.api.data.ReadFailedException;
-import org.opendaylight.controller.md.sal.common.api.data.TransactionCommitFailedException;
-import org.opendaylight.controller.md.sal.dom.api.DOMDataBroker;
-import org.opendaylight.controller.md.sal.dom.api.DOMDataReadWriteTransaction;
 import org.opendaylight.daexim.impl.model.internal.Model;
 import org.opendaylight.daexim.impl.model.internal.ModelsNotAvailableException;
+import org.opendaylight.mdsal.common.api.LogicalDatastoreType;
+import org.opendaylight.mdsal.dom.api.DOMDataBroker;
+import org.opendaylight.mdsal.dom.api.DOMDataTreeReadWriteTransaction;
 import org.opendaylight.mdsal.dom.api.DOMSchemaService;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.internal.rev160921.ImportOperationResult;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.internal.rev160921.ImportOperationResultBuilder;
@@ -50,6 +51,7 @@ import org.opendaylight.yangtools.yang.data.api.YangInstanceIdentifier.PathArgum
 import org.opendaylight.yangtools.yang.data.api.schema.NormalizedNode;
 import org.opendaylight.yangtools.yang.data.api.schema.NormalizedNodeContainer;
 import org.opendaylight.yangtools.yang.data.api.schema.stream.NormalizedNodeStreamWriter;
+import org.opendaylight.yangtools.yang.data.codec.gson.JSONCodecFactorySupplier;
 import org.opendaylight.yangtools.yang.data.codec.gson.JsonParserStream;
 import org.opendaylight.yangtools.yang.data.impl.schema.ImmutableNormalizedNodeStreamWriter;
 import org.opendaylight.yangtools.yang.data.impl.schema.builder.api.NormalizedNodeContainerBuilder;
@@ -60,15 +62,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ImportTask implements Callable<ImportOperationResult> {
-
     private static final Logger LOG = LoggerFactory.getLogger(ImportTask.class);
-
+    private static final JSONCodecFactorySupplier CODEC = JSONCodecFactorySupplier.DRAFT_LHOTKA_NETMOD_YANG_JSON_02;
     private final DOMDataBroker dataBroker;
     private final DOMSchemaService schemaService;
     private final boolean mustValidate;
     private final DataStoreScope clearScope;
     private final boolean strictDataConsistency;
-    private final Callback callback;
+    private final Consumer<Void> callback;
     private final boolean isBooting;
     @VisibleForTesting
     final ListMultimap<LogicalDatastoreType, File> dataFiles;
@@ -88,7 +89,7 @@ public class ImportTask implements Callable<ImportOperationResult> {
     }
 
     public ImportTask(final ImmediateImportInput input, DOMDataBroker domDataBroker,
-            final DOMSchemaService schemaService, boolean isBooting, Callback callback) {
+            final DOMSchemaService schemaService, boolean isBooting, Consumer<Void> callback) {
         this.dataBroker = domDataBroker;
         this.schemaService = schemaService;
         this.mustValidate = input.isCheckModels() != null && input.isCheckModels();
@@ -106,7 +107,7 @@ public class ImportTask implements Callable<ImportOperationResult> {
     @Override
     @SuppressWarnings("checkstyle:IllegalCatch")
     public ImportOperationResult call() throws Exception {
-        callback.call();
+        callback.accept(null);
         try {
             importInternal();
             return new ImportOperationResultBuilder().setResult(true).build();
@@ -138,7 +139,7 @@ public class ImportTask implements Callable<ImportOperationResult> {
     }
 
     private void importInternal()
-            throws IOException, ModelsNotAvailableException, TransactionCommitFailedException, ReadFailedException {
+            throws IOException, ModelsNotAvailableException, InterruptedException, ExecutionException {
         if (mustValidate) {
             if (Util.isModelFilePresent(isBooting)) {
                 try (InputStream is = openModelsFile()) {
@@ -158,8 +159,8 @@ public class ImportTask implements Callable<ImportOperationResult> {
     }
 
     private void importDatastore(final LogicalDatastoreType type)
-            throws ReadFailedException, TransactionCommitFailedException, IOException {
-        final DOMDataReadWriteTransaction rwTrx;
+            throws  IOException, InterruptedException, ExecutionException {
+        final DOMDataTreeReadWriteTransaction rwTrx;
         if (strictDataConsistency) {
             rwTrx = dataBroker.newReadWriteTransaction();
         } else {
@@ -181,7 +182,7 @@ public class ImportTask implements Callable<ImportOperationResult> {
                                     schemaService.getGlobalContext().getQName()));
                     try (NormalizedNodeStreamWriter writer = ImmutableNormalizedNodeStreamWriter.from(builder)) {
                         try (JsonParserStream jsonParser = JsonParserStream
-                                .create(writer,schemaService.getGlobalContext())) {
+                                .create(writer,CODEC.getShared(schemaService.getGlobalContext()))) {
                             try (JsonReader reader = new JsonReader(new InputStreamReader(is))) {
                                 jsonParser.parse(reader);
                                 importFromNormalizedNode(rwTrx, type, builder.build());
@@ -192,12 +193,11 @@ public class ImportTask implements Callable<ImportOperationResult> {
             }
         }
         if (strictDataConsistency) {
-            rwTrx.submit().checkedGet();
+            rwTrx.commit().get();
         }
     }
 
-    private void validateModelAvailability(final InputStream inputStream)
-            throws IOException, ModelsNotAvailableException {
+    private void validateModelAvailability(final InputStream inputStream) throws ModelsNotAvailableException {
         final List<Model> md = Util.parseModels(inputStream);
         final Set<Module> modules = schemaService.getGlobalContext().getModules();
         final Set<Model> missing = Sets.newHashSet();
@@ -219,9 +219,9 @@ public class ImportTask implements Callable<ImportOperationResult> {
         }
     }
 
-    private void removeChildNodes(final LogicalDatastoreType type, final DOMDataReadWriteTransaction rwTrx)
-            throws ReadFailedException, TransactionCommitFailedException {
-        final DOMDataReadWriteTransaction removeTrx;
+    private void removeChildNodes(final LogicalDatastoreType type, final DOMDataTreeReadWriteTransaction rwTrx)
+            throws InterruptedException, ExecutionException {
+        final DOMDataTreeReadWriteTransaction removeTrx;
         if (strictDataConsistency) {
             Preconditions.checkNotNull(rwTrx);
             removeTrx = rwTrx;
@@ -234,7 +234,7 @@ public class ImportTask implements Callable<ImportOperationResult> {
                 continue;
             }
             final YangInstanceIdentifier nodeIID = YangInstanceIdentifier.of(child.getQName());
-            if (removeTrx.read(type, nodeIID).checkedGet().isPresent()) {
+            if (removeTrx.read(type, nodeIID).get().isPresent()) {
                 LOG.debug("Will delete : {}", child.getQName());
                 removeTrx.delete(type, nodeIID);
             } else {
@@ -242,7 +242,7 @@ public class ImportTask implements Callable<ImportOperationResult> {
             }
         }
         if (!strictDataConsistency) {
-            removeTrx.submit().checkedGet();
+            removeTrx.commit().get();
         }
     }
 
@@ -250,15 +250,15 @@ public class ImportTask implements Callable<ImportOperationResult> {
         return childQName.getLocalName().equals(Util.INTERNAL_LOCAL_NAME);
     }
 
-    private void importFromNormalizedNode(final DOMDataReadWriteTransaction rwTrx, final LogicalDatastoreType type,
-            final NormalizedNode<?, ?> data) throws TransactionCommitFailedException, ReadFailedException {
+    private void importFromNormalizedNode(final DOMDataTreeReadWriteTransaction rwTrx, final LogicalDatastoreType type,
+            final NormalizedNode<?, ?> data) throws InterruptedException, ExecutionException {
         if (data instanceof NormalizedNodeContainer) {
             @SuppressWarnings("unchecked")
             final NormalizedNodeContainer<? extends PathArgument, ? extends PathArgument,
-                    ? extends NormalizedNode<YangInstanceIdentifier.PathArgument, ?>> nnContainer
-                            = (NormalizedNodeContainer<? extends PathArgument, ? extends PathArgument,
-                                    ? extends NormalizedNode<YangInstanceIdentifier.PathArgument, ?>>) data;
-            final Collection<? extends NormalizedNode<YangInstanceIdentifier.PathArgument, ?>> children = nnContainer
+                    ? extends NormalizedNode<PathArgument, ?>> nnContainer
+                        = (NormalizedNodeContainer<? extends PathArgument,
+                                ? extends PathArgument, ? extends NormalizedNode<PathArgument, ?>>) data;
+            final Collection<? extends NormalizedNode<PathArgument, ?>> children = nnContainer
                     .getValue();
             for (NormalizedNode<YangInstanceIdentifier.PathArgument, ?> child : children) {
                 if (isInternalObject(child.getIdentifier().getNodeType())) {
@@ -270,9 +270,10 @@ public class ImportTask implements Callable<ImportOperationResult> {
                     Preconditions.checkNotNull(rwTrx);
                     rwTrx.put(type, YangInstanceIdentifier.create(child.getIdentifier()), child);
                 } else {
-                    final DOMDataReadWriteTransaction childTrx = dataBroker.newReadWriteTransaction();
-                    childTrx.put(type, YangInstanceIdentifier.create(child.getIdentifier()), child);
-                    childTrx.submit().checkedGet();
+                    try (DOMDataTreeReadWriteTransaction childTrx = dataBroker.newReadWriteTransaction()) {
+                        childTrx.put(type, YangInstanceIdentifier.create(child.getIdentifier()), child);
+                        childTrx.commit().get();
+                    }
                 }
             }
         } else {

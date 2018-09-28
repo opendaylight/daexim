@@ -13,16 +13,19 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ListMultimap;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.function.Consumer;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.internal.matchers.EndsWith;
-import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
-import org.opendaylight.controller.md.sal.dom.api.DOMDataBroker;
+import org.opendaylight.mdsal.common.api.LogicalDatastoreType;
+import org.opendaylight.mdsal.dom.api.DOMDataBroker;
 import org.opendaylight.mdsal.dom.api.DOMSchemaService;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.ImmediateImportInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.ImmediateImportInputBuilder;
@@ -36,7 +39,6 @@ import org.slf4j.LoggerFactory;
  * @author rkosegi
  */
 public class CollectImportFilesTest {
-
     private static final Logger LOG = LoggerFactory.getLogger(CollectImportFilesTest.class);
 
     private Path daeximDir;
@@ -73,7 +75,9 @@ public class CollectImportFilesTest {
                 new ImmediateImportInputBuilder().setCheckModels(true).setStrictDataConsistency(true).build();
         final DOMDataBroker domDataBroker = mock(DOMDataBroker.class);
         final DOMSchemaService schemaService = mock(DOMSchemaService.class);
-        final ImportTask rt = new ImportTask(input, domDataBroker, schemaService, false, mock(Callback.class));
+        @SuppressWarnings("unchecked")
+        final ImportTask rt = new ImportTask(input, domDataBroker, schemaService, false,
+                (Consumer<Void>) mock(Consumer.class));
         final ListMultimap<LogicalDatastoreType, File> df = rt.dataFiles;
         assertTrue(df.get(LogicalDatastoreType.CONFIGURATION).isEmpty());
         assertThat(df.get(LogicalDatastoreType.OPERATIONAL).get(2).toString(), new EndsWith("@2013-08-19.json"));

@@ -26,13 +26,14 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.function.Consumer;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.opendaylight.controller.md.sal.binding.api.WriteTransaction;
-import org.opendaylight.controller.md.sal.binding.test.AbstractDataBrokerTest;
-import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
+import org.opendaylight.mdsal.binding.api.WriteTransaction;
+import org.opendaylight.mdsal.binding.dom.adapter.test.AbstractDataBrokerTest;
+import org.opendaylight.mdsal.common.api.LogicalDatastoreType;
 import org.opendaylight.mdsal.dom.api.DOMSchemaService;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NetworkTopology;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NetworkTopologyBuilder;
@@ -48,9 +49,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class LocalExportTaskTest extends AbstractDataBrokerTest {
-
     private static final Logger LOG = LoggerFactory.getLogger(LocalExportTaskTest.class);
 
+    @SuppressWarnings("unchecked")
+    private Consumer<Void> callback = mock(Consumer.class);
     private SchemaContext schemaContext;
     private DOMSchemaService schemaService;
     private Path tempDir;
@@ -107,14 +109,12 @@ public class LocalExportTaskTest extends AbstractDataBrokerTest {
                         .build()))
                 .build();
         wrTrx.put(LogicalDatastoreType.OPERATIONAL, ii, dObj);
-        wrTrx.submit().checkedGet();
+        wrTrx.commit().get();
 
-        ExportTask perModuleExport = new ExportTask(null, null, false, true, getDomBroker(), schemaService, () -> {
-        });
+        ExportTask perModuleExport = new ExportTask(null, null, false, true, getDomBroker(), schemaService, callback);
         perModuleExport.call();
 
-        ExportTask exportTaskOneShot = new ExportTask(null, null, true, false, getDomBroker(), schemaService,
-                mock(Callback.class));
+        ExportTask exportTaskOneShot = new ExportTask(null, null, true, false, getDomBroker(), schemaService, callback);
         exportTaskOneShot.call();
 
         final String jsonStrOneShot = new String(Files.readAllBytes(Util.collectDataFiles(false)
@@ -126,7 +126,7 @@ public class LocalExportTaskTest extends AbstractDataBrokerTest {
         assertThat(json, hasJsonPath("$..termination-point[0].tp-id", contains("eth0")));
 
         ExportTask exportTaskPerChild = new ExportTask(null, null, false, false, getDomBroker(), schemaService,
-                mock(Callback.class));
+                callback);
         exportTaskPerChild.call();
         final String jsonStrPerChild = new String(Files.readAllBytes(Util.collectDataFiles(false)
                 .get(LogicalDatastoreType.OPERATIONAL).get(0).toPath()), StandardCharsets.UTF_8);

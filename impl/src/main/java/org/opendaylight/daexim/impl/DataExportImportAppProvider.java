@@ -9,12 +9,11 @@
  */
 package org.opendaylight.daexim.impl;
 
-import static org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType.CONFIGURATION;
-import static org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType.OPERATIONAL;
+import static org.opendaylight.mdsal.common.api.LogicalDatastoreType.CONFIGURATION;
+import static org.opendaylight.mdsal.common.api.LogicalDatastoreType.OPERATIONAL;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
-import com.google.common.base.Optional;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.FutureCallback;
@@ -22,6 +21,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -31,27 +31,31 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+
+import javax.annotation.Nullable;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import org.opendaylight.controller.md.sal.binding.api.ClusteredDataTreeChangeListener;
-import org.opendaylight.controller.md.sal.binding.api.DataBroker;
-import org.opendaylight.controller.md.sal.binding.api.DataTreeIdentifier;
-import org.opendaylight.controller.md.sal.binding.api.DataTreeModification;
-import org.opendaylight.controller.md.sal.binding.api.ReadOnlyTransaction;
-import org.opendaylight.controller.md.sal.binding.api.WriteTransaction;
-import org.opendaylight.controller.md.sal.common.api.data.ReadFailedException;
-import org.opendaylight.controller.md.sal.common.api.data.TransactionCommitFailedException;
-import org.opendaylight.controller.md.sal.dom.api.DOMDataBroker;
+
 import org.opendaylight.daexim.DataImportBootReady;
 import org.opendaylight.daexim.DataImportBootService;
 import org.opendaylight.daexim.spi.NodeNameProvider;
 import org.opendaylight.infrautils.ready.SystemReadyMonitor;
 import org.opendaylight.infrautils.utils.concurrent.ThreadFactoryProvider;
+import org.opendaylight.mdsal.binding.api.DataBroker;
+import org.opendaylight.mdsal.binding.api.DataTreeChangeListener;
+import org.opendaylight.mdsal.binding.api.DataTreeIdentifier;
+import org.opendaylight.mdsal.binding.api.DataTreeModification;
+import org.opendaylight.mdsal.binding.api.ReadTransaction;
+import org.opendaylight.mdsal.binding.api.WriteTransaction;
+import org.opendaylight.mdsal.common.api.LogicalDatastoreType;
+import org.opendaylight.mdsal.dom.api.DOMDataBroker;
 import org.opendaylight.mdsal.dom.api.DOMSchemaService;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.DateAndTime;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.internal.rev160921.Daexim;
@@ -100,9 +104,7 @@ import org.slf4j.LoggerFactory;
 
 @Singleton
 public class DataExportImportAppProvider implements DataExportImportService, DataImportBootService, AutoCloseable {
-
     private static final Logger LOG = LoggerFactory.getLogger(DataExportImportAppProvider.class);
-
     private static final String LOG_MSG_SCHEDULING_EXPORT
         = "Scheduling export at %s, which is %d seconds in the future";
 
@@ -122,17 +124,16 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
     private volatile long lastImportTimestamp = -1;
     private volatile long lastImportChanged = -1;
     private volatile long lastExportChanged = -1;
-    private InstanceIdentifier<DaeximControl> ipcII;
     private InstanceIdentifier<NodeStatus> nodeStatusII;
-    private InstanceIdentifier<DaeximStatus> globalStatusII;
-    private DataTreeIdentifier<DaeximControl> ipcDTC;
-    private InstanceIdentifier<Daexim> topII;
+    private static final InstanceIdentifier<Daexim> TOP_IID = InstanceIdentifier.create(Daexim.class);
+    private static final InstanceIdentifier<DaeximStatus> GLOBAL_STATUS_II = TOP_IID.child(DaeximStatus.class);
+    private static final InstanceIdentifier<DaeximControl> IPC_II = TOP_IID.child(DaeximControl.class);
+    private static final DataTreeIdentifier<DaeximControl> IPC_DTC = DataTreeIdentifier.create(OPERATIONAL, IPC_II);
 
     @Inject
     public DataExportImportAppProvider(@OsgiService DataBroker dataBroker, @OsgiService DOMDataBroker domDataBroker,
             @OsgiService DOMSchemaService schemaService, @OsgiService NodeNameProvider nodeNameProvider,
             @OsgiService SystemReadyMonitor systemReadyService, BundleContext bundleContext) {
-        super();
         this.dataBroker = dataBroker;
         this.domDataBroker = domDataBroker;
         this.schemaService = schemaService;
@@ -146,19 +147,9 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
      */
     @PostConstruct
     public void init() {
-        topII = InstanceIdentifier.create(Daexim.class);
-        globalStatusII = InstanceIdentifier.create(Daexim.class).child(DaeximStatus.class);
-        ipcII = InstanceIdentifier.create(Daexim.class).child(DaeximControl.class);
-        nodeStatusII = InstanceIdentifier.create(Daexim.class).child(DaeximStatus.class).child(NodeStatus.class,
-                new NodeStatusKey(nodeNameProvider.getNodeName()));
-        ipcDTC = new DataTreeIdentifier<>(OPERATIONAL, ipcII);
-        dataBroker.registerDataTreeChangeListener(ipcDTC, (ClusteredDataTreeChangeListener<DaeximControl>) changes -> {
-            try {
-                ipcHandler(changes);
-            } catch (TransactionCommitFailedException e) {
-                LOG.error("Failure while processing IPC request", e);
-            }
-        });
+        nodeStatusII = GLOBAL_STATUS_II.child(NodeStatus.class, new NodeStatusKey(nodeNameProvider.getNodeName()));
+        dataBroker.registerDataTreeChangeListener(IPC_DTC,
+                (DataTreeChangeListener<DaeximControl>) this::ipcHandler);
         updateNodeStatus();
         scheduledExecutorService = MoreExecutors.listeningDecorator(Executors.newScheduledThreadPool(10,
                 ThreadFactoryProvider.builder().namePrefix("daexim-scheduler").logger(LOG).build().get()));
@@ -239,11 +230,26 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
             if (file.toFile().exists()) {
                 final Path renamedFile = file.resolveSibling(file.getFileName().toString() + ".imported");
                 Files.move(file, renamedFile, StandardCopyOption.ATOMIC_MOVE);
+                // There was failure on CI because original file still exists despite using ATOMIC_MOVE
+                int counter = 10;
+                while (counter-- > 0) {
+                    if (!file.toFile().exists()) {
+                        break;
+                    } else {
+                        TimeUnit.MILLISECONDS.sleep(200);
+                    }
+                }
+                if (file.toFile().exists()) {
+                    throw new IllegalStateException();
+                }
                 LOG.info("Renamed {} to {}", file.toString(), renamedFile.toString());
             }
             return true;
         } catch (IOException e) {
             LOG.error("Failed to rename file: {}", file.toString(), e);
+            return false;
+        } catch (IllegalStateException | InterruptedException e) {
+            LOG.error("Failed to wait for original file to vanish: {}", file, e);
             return false;
         }
     }
@@ -251,8 +257,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
     /*
      * Invoked when IPC has been posted to control data structure
      */
-    private void ipcHandler(final Collection<DataTreeModification<DaeximControl>> changes)
-            throws TransactionCommitFailedException {
+    private void ipcHandler(final Collection<DataTreeModification<DaeximControl>> changes) {
         final DaeximControl newTask = changes.iterator().next().getRootNode().getDataAfter();
         if (newTask != null) {
             LOG.info("IPC received : {}", newTask);
@@ -264,57 +269,67 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
                 LOG.info("Export task skipped");
                 return;
             }
-            if (IpcType.Schedule.equals(newTask.getTaskType())) {
-                // Schedule
-                updateExportStatus(Status.Scheduled);
-                long scheduleAtTimestamp = Util.parseDate(newTask.getRunAt().getValue()).getTime();
-                exportSchedule = scheduledExecutorService.schedule(
-                        new ExportTask(newTask.getIncludedModules(), newTask.getExcludedModules(),
-                                newTask.isStrictDataConsistency(), newTask.isSplitByModule(),
-                                domDataBroker, schemaService, () -> {
-                            updateExportStatus(Status.InProgress);
-                        }), scheduleAtTimestamp - System.currentTimeMillis(), TimeUnit.MILLISECONDS);
-                Futures.addCallback(exportSchedule, new FutureCallback<Void>() {
-                    @Override
-                    public void onSuccess(Void result) {
-                        exportFailure = null;
-                        updateExportStatus(Status.Complete);
-                        LOG.info("Export task success");
-                    }
-
-                    @Override
-                    public void onFailure(Throwable throwable) {
-                        if (throwable instanceof CancellationException) {
-                            LOG.info("Previous export has been cancelled");
-                        } else {
-                            LOG.error("Export failed", throwable);
-                            exportFailure = throwable.getMessage();
-                            updateExportStatus(Status.Failed);
-                        }
-                    }
-                }, MoreExecutors.directExecutor());
-                return;
-            }
-            if (IpcType.Cancel.equals(newTask.getTaskType())) {
-                Status newStatus = exportStatus;
-                if (Status.InProgress.equals(newStatus) || Status.Scheduled.equals(newStatus)) {
-                    newStatus = Status.Initial;
-                }
-                // Cancel/Unschedule
-                cancelScheduleInternal();
-                updateExportStatus(newStatus);
-                return;
+            switch (newTask.getTaskType()) {
+                case Cancel:
+                    processCancel();
+                    break;
+                case Schedule:
+                    processSchedule(newTask);
+                    break;
+                default:
+                    throw new IllegalArgumentException("Invalid IPC : " + newTask.getTaskType());
             }
         }
+    }
+
+    private void processSchedule(DaeximControl newTask) {
+        updateExportStatus(Status.Scheduled);
+        long scheduleAtTimestamp = Util.parseDate(newTask.getRunAt().getValue()).getTime();
+        exportSchedule = scheduledExecutorService.schedule(
+                new ExportTask(newTask.getIncludedModules(), newTask.getExcludedModules(),
+                        newTask.isStrictDataConsistency(), newTask.isSplitByModule(), domDataBroker, schemaService,
+                    notUsed -> updateExportStatus(Status.InProgress)),
+                scheduleAtTimestamp - System.currentTimeMillis(), TimeUnit.MILLISECONDS);
+        Futures.addCallback(exportSchedule, new FutureCallback<Void>() {
+            @Override
+            public void onSuccess(Void result) {
+                exportFailure = null;
+                updateExportStatus(Status.Complete);
+                LOG.info("Export task success");
+            }
+
+            @Override
+            public void onFailure(Throwable throwable) {
+                if (throwable instanceof CancellationException) {
+                    LOG.info("Previous export has been cancelled");
+                } else {
+                    LOG.error("Export failed", throwable);
+                    exportFailure = throwable.getMessage();
+                    updateExportStatus(Status.Failed);
+                }
+            }
+        }, MoreExecutors.directExecutor());
+        return;
+    }
+
+    private void processCancel() {
+        Status newStatus = exportStatus;
+        if (Status.InProgress.equals(newStatus) || Status.Scheduled.equals(newStatus)) {
+            newStatus = Status.Initial;
+        }
+        // Cancel/Unschedule
+        cancelScheduleInternal();
+        updateExportStatus(newStatus);
+        return;
     }
 
     /*
      * Invoke IPC
      */
-    private void invokeIPC(DaeximControl ctl) throws TransactionCommitFailedException {
+    private void invokeIPC(DaeximControl ctl) throws InterruptedException, ExecutionException {
         final WriteTransaction wTrx = dataBroker.newWriteOnlyTransaction();
-        wTrx.put(OPERATIONAL, ipcII, ctl);
-        wTrx.submit().checkedGet();
+        wTrx.put(OPERATIONAL, IPC_II, ctl);
+        wTrx.commit().get();
     }
 
     /*
@@ -322,10 +337,10 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
      */
     private synchronized void updateNodeStatus() {
         final WriteTransaction wTrx = dataBroker.newWriteOnlyTransaction();
-        wTrx.put(OPERATIONAL, nodeStatusII, createNodeStatusData());
+        wTrx.put(LogicalDatastoreType.OPERATIONAL, nodeStatusII, createNodeStatusData());
         try {
-            wTrx.submit().checkedGet();
-        } catch (TransactionCommitFailedException e) {
+            wTrx.commit().get();
+        } catch (InterruptedException | ExecutionException e) {
             LOG.error("Failed to update local node status", e);
         }
     }
@@ -346,10 +361,14 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
         return nsb.build();
     }
 
-    private DaeximControl readDaeximControl() throws ReadFailedException {
-        final ReadOnlyTransaction roTrx = dataBroker.newReadOnlyTransaction();
+    @Nullable
+    private DaeximControl readDaeximControl() {
+        final ReadTransaction roTrx = dataBroker.newReadOnlyTransaction();
         try {
-            return roTrx.read(OPERATIONAL, ipcII).checkedGet().orNull();
+            return roTrx.read(LogicalDatastoreType.OPERATIONAL, IPC_II).get().orElse(null);
+        } catch (InterruptedException | ExecutionException e) {
+            LOG.warn("Failed to read IPC", e);
+            return null;
         } finally {
             roTrx.close();
         }
@@ -358,12 +377,12 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
     /*
      * Read global status
      */
-    private DaeximStatus readGlobalStatus() throws ReadFailedException, TransactionCommitFailedException {
-        final ReadOnlyTransaction roTrx = dataBroker.newReadOnlyTransaction();
+    private DaeximStatus readGlobalStatus() throws InterruptedException, ExecutionException  {
+        final ReadTransaction roTrx = dataBroker.newReadOnlyTransaction();
         try {
             // After restore, our top level elements are gone
-            final Optional<DaeximStatus> opt = roTrx.read(OPERATIONAL, globalStatusII)
-                    .checkedGet();
+            final Optional<DaeximStatus> opt = roTrx.read(LogicalDatastoreType.OPERATIONAL, GLOBAL_STATUS_II)
+                    .get();
             if (opt.isPresent()) {
                 return opt.get();
             } else {
@@ -378,14 +397,12 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
      * Initializes status of local node and return global status with local node's
      * status included in it
      */
-    private DaeximStatus rebuildGlobalStatus() throws TransactionCommitFailedException {
+    private DaeximStatus rebuildGlobalStatus() {
         exportStatus = Status.Initial;
         importStatus = Status.Initial;
         LOG.info("Global status is not yet created");
         updateNodeStatus();
-        final DaeximStatus globalStatus =
-                new DaeximStatusBuilder().setNodeStatus(Lists.<NodeStatus>newArrayList(createNodeStatusData())).build();
-        return globalStatus;
+        return new DaeximStatusBuilder().setNodeStatus(Lists.<NodeStatus>newArrayList(createNodeStatusData())).build();
     }
 
     /**
@@ -496,7 +513,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
             invokeIPC(new DaeximControlBuilder().setTaskType(IpcType.Cancel).build());
             outputBuilder.setResult(true);
             return Futures.immediateFuture(RpcResultBuilder.<CancelExportOutput>success(outputBuilder.build()).build());
-        } catch (TransactionCommitFailedException e) {
+        } catch (ExecutionException | InterruptedException e) {
             LOG.error("cancelExport() failed", e);
             outputBuilder.setResult(false);
             outputBuilder.setReason(e.getMessage());
@@ -554,7 +571,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
             outputBuilder.setResult(true);
             return Futures
                     .immediateFuture(RpcResultBuilder.<ScheduleExportOutput>success(outputBuilder.build()).build());
-        } catch (TransactionCommitFailedException e) {
+        } catch (ExecutionException | InterruptedException e) {
             LOG.error("scheduleExport() failed", e);
             outputBuilder.setResult(false);
             return Futures.immediateFuture(RpcResultBuilder.<ScheduleExportOutput>failed()
@@ -568,7 +585,6 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
      */
     @Override
     public ListenableFuture<RpcResult<StatusExportOutput>> statusExport(StatusExportInput input) {
-
         final StatusExportOutputBuilder builder = new StatusExportOutputBuilder();
         try {
             final DaeximStatus gs = readGlobalStatus();
@@ -586,11 +602,17 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
             final Status s = calculateStatus(tasks);
             builder.setStatus(s);
             if (Status.Scheduled.equals(s)) {
-                builder.setRunAt(readDaeximControl().getRunAt());
+                final DaeximControl ctrl = readDaeximControl();
+                if (ctrl == null) {
+                    return Futures.immediateFuture(RpcResultBuilder.<StatusExportOutput>failed()
+                            .withError(ErrorType.APPLICATION, "Missing control data")
+                            .build());
+                }
+                builder.setRunAt(ctrl.getRunAt());
             }
             builder.setNodes(tasks);
             return Futures.immediateFuture(RpcResultBuilder.<StatusExportOutput>success(builder.build()).build());
-        } catch (ReadFailedException | TransactionCommitFailedException e) {
+        } catch (ExecutionException | InterruptedException e) {
             LOG.error("statusExport() failed", e);
             return Futures.immediateFuture(RpcResultBuilder.<StatusExportOutput>failed()
                     .withError(ErrorType.APPLICATION, e.getMessage(), e).build());
@@ -610,7 +632,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
     private ListenableFuture<RpcResult<ImmediateImportOutput>> immediateImport(
             ImmediateImportInput input, boolean isBooting) {
         final ListenableFuture<ImportOperationResult> f = scheduledExecutorService
-                .submit(new ImportTask(input, domDataBroker, schemaService, isBooting, () -> {
+                .submit(new ImportTask(input, domDataBroker, schemaService, isBooting, t -> {
                     if (!isBooting) {
                         // if isBooting then we've set another status before calling this
                         // (it's important that happens immediately, without waiting for the Executor)
@@ -641,7 +663,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
                 importFailure = throwable.getMessage();
                 updateImportStatus(Status.Failed);
             }
-        });
+        }, MoreExecutors.directExecutor());
         return Futures.transform(f, (Function<ImportOperationResult, RpcResult<ImmediateImportOutput>>) input1 -> {
             final ImmediateImportOutputBuilder output = new ImmediateImportOutputBuilder();
             output.setResult(input1.isResult());
@@ -650,7 +672,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
                 return RpcResultBuilder.<ImmediateImportOutput>success().withResult(output.build()).build();
             }
             return RpcResultBuilder.<ImmediateImportOutput>success(output.build()).build();
-        });
+        }, MoreExecutors.directExecutor());
     }
 
     @Override
@@ -659,7 +681,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
     }
 
     @Override
-    public void awaitBootImport(String blockingWhat) throws IllegalStateException {
+    public void awaitBootImport(String blockingWhat) {
         if (Status.BootImportFailed.equals(importStatus)) {
             throw new IllegalStateException(importFailure);
         } else if (Status.BootImportInProgress.equals(importStatus)) {
@@ -711,7 +733,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
             builder.setStatus(importStatus);
             builder.setNodes(nodes);
             return Futures.immediateFuture(RpcResultBuilder.<StatusImportOutput>success(builder.build()).build());
-        } catch (ReadFailedException | TransactionCommitFailedException e) {
+        } catch (ExecutionException | InterruptedException e) {
             LOG.error("statusImport() failed", e);
             return Futures.immediateFuture(RpcResultBuilder.<StatusImportOutput>failed()
                     .withError(ErrorType.APPLICATION, e.getMessage(), e).build());
@@ -735,5 +757,4 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
             updateNodeStatus();
         }
     }
-
 }

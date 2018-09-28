@@ -17,22 +17,24 @@ import static org.mockito.Mockito.reset;
 
 import com.google.common.collect.Lists;
 import com.google.common.io.ByteStreams;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Collection;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Consumer;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.opendaylight.controller.md.sal.binding.api.ReadOnlyTransaction;
-import org.opendaylight.controller.md.sal.binding.api.WriteTransaction;
-import org.opendaylight.controller.md.sal.binding.test.AbstractDataBrokerTest;
-import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
-import org.opendaylight.controller.md.sal.common.api.data.ReadFailedException;
-import org.opendaylight.controller.md.sal.common.api.data.TransactionCommitFailedException;
-import org.opendaylight.controller.md.sal.dom.api.DOMDataReadOnlyTransaction;
+import org.opendaylight.mdsal.binding.api.ReadTransaction;
+import org.opendaylight.mdsal.binding.api.WriteTransaction;
+import org.opendaylight.mdsal.binding.dom.adapter.test.AbstractDataBrokerTest;
+import org.opendaylight.mdsal.common.api.LogicalDatastoreType;
+import org.opendaylight.mdsal.common.api.TransactionCommitFailedException;
+import org.opendaylight.mdsal.dom.api.DOMDataTreeReadTransaction;
 import org.opendaylight.mdsal.dom.api.DOMSchemaService;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.internal.rev160921.ImportOperationResult;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.DataStoreScope;
@@ -56,11 +58,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ImportTaskTest extends AbstractDataBrokerTest {
-
     private static final Logger LOG = LoggerFactory.getLogger(ImportTaskTest.class);
-
     private static final String OLD_NODE_ID = "node-id-5";
-
+    @SuppressWarnings("unchecked")
+    private Consumer<Void> callback = mock(Consumer.class);
     private DOMSchemaService schemaService;
     private SchemaContext schemaContext;
     private Path modelsFile;
@@ -104,7 +105,7 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
 
     @SuppressWarnings("unchecked")
     private Collection<? extends NormalizedNode<?, ?>> readRoot() throws InterruptedException, ExecutionException {
-        final DOMDataReadOnlyTransaction roTrx = getDomBroker().newReadOnlyTransaction();
+        final DOMDataTreeReadTransaction roTrx = getDomBroker().newReadOnlyTransaction();
         try {
             NormalizedNodeContainer<? extends PathArgument, ? extends PathArgument, ? extends NormalizedNode<?, ?>>
                 nnc = (NormalizedNodeContainer<? extends PathArgument, ? extends PathArgument,
@@ -123,24 +124,24 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
     }
 
     private ImportOperationResult runRestore(ImmediateImportInput input) throws Exception {
-        final ImportTask rt = new ImportTask(input, getDomBroker(), schemaService, false, mock(Callback.class));
+        final ImportTask rt = new ImportTask(input, getDomBroker(), schemaService, false, callback);
         return rt.call();
     }
 
     private <D extends DataObject> void writeDataToRoot(InstanceIdentifier<D> ii, D dataObject)
-            throws TransactionCommitFailedException {
+            throws TransactionCommitFailedException, InterruptedException, ExecutionException {
         final WriteTransaction wrTrx = getDataBroker().newWriteOnlyTransaction();
         wrTrx.put(LogicalDatastoreType.OPERATIONAL, ii, dataObject);
-        wrTrx.submit().checkedGet();
+        wrTrx.commit().get();
     }
 
-    private <D extends DataObject> D readData(InstanceIdentifier<D> ii) throws ReadFailedException {
-        try (ReadOnlyTransaction roTrx = getDataBroker().newReadOnlyTransaction()) {
-            return roTrx.read(LogicalDatastoreType.OPERATIONAL, ii).checkedGet().get();
+    private <D extends DataObject> D readData(InstanceIdentifier<D> ii)
+            throws InterruptedException, ExecutionException {
+        try (ReadTransaction roTrx = getDataBroker().newReadOnlyTransaction()) {
+            return roTrx.read(LogicalDatastoreType.OPERATIONAL, ii).get().get();
         }
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void test() throws Exception {
         schemaService = mock(DOMSchemaService.class);
@@ -148,7 +149,7 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
         final ImportTask rt = new ImportTask(
                 new ImmediateImportInputBuilder().setClearStores(DataStoreScope.All).setCheckModels(true)
                         .setStrictDataConsistency(true).build(),
-                getDomBroker(), schemaService, false, mock(Callback.class));
+                getDomBroker(), schemaService, false, callback);
         final ImportOperationResult result = rt.call();
         assertTrue(result.getReason(), result.isResult());
         Collection<? extends NormalizedNode<?, ?>> children = readRoot();
@@ -157,7 +158,6 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
         assertEquals("network-topology", nn.getNodeType().getLocalName());
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void testImport_WithoutDataConsistency() throws Exception {
         schemaService = mock(DOMSchemaService.class);
@@ -169,7 +169,7 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
         final ImportTask rt = new ImportTask(
                 new ImmediateImportInputBuilder().setClearStores(DataStoreScope.All).setCheckModels(true)
                         .setStrictDataConsistency(false).build(),
-                getDomBroker(), schemaService, false, mock(Callback.class));
+                getDomBroker(), schemaService, false, callback);
         final ImportOperationResult result = rt.call();
 
         assertTrue(result.getReason(), result.isResult());
@@ -274,5 +274,4 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
         Collection<? extends NormalizedNode<?, ?>> childrenAfter = readRoot();
         assertEquals(1,childrenAfter.size());
     }
-
 }

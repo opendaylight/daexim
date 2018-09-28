@@ -20,14 +20,15 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.concurrent.ExecutionException;
+import java.util.function.Consumer;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.opendaylight.controller.md.sal.binding.api.WriteTransaction;
-import org.opendaylight.controller.md.sal.binding.test.AbstractConcurrentDataBrokerTest;
-import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
-import org.opendaylight.controller.md.sal.common.api.data.TransactionCommitFailedException;
+import org.opendaylight.mdsal.binding.api.WriteTransaction;
+import org.opendaylight.mdsal.binding.dom.adapter.test.AbstractDataBrokerTest;
+import org.opendaylight.mdsal.common.api.LogicalDatastoreType;
 import org.opendaylight.mdsal.dom.api.DOMSchemaService;
 import org.opendaylight.yang.gen.v1.testa.rev160912.Data2;
 import org.opendaylight.yang.gen.v1.testa.rev160912.Data2Builder;
@@ -36,6 +37,7 @@ import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.TopologyBuilder;
 import org.opendaylight.yangtools.yang.binding.DataObject;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
+import org.opendaylight.yangtools.yang.model.api.SchemaContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,10 +47,19 @@ import org.slf4j.LoggerFactory;
  * @author <a href="mailto:richard.kosegi@gmail.com">Richard Kosegi</a>
  * @since Jul 4, 2018
  */
-public class PerModuleExportTest extends AbstractConcurrentDataBrokerTest {
+public class PerModuleExportTest extends AbstractDataBrokerTest {
     private static final Logger LOG = LoggerFactory.getLogger(PerModuleExportTest.class);
     private Path tmpDir;
     private DOMSchemaService schemaService;
+    @SuppressWarnings("unchecked")
+    private Consumer<Void> callback = mock(Consumer.class);
+    private SchemaContext schemaContext;
+
+    @Override
+    protected void setupWithSchema(SchemaContext context) {
+        this.schemaContext = context;
+        super.setupWithSchema(context);
+    }
 
     @Before
     public void setUp() throws Exception {
@@ -57,7 +68,7 @@ public class PerModuleExportTest extends AbstractConcurrentDataBrokerTest {
         System.setProperty("karaf.home", tmpDir.toString());
         LOG.info("Created temp directory : {}", tmpDir);
         schemaService = mock(DOMSchemaService.class);
-        doReturn(getSchemaContext()).when(schemaService).getGlobalContext();
+        doReturn(schemaContext).when(schemaService).getGlobalContext();
     }
 
     @After
@@ -88,8 +99,7 @@ public class PerModuleExportTest extends AbstractConcurrentDataBrokerTest {
                 .build());
         writeDataToRoot(InstanceIdentifier.create(Data2.class), new Data2Builder().setLeaf1("A").build());
         // 2, perform export
-        ExportTask et = new ExportTask(null, null, true, true, getDomBroker(), schemaService, () -> {
-        });
+        ExportTask et = new ExportTask(null, null, true, true, getDomBroker(), schemaService, callback);
         et.call();
         // 3, ensure per-module files exists
         String[] jsonFiles = tmpDir.resolve(Util.DAEXIM_DIR)
@@ -99,9 +109,9 @@ public class PerModuleExportTest extends AbstractConcurrentDataBrokerTest {
     }
 
     private <D extends DataObject> void writeDataToRoot(InstanceIdentifier<D> ii, D dataObject)
-            throws TransactionCommitFailedException {
+            throws InterruptedException, ExecutionException {
         final WriteTransaction wrTrx = getDataBroker().newWriteOnlyTransaction();
         wrTrx.put(LogicalDatastoreType.OPERATIONAL, ii, dataObject);
-        wrTrx.submit().checkedGet();
+        wrTrx.commit().get();
     }
 }

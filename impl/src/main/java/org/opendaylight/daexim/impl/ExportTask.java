@@ -28,15 +28,16 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import javax.annotation.WillClose;
 
-import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
-import org.opendaylight.controller.md.sal.common.api.data.ReadFailedException;
-import org.opendaylight.controller.md.sal.dom.api.DOMDataBroker;
-import org.opendaylight.controller.md.sal.dom.api.DOMDataReadOnlyTransaction;
 import org.opendaylight.daexim.impl.model.internal.Model;
+import org.opendaylight.mdsal.common.api.LogicalDatastoreType;
+import org.opendaylight.mdsal.dom.api.DOMDataBroker;
+import org.opendaylight.mdsal.dom.api.DOMDataTreeReadTransaction;
 import org.opendaylight.mdsal.dom.api.DOMSchemaService;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.YangIdentifier;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.DataStore;
@@ -53,6 +54,7 @@ import org.opendaylight.yangtools.yang.data.api.schema.NormalizedNode;
 import org.opendaylight.yangtools.yang.data.api.schema.NormalizedNodeContainer;
 import org.opendaylight.yangtools.yang.data.api.schema.stream.NormalizedNodeWriter;
 import org.opendaylight.yangtools.yang.data.codec.gson.JSONCodecFactory;
+import org.opendaylight.yangtools.yang.data.codec.gson.JSONCodecFactorySupplier;
 import org.opendaylight.yangtools.yang.data.codec.gson.JSONNormalizedNodeStreamWriter;
 import org.opendaylight.yangtools.yang.model.api.DataSchemaNode;
 import org.opendaylight.yangtools.yang.model.api.Module;
@@ -63,7 +65,7 @@ import org.slf4j.LoggerFactory;
 public class ExportTask implements Callable<Void> {
 
     private static final Logger LOG = LoggerFactory.getLogger(ExportTask.class);
-
+    private static final JSONCodecFactorySupplier CODEC = JSONCodecFactorySupplier.DRAFT_LHOTKA_NETMOD_YANG_JSON_02;
     private static final String FIELD_MODULE = "module";
     private static final String FIELD_NAMESPACE = "namespace";
     private static final String FIELD_REVISION = "revision-date";
@@ -73,16 +75,16 @@ public class ExportTask implements Callable<Void> {
     private final DOMSchemaService schemaService;
     private final List<IncludedModules> includedModules;
     private final List<ExcludedModules> excludedModules;
-    private final Callback callback;
+    private final Consumer<Void> callback;
     private final Set<LogicalDatastoreType> excludedDss = Sets.newHashSet();
     private final boolean strictDataConsistency;
     private final boolean isPerModuleExport;
 
     public ExportTask(final List<IncludedModules> includedModules, final List<ExcludedModules> excludedModules,
             final boolean strictDataConsistency, final boolean isPerModuleExport,
-            final DOMDataBroker domDataBroker, final DOMSchemaService schemaService, final Callback callback) {
+            final DOMDataBroker domDataBroker, final DOMSchemaService schemaService, final Consumer<Void> callback) {
         this.domDataBroker = domDataBroker;
-        this.codecFactory = JSONCodecFactory.getShared(schemaService.getGlobalContext());
+        this.codecFactory = CODEC.getShared(schemaService.getGlobalContext());
         this.schemaService = schemaService;
         this.includedModules = includedModules != null ? includedModules : Collections.emptyList();
         this.excludedModules = ensureSelfExclusion(excludedModules);
@@ -131,7 +133,7 @@ public class ExportTask implements Callable<Void> {
                 }
             });
 
-    @SuppressWarnings("resource") // JsonWriter's close() will close new FileWriter
+    // JsonWriter's close() will close new FileWriter
     private JsonWriter createWriter(LogicalDatastoreType type, boolean isModules) throws IOException {
         final File filePath = isModules ? Util.getModelsFilePath(false).toFile()
                 : Util.getDaeximFilePath(false, type).toFile();
@@ -171,7 +173,7 @@ public class ExportTask implements Callable<Void> {
         }
     }
 
-    private void writeStore(LogicalDatastoreType type) throws IOException, ReadFailedException {
+    private void writeStore(LogicalDatastoreType type) throws IOException, InterruptedException, ExecutionException {
         final Collection<NormalizedNode<?, ?>> nodes = readDatastore(type);
         LOG.debug("Number of nodes for export after handling inclusions/exclusions : {}", nodes.size());
         if (isPerModuleExport) {
@@ -185,7 +187,8 @@ public class ExportTask implements Callable<Void> {
         }
     }
 
-    private Collection<NormalizedNode<?, ?>> readDatastore(final LogicalDatastoreType type) throws ReadFailedException {
+    private Collection<NormalizedNode<?, ?>> readDatastore(final LogicalDatastoreType type)
+            throws InterruptedException, ExecutionException {
         if (strictDataConsistency) {
             return readDatastoreOneShot(type);
         } else {
@@ -197,7 +200,7 @@ public class ExportTask implements Callable<Void> {
      * Read datastore in one shot and then handle inclusions/exclusions
      */
     private Collection<NormalizedNode<?, ?>> readDatastoreOneShot(final LogicalDatastoreType type)
-            throws ReadFailedException {
+            throws InterruptedException, ExecutionException {
         final Optional<NormalizedNode<?, ?>> opt = getRootNode(type);
         if (!opt.isPresent()) {
             throw new IllegalStateException("Root node is not present");
@@ -217,7 +220,7 @@ public class ExportTask implements Callable<Void> {
      * Handle inclusions/exclusions and then read datastore one node at a time
      */
     private Collection<NormalizedNode<?, ?>> readDatastorePerChild(final LogicalDatastoreType type)
-            throws ReadFailedException {
+            throws InterruptedException, ExecutionException {
         final Collection<NormalizedNode<?, ?>> nodes = Sets.newHashSet();
         for (final DataSchemaNode schemaNode : schemaService.getGlobalContext().getChildNodes()) {
             if (!isIncludedOrNotExcluded(type, schemaNode.getQName())) {
@@ -239,16 +242,17 @@ public class ExportTask implements Callable<Void> {
         return nodes;
     }
 
-    private Optional<NormalizedNode<?, ?>> getRootNode(final LogicalDatastoreType type) throws ReadFailedException {
+    private Optional<NormalizedNode<?, ?>> getRootNode(final LogicalDatastoreType type)
+            throws InterruptedException, ExecutionException {
         return getNode(type, YangInstanceIdentifier.EMPTY);
     }
 
     private Optional<NormalizedNode<?, ?>> getNode(final LogicalDatastoreType type,
-            final YangInstanceIdentifier nodeIID) throws ReadFailedException {
-        final DOMDataReadOnlyTransaction roTrx = domDataBroker.newReadOnlyTransaction();
+            final YangInstanceIdentifier nodeIID) throws InterruptedException, ExecutionException {
+        final DOMDataTreeReadTransaction roTrx = domDataBroker.newReadOnlyTransaction();
         try {
             LOG.trace("Reading data for node : {}", nodeIID);
-            return roTrx.read(type, nodeIID).checkedGet();
+            return Optional.fromJavaUtil(roTrx.read(type, nodeIID).get());
         } finally {
             roTrx.close();
         }
@@ -256,7 +260,7 @@ public class ExportTask implements Callable<Void> {
 
     @Override
     public Void call() throws Exception {
-        callback.call();
+        callback.accept(null);
         writeModules(createWriter(null, true));
 
         for (final LogicalDatastoreType type : LogicalDatastoreType.values()) {
@@ -384,5 +388,4 @@ public class ExportTask implements Callable<Void> {
         return Strings.isNullOrEmpty(excl.getDataStore().getString()) ? excl.getDataStore().getEnumeration().getName()
                 : excl.getDataStore().getString();
     }
-
 }

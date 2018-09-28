@@ -17,10 +17,10 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType.OPERATIONAL;
 
 import com.google.common.collect.Sets;
 import com.google.common.io.Resources;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -30,20 +30,21 @@ import java.nio.file.attribute.PosixFilePermission;
 import java.util.Date;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+
 import org.apache.commons.io.FileUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.opendaylight.controller.md.sal.binding.api.ReadOnlyTransaction;
-import org.opendaylight.controller.md.sal.binding.test.AbstractDataBrokerTest;
-import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.daexim.spi.NodeNameProvider;
 import org.opendaylight.infrautils.ready.SystemReadyListener;
 import org.opendaylight.infrautils.ready.SystemReadyMonitor;
 import org.opendaylight.infrautils.ready.SystemState;
 import org.opendaylight.infrautils.testutils.LogRule;
+import org.opendaylight.mdsal.binding.api.ReadTransaction;
+import org.opendaylight.mdsal.binding.dom.adapter.test.AbstractDataBrokerTest;
+import org.opendaylight.mdsal.common.api.LogicalDatastoreType;
 import org.opendaylight.mdsal.dom.api.DOMSchemaService;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.AbsoluteTime;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.CancelExportInputBuilder;
@@ -254,7 +255,7 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
         // Given
         Resources.asByteSource(Resources.getResource("odl_backup_models.json"))
             .copyTo(com.google.common.io.Files.asByteSink(Util.getModelsFilePath(true).toFile()));
-        File bootImportFile = Util.getDaeximFilePath(true, OPERATIONAL).toFile();
+        File bootImportFile = Util.getDaeximFilePath(true, LogicalDatastoreType.OPERATIONAL).toFile();
         Resources.asByteSource(Resources.getResource("odl_backup_operational.json"))
             .copyTo(com.google.common.io.Files.asByteSink(bootImportFile));
 
@@ -263,8 +264,8 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
         provider.awaitBootImport("DataExportImportAppProviderTest.testImportOnBoot");
 
         // Then
-        try (ReadOnlyTransaction tx = getDataBroker().newReadOnlyTransaction()) {
-            Topology topo = tx.read(OPERATIONAL, TestBackupData.TOPOLOGY_II).get().get();
+        try (ReadTransaction tx = getDataBroker().newReadOnlyTransaction()) {
+            Topology topo = tx.read(LogicalDatastoreType.OPERATIONAL, TestBackupData.TOPOLOGY_II).get().get();
             assertEquals(TestBackupData.TOPOLOGY_ID, topo.getTopologyId());
         }
         // Check that import-on-boot renamed processed file, to avoid continous re-import on every boot
@@ -283,7 +284,7 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
         // Given
         Resources.asByteSource(Resources.getResource("odl_backup_models.json"))
             .copyTo(com.google.common.io.Files.asByteSink(Util.getModelsFilePath(true).toFile()));
-        File bootImportFile = Util.getDaeximFilePath(true, OPERATIONAL).toFile();
+        File bootImportFile = Util.getDaeximFilePath(true, LogicalDatastoreType.OPERATIONAL).toFile();
         Files.write(bootImportFile.toPath(), "some-garbage".getBytes(StandardCharsets.UTF_8));
 
         // When
@@ -303,7 +304,7 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
     @Test
     public void testImportOnBootWithMissingModelsFile() throws Exception {
         // Given
-        File bootImportFile = Util.getDaeximFilePath(true, OPERATIONAL).toFile();
+        File bootImportFile = Util.getDaeximFilePath(true, LogicalDatastoreType.OPERATIONAL).toFile();
         Resources.asByteSource(Resources.getResource("odl_backup_operational.json"))
             .copyTo(com.google.common.io.Files.asByteSink(bootImportFile));
 

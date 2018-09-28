@@ -37,8 +37,8 @@ import java.util.List;
 import java.util.Properties;
 import java.util.TimeZone;
 
-import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.daexim.impl.model.internal.Model;
+import org.opendaylight.mdsal.common.api.LogicalDatastoreType;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.DateAndTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
