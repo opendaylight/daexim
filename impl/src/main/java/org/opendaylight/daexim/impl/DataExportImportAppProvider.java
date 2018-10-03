@@ -181,8 +181,8 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
                                 failed(null);
                                 return;
                             } else {
-                                registerDataImportBootReady();
                                 renameBootImportFiles();
+                                registerDataImportBootReady();
                             }
                         }
 
