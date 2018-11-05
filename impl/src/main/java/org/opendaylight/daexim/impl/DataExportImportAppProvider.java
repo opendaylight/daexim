@@ -36,7 +36,7 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-
+import java.util.concurrent.atomic.AtomicBoolean;
 import javax.annotation.Nullable;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -114,6 +114,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
     private final NodeNameProvider nodeNameProvider;
     private final SystemReadyMonitor systemReadyService;
     private final BundleContext bundleContext;
+    private final AtomicBoolean skipIpcDCN = new AtomicBoolean(false);
 
     private ListenableFuture<Void> exportSchedule;
     private ListeningScheduledExecutorService scheduledExecutorService;
@@ -148,6 +149,9 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
     @PostConstruct
     public void init() {
         nodeStatusII = GLOBAL_STATUS_II.child(NodeStatus.class, new NodeStatusKey(nodeNameProvider.getNodeName()));
+        if (readDaeximControl() != null) {
+            skipIpcDCN.set(true);
+        }
         dataBroker.registerDataTreeChangeListener(IPC_DTC,
                 (DataTreeChangeListener<DaeximControl>) this::ipcHandler);
         updateNodeStatus();
@@ -258,6 +262,9 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
      * Invoked when IPC has been posted to control data structure
      */
     private void ipcHandler(final Collection<DataTreeModification<DaeximControl>> changes) {
+        if (skipIpcDCN.compareAndSet(true, false)) {
+            return;
+        }
         final DaeximControl newTask = changes.iterator().next().getRootNode().getDataAfter();
         if (newTask != null) {
             LOG.info("IPC received : {}", newTask);
