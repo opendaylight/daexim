@@ -18,12 +18,12 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
     </parent>
     <groupId>org.opendaylight.daexim</groupId>
     <artifactId>odl-daexim</artifactId>
-    <version>1.5.0-SNAPSHOT</version>
+    <version>1.6.0-SNAPSHOT</version>
     <packaging>feature</packaging>
     <name>OpenDaylight :: daexim (Karaf feature)</name>
     <properties>
-        <infrautils.version>1.5.0-SNAPSHOT</infrautils.version>
-        <controller.version>1.9.0-SNAPSHOT</controller.version>
+        <infrautils.version>1.6.0-SNAPSHOT</infrautils.version>
+        <controller.version>1.10.0-SNAPSHOT</controller.version>
     </properties>
     <dependencyManagement>
         <dependencies>
