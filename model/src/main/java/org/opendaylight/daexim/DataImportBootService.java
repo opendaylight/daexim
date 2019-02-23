@@ -41,6 +41,6 @@ public interface DataImportBootService {
      * @deprecated Using {@link DataImportBootReady} is, usually, a better alternative to this
      */
     @Deprecated
-    void awaitBootImport(String blockingWhat) throws IllegalStateException;
+    void awaitBootImport(String blockingWhat);
 
 }

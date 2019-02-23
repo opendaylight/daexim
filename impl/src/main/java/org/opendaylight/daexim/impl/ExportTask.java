@@ -9,7 +9,6 @@
 package org.opendaylight.daexim.impl;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
@@ -26,6 +25,7 @@ import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -129,7 +129,7 @@ public class ExportTask implements Callable<Void> {
                             return Optional.of(model);
                         }
                     }
-                    return Optional.absent();
+                    return Optional.empty();
                 }
             });
 
@@ -252,7 +252,7 @@ public class ExportTask implements Callable<Void> {
         final DOMDataTreeReadTransaction roTrx = domDataBroker.newReadOnlyTransaction();
         try {
             LOG.trace("Reading data for node : {}", nodeIID);
-            return Optional.fromJavaUtil(roTrx.read(type, nodeIID).get());
+            return roTrx.read(type, nodeIID).get();
         } finally {
             roTrx.close();
         }
@@ -346,12 +346,10 @@ public class ExportTask implements Callable<Void> {
                 continue;
             }
             final Optional<Model> mod = moduleCache.getUnchecked(incl.key().getModuleName().getValue());
-            if (mod.isPresent()) {
-                // SchemaService found the module being excluded. Compare it to the node being
-                // written, matching only the namespace and ignoring the revision.
-                if (mod.get().getNamespace().equals(nodeQName.getNamespace().toString())) {
-                    return true;
-                }
+            // SchemaService found the module being excluded. Compare it to the node being
+            // written, matching only the namespace and ignoring the revision.
+            if (mod.isPresent() && mod.get().getNamespace().equals(nodeQName.getNamespace().toString())) {
+                return true;
             }
         }
         return false;
@@ -368,12 +366,10 @@ public class ExportTask implements Callable<Void> {
             }
             final Optional<Model> mod = moduleCache
                     .getUnchecked(excl.key().getModuleName().getYangIdentifier().getValue());
-            if (mod.isPresent()) {
-                // SchemaService found the module being excluded. Compare it to the node being
-                // written, matching only the namespace and ignoring the revision.
-                if (mod.get().getNamespace().equals(nodeQName.getNamespace().toString())) {
-                    return true;
-                }
+            // SchemaService found the module being excluded. Compare it to the node being
+            // written, matching only the namespace and ignoring the revision.
+            if (mod.isPresent() && mod.get().getNamespace().equals(nodeQName.getNamespace().toString())) {
+                return true;
             }
         }
         return false;

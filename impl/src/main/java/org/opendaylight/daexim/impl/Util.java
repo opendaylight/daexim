@@ -56,13 +56,14 @@ public final class Util {
     public static final String CFG_FILE_NAME = "org.opendaylight.daexim.cfg";
     public static final String ETC_CFG_FILE = "${karaf.etc}/" + CFG_FILE_NAME;
     public static final String DAEXIM_DIR_PROP = "daexim.dir";
-    public static final String DAEXIM_DIR = "daexim";
+    public static final String INTERNAL_LOCAL_NAME = "daexim";
+    public static final String DAEXIM_DIR = INTERNAL_LOCAL_NAME;
     public static final String DAEXIM_BOOT_SUBDIR = "boot";
+    private static final String KARAF_HOME = "karaf.home";
     public static final String DEFAULT_DIR_LOCATION = "${karaf.home}/" + DAEXIM_DIR;
 
     private static final BiMap<LogicalDatastoreType, String> STORE_NAME_MAPPINGS = ImmutableBiMap
             .of(LogicalDatastoreType.CONFIGURATION, "config", LogicalDatastoreType.OPERATIONAL, "operational");
-    public static final String INTERNAL_LOCAL_NAME = "daexim";
     public static final String INTERNAL_MODULE_NAME = "data-export-import-internal";
 
     private Util() {
@@ -78,7 +79,7 @@ public final class Util {
     }
 
     public static Path getDaeximFilePath(boolean isBooting, LogicalDatastoreType type) {
-        return Paths.get(getDaeximDir(isBooting), FILE_PREFIX + storeNameByType(type).toLowerCase() + ".json");
+        return Paths.get(getDaeximDir(isBooting), FILE_PREFIX + storeNameByType(type).toLowerCase() + FILE_SUFFIX);
     }
 
     public static Path getModelsFilePath(boolean isBooting) {
@@ -97,20 +98,19 @@ public final class Util {
             if (props.containsKey(DAEXIM_DIR_PROP)) {
                 String propVal = props.getProperty(DAEXIM_DIR_PROP);
                 // NB: java.util.Properties does NOT perform any property substitution (interpolation)
-                return interpolateProp(propVal, "karaf.home", "." + File.separatorChar + DAEXIM_DIR);
+                return interpolateProp(propVal, KARAF_HOME, "." + File.separatorChar + DAEXIM_DIR);
             } else {
                 // This is caught immediately below (only; NOT propagated)
                 throw new IOException("Property '" + DAEXIM_DIR_PROP + "' was not found");
             }
+        // FileNotFoundException is expected in tests when the src/main/config/daexim.cfg is not installed
+        } catch (FileNotFoundException e) {
+            LOG.warn("Configuration not found, so just using fixed ${karaf.home}/daexim/");
+            return interpolateProp(DEFAULT_DIR_LOCATION, KARAF_HOME, "." + File.separatorChar + DAEXIM_DIR);
         } catch (IOException e) {
-            // FileNotFoundException is expected in tests when the src/main/config/daexim.cfg is not installed
-            if (e instanceof FileNotFoundException) {
-                LOG.warn("Configuration not found, so just using fixed ${karaf.home}/daexim/");
-            } else {
-                LOG.error("Failed to load existing property file (ignoring, and using fixed ${karaf.home}/daexim/): {}",
-                        propFile, e);
-            }
-            return interpolateProp(DEFAULT_DIR_LOCATION, "karaf.home", "." + File.separatorChar + DAEXIM_DIR);
+            LOG.error("Failed to load existing property file (ignoring, and using fixed ${karaf.home}/daexim/): {}",
+                    propFile, e);
+            return interpolateProp(DEFAULT_DIR_LOCATION, KARAF_HOME, "." + File.separatorChar + DAEXIM_DIR);
         }
     }
 
