@@ -49,8 +49,8 @@ import org.opendaylight.daexim.DataImportBootService;
 import org.opendaylight.daexim.spi.NodeNameProvider;
 import org.opendaylight.infrautils.ready.SystemReadyMonitor;
 import org.opendaylight.infrautils.utils.concurrent.ThreadFactoryProvider;
+import org.opendaylight.mdsal.binding.api.ClusteredDataTreeChangeListener;
 import org.opendaylight.mdsal.binding.api.DataBroker;
-import org.opendaylight.mdsal.binding.api.DataTreeChangeListener;
 import org.opendaylight.mdsal.binding.api.DataTreeIdentifier;
 import org.opendaylight.mdsal.binding.api.DataTreeModification;
 import org.opendaylight.mdsal.binding.api.ReadTransaction;
@@ -153,7 +153,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
             skipIpcDCN.set(true);
         }
         dataBroker.registerDataTreeChangeListener(IPC_DTC,
-                (DataTreeChangeListener<DaeximControl>) this::ipcHandler);
+                (ClusteredDataTreeChangeListener<DaeximControl>) this::ipcHandler);
         updateNodeStatus();
         scheduledExecutorService = MoreExecutors.listeningDecorator(Executors.newScheduledThreadPool(10,
                 ThreadFactoryProvider.builder().namePrefix("daexim-scheduler").logger(LOG).build().get()));
