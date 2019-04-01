@@ -37,13 +37,14 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import javax.annotation.Nullable;
+
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import org.apache.aries.blueprint.annotation.service.Reference;
+import org.eclipse.jdt.annotation.Nullable;
 import org.opendaylight.daexim.DataImportBootReady;
 import org.opendaylight.daexim.DataImportBootService;
 import org.opendaylight.daexim.spi.NodeNameProvider;
@@ -183,7 +184,6 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
                                     || !result.getErrors().isEmpty()
                                     || !result.getResult().isResult()) {
                                 failed(null);
-                                return;
                             } else {
                                 renameBootImportFiles();
                                 registerDataImportBootReady();
@@ -246,7 +246,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
                 if (file.toFile().exists()) {
                     throw new IllegalStateException();
                 }
-                LOG.info("Renamed {} to {}", file.toString(), renamedFile.toString());
+                LOG.info("Renamed {} to {}", file, renamedFile);
             }
             return true;
         } catch (IOException e) {
@@ -316,7 +316,6 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
                 }
             }
         }, MoreExecutors.directExecutor());
-        return;
     }
 
     private void processCancel() {
@@ -327,7 +326,6 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
         // Cancel/Unschedule
         cancelScheduleInternal();
         updateExportStatus(newStatus);
-        return;
     }
 
     /*
@@ -704,8 +702,6 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
             }
             // recursive self invocation just to avoid copy/paste of BootImportFailed handling
             awaitBootImport(blockingWhat);
-        } else {
-            return;
         }
     }
 

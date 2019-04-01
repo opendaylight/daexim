@@ -32,8 +32,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import javax.annotation.WillClose;
-
 import org.opendaylight.daexim.impl.model.internal.Model;
 import org.opendaylight.mdsal.common.api.LogicalDatastoreType;
 import org.opendaylight.mdsal.dom.api.DOMDataBroker;
@@ -279,7 +277,7 @@ public class ExportTask implements Callable<Void> {
         writer.value(value);
     }
 
-    private void writeModules(final @WillClose JsonWriter jsonWriter) throws IOException {
+    private void writeModules(final JsonWriter jsonWriter) throws IOException {
         jsonWriter.beginArray();
 
         final Set<Module> modules = schemaService.getGlobalContext().getModules();
