@@ -270,10 +270,9 @@ public class ImportTask implements Callable<ImportOperationResult> {
                     Preconditions.checkNotNull(rwTrx);
                     rwTrx.put(type, YangInstanceIdentifier.create(child.getIdentifier()), child);
                 } else {
-                    try (DOMDataTreeReadWriteTransaction childTrx = dataBroker.newReadWriteTransaction()) {
-                        childTrx.put(type, YangInstanceIdentifier.create(child.getIdentifier()), child);
-                        childTrx.commit().get();
-                    }
+                    DOMDataTreeReadWriteTransaction childTrx = dataBroker.newReadWriteTransaction();
+                    childTrx.put(type, YangInstanceIdentifier.create(child.getIdentifier()), child);
+                    childTrx.commit().get();
                 }
             }
         } else {
