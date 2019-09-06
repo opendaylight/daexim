@@ -546,7 +546,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
         }
         final String logMsg;
         if (runAt.getRelativeTime() != null) {
-            scheduleAtTimestamp = System.currentTimeMillis() + runAt.getRelativeTime().getValue() * 10;
+            scheduleAtTimestamp = System.currentTimeMillis() + runAt.getRelativeTime().getValue().toJava() * 10;
             logMsg = String.format(LOG_MSG_SCHEDULING_EXPORT, Util.dateToUtcString(new Date(scheduleAtTimestamp)),
                     (scheduleAtTimestamp - System.currentTimeMillis()) / 1000);
         } else {
