@@ -242,7 +242,7 @@ public class ExportTask implements Callable<Void> {
 
     private Optional<NormalizedNode<?, ?>> getRootNode(final LogicalDatastoreType type)
             throws InterruptedException, ExecutionException {
-        return getNode(type, YangInstanceIdentifier.EMPTY);
+        return getNode(type, YangInstanceIdentifier.empty());
     }
 
     private Optional<NormalizedNode<?, ?>> getNode(final LogicalDatastoreType type,

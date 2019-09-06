@@ -110,7 +110,7 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
             NormalizedNodeContainer<? extends PathArgument, ? extends PathArgument, ? extends NormalizedNode<?, ?>>
                 nnc = (NormalizedNodeContainer<? extends PathArgument, ? extends PathArgument,
                         ? extends NormalizedNode<?, ?>>) roTrx.read(LogicalDatastoreType.OPERATIONAL,
-                                YangInstanceIdentifier.EMPTY).get().get();
+                                YangInstanceIdentifier.empty()).get().get();
             return nnc.getValue();
         } finally {
             roTrx.close();
