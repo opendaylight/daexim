@@ -293,11 +293,12 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
 
         // When
         provider.init();
-        try {
-            provider.awaitBootImport("DataExportImportAppProviderTest.testImportOnBootWithMissingModelsFile");
-            fail("expected IllegalStateException");
-        } catch (IllegalStateException e) {
-            // OK, that's the expected outcome
+        provider.awaitBootImport("DataExportImportAppProviderTest.testImportOnBoot");
+
+        // Then
+        try (ReadTransaction tx = getDataBroker().newReadOnlyTransaction()) {
+            Topology topo = tx.read(LogicalDatastoreType.OPERATIONAL, TestBackupData.TOPOLOGY_II).get().get();
+            assertEquals(TestBackupData.TOPOLOGY_ID, topo.getTopologyId());
         }
 
         // Check that import-on-boot renamed processed file,
