@@ -171,7 +171,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
                 LOG.info("Daexim found files to import on boot; importing them now that the system is fully ready...");
 
                 Futures.addCallback(immediateImport(new ImmediateImportInputBuilder()
-                        .setCheckModels(true)
+                        .setCheckModels(Util.isModelFilePresent(true))
                         .setClearStores(DataStoreScope.None)
                         .setStrictDataConsistency(true)
                     .build(),
