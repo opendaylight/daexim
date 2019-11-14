@@ -281,6 +281,8 @@ The following import options are available:
 
 - strict-data-consistency
 
+- import-batching
+
 
 The following table lists the options for ``check-models``.
 
@@ -309,7 +311,7 @@ The following table lists the options for ``check-models``.
        is present, it is ignored.
 
 
-The following table lists the options for clear-stores.
+The following table lists the options for ``clear-stores``.
 
 .. list-table::
    :widths: 20 80
@@ -343,7 +345,7 @@ The following table lists the options for clear-stores.
        the target controller.
 
 
-The following table lists the options for file-name-filter.
+The following table lists the options for ``file-name-filter``.
 
 .. list-table::
    :widths: 20 80
@@ -363,7 +365,7 @@ The following table lists the options for file-name-filter.
 The ``strict-data-consistency`` flag may be used to specify if strict data
 consistency needs to be maintained while importing data. This value
 determines how data is written to the datastore during import - in one
-shot (*true* - default) or in smaller chunks (*false*).
+shot (*true* - default) or in smaller batches (*false*).
 
 
 .. code:: json
@@ -376,6 +378,16 @@ shot (*true* - default) or in smaller chunks (*false*).
                "strict-data-consistency": false
            }
        }
+
+
+The ``import-batching`` parameters are used specify batching behavior
+during data import. Import batching is performed only when value of
+``strict-data-consistency`` is false. Batching is performed by traversing
+the data tree till depth of ``max-traversal-depth`` is reached or list
+of size greater than ``list-batch-size`` is found, whichever is earlier.
+If list of size greater than ``list-batch-size`` is found, it is imported
+by breaking it down into batches not exceeding size ``list-batch-size``.
+Further traversal of the subtree for that list is not performed.
 
 
 Status of Import

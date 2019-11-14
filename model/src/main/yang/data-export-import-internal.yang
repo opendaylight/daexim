@@ -89,7 +89,7 @@ module data-export-import-internal {
                     "Indicates if strict data consistency needs to be
                      maintained while exporting data. This value determines
                      how data is read from the datastore during export -
-                     in one shot (true) or in smaller chunks (false).";
+                     in one shot (true) or in smaller batches (false).";
                 type boolean;
                 default true;
             }
