@@ -351,7 +351,7 @@ module data-export-import {
              Both `inclusions` and/or `exclusions` may be specified.
              If only `inclusions` are specified, then only those explicitly
              'whitelisted' module/store pairs are exported, and no other ones.
-             If only only `exclusions` are specified, then all modules are exported
+             If only `exclusions` are specified, then all modules are exported
              except the 'blacklisted' module/store pairs.
              If both `inclusions` and `exclusions` are specified, then a module
              is only exported if it is included (whilelisted) but not also excluded (blacklisted).
@@ -383,7 +383,7 @@ module data-export-import {
                     "Indicates if strict data consistency needs to be
                      maintained while exporting data. This value determines
                      how data is read from the datastore during export -
-                     in one shot (true) or in smaller chunks (false).";
+                     in one shot (true) or in smaller batches (false).";
                 type boolean;
                 default true;
             }
@@ -501,7 +501,7 @@ module data-export-import {
                     "Indicates if strict data consistency needs to be
                      maintained while importing data. This value determines
                      how data is written to the datastore during import -
-                     in one shot (true) or in smaller chunks (false).";
+                     in one shot (true) or in smaller batches (false).";
                 type boolean;
                 default true;
             }
@@ -515,6 +515,30 @@ module data-export-import {
                      if they match this regular expression (path is not taken
                      into account, only file name).";
                 type string;
+            }
+            container import-batching {
+                description
+                    "Parameters used for batching of imported data. They are
+                     used only when value of `strict-data-consistency` is false.
+                     Batching is performed by traversing the data tree till depth
+                     of `max-traversal-depth` is reached or list of size greater
+                     than `list-batch-size` is found, whichever is earlier. If
+                     list of size greater than `list-batch-size` is found, it is
+                     imported by breaking it down into batches not exceeding size
+                     `list-batch-size`. Further traversal of the subtree for
+                     that list is not performed.";
+                leaf max-traversal-depth {
+                    description
+                        "Maximum depth to traverse in the data tree for batching.";
+                    type uint16;
+                    default 2;
+                }
+                leaf list-batch-size {
+                    description
+                        "Maximum number of list entries that can be written in one go.";
+                    type uint32;
+                    default 2000;
+                }
             }
         }
         output {

@@ -10,6 +10,7 @@ package org.opendaylight.daexim.impl;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -40,6 +41,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.internal.rev160921.I
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.DataStoreScope;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.ImmediateImportInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.ImmediateImportInputBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.immediate._import.input.ImportBatchingBuilder;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NetworkTopology;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NetworkTopologyBuilder;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
@@ -49,6 +51,8 @@ import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.NodeBuilder;
 import org.opendaylight.yangtools.yang.binding.DataObject;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
+import org.opendaylight.yangtools.yang.common.Uint16;
+import org.opendaylight.yangtools.yang.common.Uint32;
 import org.opendaylight.yangtools.yang.data.api.YangInstanceIdentifier;
 import org.opendaylight.yangtools.yang.data.api.YangInstanceIdentifier.PathArgument;
 import org.opendaylight.yangtools.yang.data.api.schema.NormalizedNode;
@@ -142,6 +146,20 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
         }
     }
 
+    private void verifyNetworkTopologyInDataStore() throws InterruptedException, ExecutionException {
+        final NetworkTopology nt = readData(InstanceIdentifier.create(NetworkTopology.class));
+        assertNotNull(nt.getTopology());
+        assertEquals(2, nt.getTopology().size());
+        for (final Topology t : nt.getTopology()) {
+            assertNotNull(t.getNode());
+            if (TestBackupData.TOPOLOGY_ID.equals(t.getTopologyId())) {
+                assertEquals(2, t.getNode().size());
+            } else if (TestBackupData.TOPOLOGY_ID_2.equals(t.getTopologyId())) {
+                assertEquals(3, t.getNode().size());
+            }
+        }
+    }
+
     @Test
     public void test() throws Exception {
         schemaService = mock(DOMSchemaService.class);
@@ -171,12 +189,50 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
                         .setStrictDataConsistency(false).build(),
                 getDomBroker(), schemaService, false, callback);
         final ImportOperationResult result = rt.call();
-
         assertTrue(result.getReason(), result.isResult());
-        Collection<? extends NormalizedNode<?, ?>> childrenAfter = readRoot();
-        assertEquals(1, childrenAfter.size());
-        NormalizedNode<?, ?> nn = childrenAfter.iterator().next();
-        assertEquals("network-topology", nn.getNodeType().getLocalName());
+        verifyNetworkTopologyInDataStore();
+        assertEquals(rt.getBatchCount(), 3);
+        assertEquals(rt.getWriteCount(), 1);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testImport_WithBatchingLevel2Size1() throws Exception {
+        Collection<? extends NormalizedNode<?, ?>> childrenBefore = readRoot();
+        assertEquals(0, childrenBefore.size());
+
+        final ImportTask rt = new ImportTask(
+                new ImmediateImportInputBuilder().setClearStores(DataStoreScope.All).setCheckModels(true)
+                        .setStrictDataConsistency(false)
+                        .setImportBatching(new ImportBatchingBuilder().setMaxTraversalDepth(Uint16.valueOf(2))
+                                .setListBatchSize(Uint32.valueOf(1)).build())
+                        .build(),
+                getDomBroker(), schemaService, false, callback);
+        final ImportOperationResult result = rt.call();
+        assertTrue(result.getReason(), result.isResult());
+        verifyNetworkTopologyInDataStore();
+        assertEquals(rt.getBatchCount(), 6);
+        assertEquals(rt.getWriteCount(), 3);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testImport_WithBatchingLevel4Size2() throws Exception {
+        Collection<? extends NormalizedNode<?, ?>> childrenBefore = readRoot();
+        assertEquals(0, childrenBefore.size());
+
+        final ImportTask rt = new ImportTask(
+                new ImmediateImportInputBuilder().setClearStores(DataStoreScope.All).setCheckModels(true)
+                        .setStrictDataConsistency(false)
+                        .setImportBatching(new ImportBatchingBuilder().setMaxTraversalDepth(Uint16.valueOf(4))
+                                .setListBatchSize(Uint32.valueOf(2)).build())
+                        .build(),
+                getDomBroker(), schemaService, false, callback);
+        final ImportOperationResult result = rt.call();
+        assertTrue(result.getReason(), result.isResult());
+        verifyNetworkTopologyInDataStore();
+        assertEquals(rt.getBatchCount(), 6);
+        assertEquals(rt.getWriteCount(), 5);
     }
 
     /**

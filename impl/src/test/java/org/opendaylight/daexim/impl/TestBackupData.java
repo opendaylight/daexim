@@ -19,6 +19,7 @@ import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 public interface TestBackupData {
 
     TopologyId TOPOLOGY_ID = new TopologyId("topo-id");
+    TopologyId TOPOLOGY_ID_2 = new TopologyId("topo-id-2");
 
     InstanceIdentifier<Topology> TOPOLOGY_II = InstanceIdentifier
             .create(NetworkTopology.class)
