@@ -106,8 +106,6 @@ import org.slf4j.LoggerFactory;
 @Singleton
 public class DataExportImportAppProvider implements DataExportImportService, DataImportBootService, AutoCloseable {
     private static final Logger LOG = LoggerFactory.getLogger(DataExportImportAppProvider.class);
-    private static final String LOG_MSG_SCHEDULING_EXPORT
-        = "Scheduling export at %s, which is %d seconds in the future";
 
     private final DataBroker dataBroker;
     private final DOMDataBroker domDataBroker;
@@ -544,15 +542,13 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
             return Futures.immediateFuture(RpcResultBuilder.<ScheduleExportOutput>failed()
                     .withError(ErrorType.PROTOCOL, "No schedule info present in request (run-at)").build());
         }
-        final String logMsg;
+        final String scheduledString;
         if (runAt.getRelativeTime() != null) {
             scheduleAtTimestamp = System.currentTimeMillis() + runAt.getRelativeTime().getValue().toJava() * 10;
-            logMsg = String.format(LOG_MSG_SCHEDULING_EXPORT, Util.dateToUtcString(new Date(scheduleAtTimestamp)),
-                    (scheduleAtTimestamp - System.currentTimeMillis()) / 1000);
+            scheduledString = Util.dateToUtcString(new Date(scheduleAtTimestamp));
         } else {
-            scheduleAtTimestamp = Util.parseDate(runAt.getAbsoluteTime().getValue()).getTime();
-            logMsg = String.format(LOG_MSG_SCHEDULING_EXPORT, runAt.getAbsoluteTime().getValue(),
-                    (scheduleAtTimestamp - System.currentTimeMillis()) / 1000);
+            scheduledString = runAt.getAbsoluteTime().getValue();
+            scheduleAtTimestamp = Util.parseDate(scheduledString).getTime();
         }
         // verify that we are not trying to schedule in the past
         if (scheduleAtTimestamp < System.currentTimeMillis()) {
@@ -560,7 +556,8 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
                     .withError(ErrorType.PROTOCOL, "Attempt to schedule export in past").build());
         }
         cancelScheduleInternal();
-        LOG.info(logMsg);
+        LOG.info("Scheduling export at {}, which is {} seconds in the future", scheduledString,
+            (scheduleAtTimestamp - System.currentTimeMillis()) / 1000);
         try {
             final DaeximControlBuilder builder = new DaeximControlBuilder();
             builder.setTaskType(IpcType.Schedule);
