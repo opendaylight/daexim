@@ -107,7 +107,7 @@ public class ImportTask implements Callable<ImportOperationResult> {
     private int writeCount;
     private final Predicate<File> dataFileFilter;
 
-    private final class DataFileMatcher implements Predicate<File> {
+    private static final class DataFileMatcher implements Predicate<File> {
         final Pattern pattern;
 
         private DataFileMatcher(final String pattern) {
