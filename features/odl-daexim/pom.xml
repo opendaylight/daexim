@@ -24,31 +24,10 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <groupId>org.opendaylight.mdsal</groupId>
-                <artifactId>mdsal-artifacts</artifactId>
-                <type>pom</type>
-                <version>5.0.9</version>
-                <scope>import</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.opendaylight.controller</groupId>
-                <artifactId>mdsal-artifacts</artifactId>
-                <type>pom</type>
-                <version>1.11.0-SNAPSHOT</version>
-                <scope>import</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.opendaylight.infrautils</groupId>
-                <artifactId>infrautils-artifacts</artifactId>
-                <type>pom</type>
-                <version>1.7.0-SNAPSHOT</version>
-                <scope>import</scope>
-            </dependency>
-            <dependency>
                 <groupId>org.opendaylight.daexim</groupId>
-                <artifactId>daexim-artifacts</artifactId>
-                <type>pom</type>
+                <artifactId>parent</artifactId>
                 <version>${project.version}</version>
+                <type>pom</type>
                 <scope>import</scope>
             </dependency>
         </dependencies>

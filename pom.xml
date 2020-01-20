@@ -28,6 +28,7 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
         <module>akka-infoprovider-impl</module>
         <module>features</module>
         <module>artifacts</module>
+        <module>parent</module>
         <module>karaf</module>
     </modules>
 </project>
