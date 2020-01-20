@@ -21,12 +21,29 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
     <version>1.7.0-SNAPSHOT</version>
     <packaging>feature</packaging>
     <name>OpenDaylight :: daexim (Karaf feature)</name>
-    <properties>
-        <infrautils.version>1.7.0-SNAPSHOT</infrautils.version>
-        <controller.version>1.11.0-SNAPSHOT</controller.version>
-    </properties>
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>org.opendaylight.mdsal</groupId>
+                <artifactId>mdsal-artifacts</artifactId>
+                <type>pom</type>
+                <version>5.0.9</version>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.opendaylight.controller</groupId>
+                <artifactId>mdsal-artifacts</artifactId>
+                <type>pom</type>
+                <version>1.11.0-SNAPSHOT</version>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.opendaylight.infrautils</groupId>
+                <artifactId>infrautils-artifacts</artifactId>
+                <type>pom</type>
+                <version>1.7.0-SNAPSHOT</version>
+                <scope>import</scope>
+            </dependency>
             <dependency>
                 <groupId>org.opendaylight.daexim</groupId>
                 <artifactId>daexim-artifacts</artifactId>
@@ -40,7 +57,6 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
         <dependency>
             <groupId>org.opendaylight.infrautils</groupId>
             <artifactId>odl-infrautils-ready</artifactId>
-            <version>${infrautils.version}</version>
             <type>xml</type>
             <classifier>features</classifier>
         </dependency>
@@ -59,14 +75,12 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
         <dependency>
             <groupId>org.opendaylight.controller</groupId>
             <artifactId>odl-mdsal-broker</artifactId>
-            <version>${controller.version}</version>
             <type>xml</type>
             <classifier>features</classifier>
         </dependency>
         <dependency>
             <groupId>org.opendaylight.infrautils</groupId>
             <artifactId>odl-infrautils-utils</artifactId>
-            <version>${infrautils.version}</version>
             <type>xml</type>
             <classifier>features</classifier>
         </dependency>

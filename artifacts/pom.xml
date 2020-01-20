@@ -73,12 +73,11 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
         <type>xml</type>
       </dependency>
       <dependency>
-        <groupId>org.opendaylight.mdsal</groupId>
-        <artifactId>mdsal-artifacts</artifactId>
-        <version>5.0.9</version>
-        <type>pom</type>
-        <scope>import</scope>
-       </dependency>
+          <groupId>org.opendaylight.daexim</groupId>
+          <artifactId>daexim-test-model</artifactId>
+          <version>${project.version}</version>
+          <scope>test</scope>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 </project>
