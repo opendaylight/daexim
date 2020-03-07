@@ -17,7 +17,6 @@ import static org.mockito.Mockito.reset;
 
 import com.google.common.collect.Lists;
 import com.google.common.io.ByteStreams;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -25,7 +24,6 @@ import java.nio.file.StandardOpenOption;
 import java.util.Collection;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

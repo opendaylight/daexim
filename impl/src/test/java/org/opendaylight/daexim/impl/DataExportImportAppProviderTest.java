@@ -20,7 +20,6 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.Sets;
 import com.google.common.io.Resources;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -30,7 +29,6 @@ import java.nio.file.attribute.PosixFilePermission;
 import java.util.Date;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.commons.io.FileUtils;
 import org.junit.After;
 import org.junit.Before;

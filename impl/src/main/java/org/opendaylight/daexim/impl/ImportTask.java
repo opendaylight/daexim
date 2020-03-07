@@ -16,7 +16,6 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Sets;
 import com.google.gson.stream.JsonReader;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -33,7 +32,6 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-
 import org.opendaylight.daexim.impl.model.internal.Model;
 import org.opendaylight.daexim.impl.model.internal.ModelsNotAvailableException;
 import org.opendaylight.mdsal.common.api.LogicalDatastoreType;
