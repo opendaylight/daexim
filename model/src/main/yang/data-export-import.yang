@@ -465,6 +465,35 @@ module data-export-import {
         }
     }
 
+    rpc immediate-export {
+        description
+            "A request to perform an immediate datastore export";
+        input {
+            leaf local-node-only {
+                description
+                    "Indicates if export should be performed only on
+                     the node receiving this request.";
+                type boolean;
+            }
+            leaf strict-data-consistency {
+                description
+                    "Indicates if strict data consistency needs to be
+                     maintained while exporting data. This value determines
+                     how data is read from the datastore during export -
+                     in one shot (true) or in smaller batches (false).";
+                type boolean;
+                default true;
+            }
+            uses split-by-module-options;
+            uses inclusions;
+            uses exclusions;
+        }
+        output {
+            uses arg-result;
+            uses arg-reason;
+        }
+    }
+
     rpc immediate-import {
         description
             "A request to import data from files already present in the file

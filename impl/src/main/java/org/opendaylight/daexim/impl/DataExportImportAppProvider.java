@@ -21,7 +21,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
-
+import com.google.common.util.concurrent.SettableFuture;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -37,12 +37,10 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
-
 import org.apache.aries.blueprint.annotation.service.Reference;
 import org.eclipse.jdt.annotation.Nullable;
 import org.opendaylight.daexim.DataImportBootReady;
@@ -76,6 +74,9 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.CancelExpo
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.CancelExportOutputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.DataExportImportService;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.DataStoreScope;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.ImmediateExportInput;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.ImmediateExportOutput;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.ImmediateExportOutputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.ImmediateImportInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.ImmediateImportInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.ImmediateImportOutput;
@@ -290,10 +291,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
     private void processSchedule(DaeximControl newTask) {
         updateExportStatus(Status.Scheduled);
         long scheduleAtTimestamp = Util.parseDate(newTask.getRunAt().getValue()).getTime();
-        exportSchedule = scheduledExecutorService.schedule(
-                new ExportTask(newTask.getIncludedModules(), newTask.getExcludedModules(),
-                        newTask.isStrictDataConsistency(), newTask.isSplitByModule(), domDataBroker, schemaService,
-                    notUsed -> updateExportStatus(Status.InProgress)),
+        exportSchedule = scheduledExecutorService.schedule(processTask(newTask),
                 scheduleAtTimestamp - System.currentTimeMillis(), TimeUnit.MILLISECONDS);
         Futures.addCallback(exportSchedule, new FutureCallback<Void>() {
             @Override
@@ -314,6 +312,12 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
                 }
             }
         }, MoreExecutors.directExecutor());
+    }
+
+    private ExportTask processTask(DaeximControl newTask) {
+        return new ExportTask(newTask.getIncludedModules(), newTask.getExcludedModules(),
+            newTask.isStrictDataConsistency(), newTask.isSplitByModule(), domDataBroker,schemaService,
+            notUsed -> updateExportStatus(Status.InProgress));
     }
 
     private void processCancel() {
@@ -619,6 +623,46 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
             return Futures.immediateFuture(RpcResultBuilder.<StatusExportOutput>failed()
                     .withError(ErrorType.APPLICATION, e.getMessage(), e).build());
         }
+    }
+
+    @Override
+    public ListenableFuture<RpcResult<ImmediateExportOutput>> immediateExport(ImmediateExportInput input) {
+        Objects.requireNonNull(input, "input");
+        awaitBootImport("DataExportImport.scheduleExport()");
+        LOG.info("Scheduling immediate export.");
+
+        final DaeximControlBuilder builder = new DaeximControlBuilder();
+        builder.setStrictDataConsistency(input.isStrictDataConsistency());
+        builder.setIncludedModules(input.getIncludedModules());
+        builder.setExcludedModules(input.getExcludedModules());
+        builder.setSplitByModule(input.isSplitByModule());
+        if (Objects.equals(input.isLocalNodeOnly(), Boolean.TRUE)) {
+            builder.setRunOnNode(nodeNameProvider.getNodeName());
+        }
+
+        DaeximControl task = builder.build();
+        final SettableFuture<RpcResult<ImmediateExportOutput>> resultFuture = SettableFuture.create();
+        ListenableFuture<Void> taskFuture = scheduledExecutorService.submit(processTask(task));
+
+        ImmediateExportOutputBuilder outputBuilder = new ImmediateExportOutputBuilder();
+        Futures.addCallback(taskFuture, new FutureCallback<Void>() {
+            @Override
+            public void onSuccess(@org.checkerframework.checker.nullness.qual.Nullable Void result) {
+                outputBuilder.setResult(true);
+                resultFuture.set(RpcResultBuilder.success(outputBuilder.build()).build());
+            }
+
+            @Override
+            public void onFailure(Throwable throwable) {
+                LOG.error("immediate  export failed", throwable);
+                outputBuilder.setResult(false);
+                resultFuture.set(RpcResultBuilder.<ImmediateExportOutput>failed()
+                        .withError(ErrorType.APPLICATION, throwable.getMessage(), throwable)
+                        .withResult(outputBuilder.build()).build());
+            }
+        },  MoreExecutors.directExecutor());
+
+        return resultFuture;
     }
 
     /**
