@@ -19,7 +19,6 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.Lists;
 import com.jayway.jsonpath.Configuration;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -27,7 +26,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.function.Consumer;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
