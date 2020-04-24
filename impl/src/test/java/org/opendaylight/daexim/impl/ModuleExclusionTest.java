@@ -15,10 +15,8 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
-
 import java.util.List;
 import java.util.function.Consumer;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
