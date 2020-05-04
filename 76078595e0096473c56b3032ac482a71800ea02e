@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "8c0cbfa3_a6937508",
+        "filename": "impl/src/main/java/org/opendaylight/daexim/impl/ExportTask.java",
+        "patchSetId": 1
+      },
+      "lineNbr": 89,
+      "author": {
+        "id": 649
+      },
+      "writtenOn": "2020-05-04T09:17:47Z",
+      "side": 1,
+      "message": "this may look cool, but is inefficient and lays foundation for complexity as opposed to:\n\nincludedModulesMap !\u003d null ? includedModulesMap.values() : Collections.emptySet()",
+      "range": {
+        "startLine": 89,
+        "startChar": 31,
+        "endLine": 89,
+        "endChar": 110
+      },
+      "revId": "76078595e0096473c56b3032ac482a71800ea02e",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f6b9caad_b3595bf5",
+        "filename": "impl/src/test/java/org/opendaylight/daexim/impl/DataExportImportAppProviderTest.java",
+        "patchSetId": 1
+      },
+      "lineNbr": 308,
+      "author": {
+        "id": 649
+      },
+      "writtenOn": "2020-05-04T09:17:47Z",
+      "side": 1,
+      "message": "Uint32.TEN, not that it matters. The \u0027L\u0027 suffix is also unnecessary",
+      "range": {
+        "startLine": 308,
+        "startChar": 61,
+        "endLine": 308,
+        "endChar": 80
+      },
+      "revId": "76078595e0096473c56b3032ac482a71800ea02e",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": true
+    }
+  ]
+}
