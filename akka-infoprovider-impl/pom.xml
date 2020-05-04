@@ -21,12 +21,12 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
     <dependencies>
         <dependency>
             <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-actor_2.12</artifactId>
+            <artifactId>akka-actor_2.13</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-cluster_2.12</artifactId>
+            <artifactId>akka-cluster_2.13</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>

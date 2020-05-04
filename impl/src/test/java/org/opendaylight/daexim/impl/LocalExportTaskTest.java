@@ -75,16 +75,10 @@ public class LocalExportTaskTest extends AbstractDataBrokerTest {
         Files.delete(tempDir);
     }
 
-    @Override
-    protected void setupWithSchema(SchemaContext context) {
-        this.schemaContext = context;
-        super.setupWithSchema(context);
-    }
-
     @Test
     public void test() throws Exception {
         schemaService = mock(DOMSchemaService.class);
-        when(schemaService.getGlobalContext()).thenReturn(schemaContext);
+        when(schemaService.getGlobalContext()).thenReturn(getSchemaContext());
 
         final WriteTransaction wrTrx = getDataBroker().newWriteOnlyTransaction();
         final InstanceIdentifier<NetworkTopology> ii = InstanceIdentifier.create(NetworkTopology.class);

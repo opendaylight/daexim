@@ -15,11 +15,6 @@
     "revision-date": "2013-10-21"
   },
   {
-    "module": "odl-general-entity",
-    "namespace": "urn:opendaylight:params:xml:ns:yang:mdsal:core:general-entity",
-    "revision-date": "2015-09-30"
-  },
-  {
     "module": "ietf-yang-types",
     "namespace": "urn:ietf:params:xml:ns:yang:ietf-yang-types",
     "revision-date": "2013-07-15"

@@ -13,7 +13,6 @@ import com.google.common.base.Strings;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.gson.stream.JsonWriter;
 import java.io.File;
@@ -23,13 +22,15 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import org.eclipse.jdt.annotation.Nullable;
 import org.opendaylight.daexim.impl.model.internal.Model;
 import org.opendaylight.mdsal.common.api.LogicalDatastoreType;
 import org.opendaylight.mdsal.dom.api.DOMDataBroker;
@@ -40,8 +41,10 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.DataStore;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.exclusions.ExcludedModules;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.exclusions.ExcludedModules.ModuleName;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.exclusions.ExcludedModulesBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.exclusions.ExcludedModulesKey;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.exclusions.ExcludedModulesModuleNameBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.inclusions.IncludedModules;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.inclusions.IncludedModulesKey;
 import org.opendaylight.yangtools.yang.common.QName;
 import org.opendaylight.yangtools.yang.common.Revision;
 import org.opendaylight.yangtools.yang.data.api.YangInstanceIdentifier;
@@ -69,21 +72,22 @@ public class ExportTask implements Callable<Void> {
     private final DOMDataBroker domDataBroker;
     private final JSONCodecFactory codecFactory;
     private final DOMSchemaService schemaService;
-    private final List<IncludedModules> includedModules;
-    private final List<ExcludedModules> excludedModules;
+    private final Collection<IncludedModules> includedModules;
+    private final Collection<ExcludedModules> excludedModules;
     private final Consumer<Void> callback;
     private final Set<LogicalDatastoreType> excludedDss = Sets.newHashSet();
     private final boolean strictDataConsistency;
     private final boolean isPerModuleExport;
 
-    public ExportTask(final List<IncludedModules> includedModules, final List<ExcludedModules> excludedModules,
-            final boolean strictDataConsistency, final boolean isPerModuleExport,
-            final DOMDataBroker domDataBroker, final DOMSchemaService schemaService, final Consumer<Void> callback) {
+    public ExportTask(@Nullable Map<IncludedModulesKey, IncludedModules> includedModulesMap,
+            @Nullable Map<ExcludedModulesKey, ExcludedModules> excludedModulesMap,
+            @Nullable Boolean strictDataConsistency, @Nullable Boolean isPerModuleExport, DOMDataBroker domDataBroker,
+            DOMSchemaService schemaService, Consumer<Void> callback) {
         this.domDataBroker = domDataBroker;
         this.codecFactory = CODEC.getShared(schemaService.getGlobalContext());
         this.schemaService = schemaService;
-        this.includedModules = includedModules != null ? includedModules : Collections.emptyList();
-        this.excludedModules = ensureSelfExclusion(excludedModules);
+        this.includedModules = Optional.ofNullable(includedModulesMap).orElse(Collections.emptyMap()).values();
+        this.excludedModules = ensureSelfExclusion(excludedModulesMap);
         for (final ExcludedModules em : this.excludedModules) {
             if (em.getModuleName().getWildcardStar() != null
                     && ExcludedModulesModuleNameBuilder.STAR.equals(em.getModuleName().getWildcardStar().getValue())) {
@@ -98,14 +102,13 @@ public class ExportTask implements Callable<Void> {
     /*
      * Exclude ourself from dump
      */
-    private List<ExcludedModules> ensureSelfExclusion(List<ExcludedModules> others) {
-        final List<ExcludedModules> self = Lists
-                .newArrayList(new ExcludedModulesBuilder().setDataStore(new DataStore("operational"))
+    private Collection<ExcludedModules> ensureSelfExclusion(
+            @Nullable Map<ExcludedModulesKey, ExcludedModules> excludedModulesMap) {
+        final Set<ExcludedModules> modules = new HashSet<>();
+        modules.addAll(Optional.ofNullable(excludedModulesMap).orElse(Collections.emptyMap()).values());
+        modules.add(new ExcludedModulesBuilder().setDataStore(new DataStore("operational"))
                         .setModuleName(new ModuleName(new YangIdentifier(Util.INTERNAL_MODULE_NAME))).build());
-        if (others != null) {
-            self.addAll(others);
-        }
-        return self;
+        return modules;
     }
 
     /*
@@ -115,7 +118,7 @@ public class ExportTask implements Callable<Void> {
             .build(new CacheLoader<String, Optional<Model>>() {
                 @Override
                 public Optional<Model> load(String moduleName) throws Exception {
-                    final Set<Module> mods = schemaService.getGlobalContext().getModules();
+                    final Collection<? extends Module> mods = schemaService.getGlobalContext().getModules();
                     for (final Module m : mods) {
                         if (m.getName().equals(moduleName)) {
                             final Model model = new Model();
@@ -278,7 +281,7 @@ public class ExportTask implements Callable<Void> {
     private void writeModules(final JsonWriter jsonWriter) throws IOException {
         jsonWriter.beginArray();
 
-        final Set<Module> modules = schemaService.getGlobalContext().getModules();
+        final Collection<? extends Module> modules = schemaService.getGlobalContext().getModules();
 
         for (final Module mod : modules) {
             jsonWriter.beginObject();
