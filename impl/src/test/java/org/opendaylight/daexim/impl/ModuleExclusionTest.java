@@ -15,8 +15,9 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
-import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
+import org.eclipse.jdt.annotation.Nullable;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -28,32 +29,36 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.DataStore;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.exclusions.ExcludedModules;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.exclusions.ExcludedModules.ModuleName;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.exclusions.ExcludedModulesBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.exclusions.ExcludedModulesKey;
+import org.opendaylight.yangtools.yang.binding.CodeHelpers;
 import org.opendaylight.yangtools.yang.common.QName;
-import org.opendaylight.yangtools.yang.model.api.SchemaContext;
 
 public class ModuleExclusionTest extends AbstractDataBrokerTest {
     private static final String REV1 = "2016-09-13";
 
-    private static final List<ExcludedModules> EXCL_CFG = ImmutableList.<ExcludedModules>builder()
-            .add(new ExcludedModulesBuilder().setDataStore(new DataStore("config"))
-                    .setModuleName(new ModuleName(new YangIdentifier("A")))
-            .build()).build();
+    private static final @Nullable Map<ExcludedModulesKey, ExcludedModules> EXCL_CFG = CodeHelpers
+            .compatMap(ImmutableList.<ExcludedModules>builder()
+                    .add(new ExcludedModulesBuilder().setDataStore(new DataStore("config"))
+                            .setModuleName(new ModuleName(new YangIdentifier("A")))
+                            .build())
+                    .build());
 
-    private static final List<ExcludedModules> EXCL_OP = ImmutableList.<ExcludedModules>builder()
-            .add(new ExcludedModulesBuilder().setDataStore(new DataStore("operational"))
-                    .setModuleName(new ModuleName(new YangIdentifier("A")))
-            .build()).build();
+    private static final @Nullable Map<ExcludedModulesKey, ExcludedModules> EXCL_OP = CodeHelpers
+            .compatMap(ImmutableList.<ExcludedModules>builder()
+                    .add(new ExcludedModulesBuilder().setDataStore(new DataStore("operational"))
+                            .setModuleName(new ModuleName(new YangIdentifier("A")))
+                            .build())
+                    .build());
 
     private static final String REV2 = "2016-09-12";
     @SuppressWarnings("unchecked")
     private Consumer<Void> callback = mock(Consumer.class);
-    private SchemaContext schemaContext;
     private DOMSchemaService schemaService;
 
     @Before
-    public void setUp() {
+    public void setUp() throws Exception {
         schemaService = mock(DOMSchemaService.class);
-        when(schemaService.getGlobalContext()).thenReturn(schemaContext);
+        when(schemaService.getGlobalContext()).thenReturn(getSchemaContext());
     }
 
     @After
@@ -61,11 +66,6 @@ public class ModuleExclusionTest extends AbstractDataBrokerTest {
         reset(schemaService);
     }
 
-    @Override
-    protected void setupWithSchema(SchemaContext context) {
-        this.schemaContext = context;
-        super.setupWithSchema(context);
-    }
 
     @Test
     public void test() throws Exception {

@@ -207,7 +207,6 @@ public class ImportTask implements Callable<ImportOperationResult> {
         LOG.debug("Number of writes used for import operation : {}", writeCount);
     }
 
-    @SuppressWarnings("unchecked")
     private void importDatastore(final LogicalDatastoreType type)
             throws IOException, InterruptedException, ExecutionException {
         DOMDataTreeReadWriteTransaction rwTrx = null;
@@ -248,7 +247,7 @@ public class ImportTask implements Callable<ImportOperationResult> {
 
     private void validateModelAvailability(final InputStream inputStream) throws ModelsNotAvailableException {
         final List<Model> md = Util.parseModels(inputStream);
-        final Set<Module> modules = schemaService.getGlobalContext().getModules();
+        final Collection<? extends Module> modules = schemaService.getGlobalContext().getModules();
         final Set<Model> missing = Sets.newHashSet();
         for (final Model m : md) {
             LOG.debug("Checking availability of {}", m);

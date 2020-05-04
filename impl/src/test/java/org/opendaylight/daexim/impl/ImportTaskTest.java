@@ -55,6 +55,7 @@ import org.opendaylight.yangtools.yang.data.api.YangInstanceIdentifier;
 import org.opendaylight.yangtools.yang.data.api.YangInstanceIdentifier.PathArgument;
 import org.opendaylight.yangtools.yang.data.api.schema.NormalizedNode;
 import org.opendaylight.yangtools.yang.data.api.schema.NormalizedNodeContainer;
+import org.opendaylight.yangtools.yang.model.api.EffectiveModelContext;
 import org.opendaylight.yangtools.yang.model.api.SchemaContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,7 +72,7 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
     private Path tmpDir;
 
     @Override
-    protected void setupWithSchema(SchemaContext context) {
+    protected void setupWithSchema(EffectiveModelContext context) {
         this.schemaContext = context;
         super.setupWithSchema(context);
     }
@@ -148,7 +149,7 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
         final NetworkTopology nt = readData(InstanceIdentifier.create(NetworkTopology.class));
         assertNotNull(nt.getTopology());
         assertEquals(2, nt.getTopology().size());
-        for (final Topology t : nt.getTopology()) {
+        for (final Topology t : nt.nonnullTopology().values()) {
             assertNotNull(t.getNode());
             if (TestBackupData.TOPOLOGY_ID.equals(t.getTopologyId())) {
                 assertEquals(2, t.getNode().size());
@@ -193,7 +194,6 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
         assertEquals(rt.getWriteCount(), 1);
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void testImport_WithBatchingLevel2Size1() throws Exception {
         Collection<? extends NormalizedNode<?, ?>> childrenBefore = readRoot();
@@ -213,8 +213,6 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
         assertEquals(rt.getWriteCount(), 3);
     }
 
-    @SuppressWarnings("unchecked")
-    @Test
     public void testImport_WithBatchingLevel4Size2() throws Exception {
         Collection<? extends NormalizedNode<?, ?>> childrenBefore = readRoot();
         assertEquals(0, childrenBefore.size());
@@ -301,7 +299,7 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
         // same topology-id, but different set of nodes
         final Topology t = readData(TestBackupData.TOPOLOGY_II);
         assertEquals(2, t.getNode().size());
-        for (final Node node : t.getNode()) {
+        for (final Node node : t.nonnullNode().values()) {
             // make sure none of 'new' nodes has 'old' node id
             assertFalse(OLD_NODE_ID.equals(node.key().getNodeId().getValue()));
         }
