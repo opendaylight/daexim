@@ -45,6 +45,30 @@
       "revId": "76078595e0096473c56b3032ac482a71800ea02e",
       "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5fd8aaed_3b02c1ca",
+        "filename": "impl/src/test/java/org/opendaylight/daexim/impl/DataExportImportAppProviderTest.java",
+        "patchSetId": 1
+      },
+      "lineNbr": 308,
+      "author": {
+        "id": 649
+      },
+      "writtenOn": "2020-05-05T08:54:20Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "f6b9caad_b3595bf5",
+      "range": {
+        "startLine": 308,
+        "startChar": 61,
+        "endLine": 308,
+        "endChar": 80
+      },
+      "revId": "76078595e0096473c56b3032ac482a71800ea02e",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
     }
   ]
 }
