@@ -18,7 +18,7 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
     <groupId>org.opendaylight.daexim</groupId>
     <artifactId>daexim-model</artifactId>
     <packaging>bundle</packaging>
-    <version>1.7.1-SNAPSHOT</version>
+    <version>1.7.2-SNAPSHOT</version>
     <build>
         <plugins>
             <plugin>
