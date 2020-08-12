@@ -96,6 +96,8 @@ one empty JSON object.
 
 **URL:** ``http://<controller-ip>:<restconf-port>/restconf/operations/data-export-import:schedule-export``
 
+**RFC8040 URL:** ``http://<controller-ip>:<restconf-port>/rests/operations/data-export-import:schedule-export``
+
 **Payload:**
 
 .. code:: json
@@ -228,6 +230,8 @@ corresponding reason for failure is listed.
 
 **URL:** ``http://<controller-ip>:<restconf-port>/restconf/operations/data-export-import:status-export``
 
+**RFC8040 URL:** ``http://<controller-ip>:<restconf-port>/rests/operations/data-export-import:status-export``
+
 **Payload:** No payload
 
 
@@ -248,6 +252,8 @@ return result is ``True`` because the server cannot fail.
 
 **URL:** ``http://<controller-ip>:<restconf-port>/restconf/operations/data-export-import:cancel-export``
 
+**RFC8040 URL:** ``http://<controller-ip>:<restconf-port>/rests/operations/data-export-import:cancel-export``
+
 **Payload:** No payload
 
 
@@ -258,6 +264,8 @@ The **immediate-import** RPC imports data from files already present in
 the file system.
 
 **URL:** ``http://<controller-ip>:<restconf-port>/restconf/operations/data-export-import:immediate-import``
+
+**URL:** ``http://<controller-ip>:<restconf-port>/rests/operations/data-export-import:immediate-import``
 
 **Payload:**
 
@@ -400,6 +408,8 @@ restoration has taken place. List nodes hold status about the
 restoration for each node.
 
 **URL:** ``http://<controller-ip>:<restconf-port>/restconf/operations/data-export-import:status-import``
+
+**URL:** ``http://<controller-ip>:<restconf-port>/rests/operations/data-export-import:status-import``
 
 **Payload:** No payload
 
