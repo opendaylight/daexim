@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "85e2f90e_c9f30019",
+        "filename": "docs/user-guide.rst",
+        "patchSetId": 2
+      },
+      "lineNbr": 268,
+      "author": {
+        "id": 797
+      },
+      "writtenOn": "2020-08-21T14:59:22Z",
+      "side": 1,
+      "message": "RFC8040",
+      "revId": "3e7c69c58fd39f981e0f707bbd43092c8daaf982",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7b3cafff_a7f6986c",
+        "filename": "docs/user-guide.rst",
+        "patchSetId": 2
+      },
+      "lineNbr": 412,
+      "author": {
+        "id": 797
+      },
+      "writtenOn": "2020-08-21T14:59:22Z",
+      "side": 1,
+      "message": "RFC8040",
+      "revId": "3e7c69c58fd39f981e0f707bbd43092c8daaf982",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": true
+    }
+  ]
+}
