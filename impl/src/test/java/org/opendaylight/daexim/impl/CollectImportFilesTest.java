@@ -71,9 +71,7 @@ public class CollectImportFilesTest {
                 .build();
         final DOMDataBroker domDataBroker = mock(DOMDataBroker.class);
         final DOMSchemaService schemaService = mock(DOMSchemaService.class);
-        @SuppressWarnings("unchecked")
-        final ImportTask rt = new ImportTask(input, domDataBroker, schemaService, false,
-                (Consumer<Void>) mock(Consumer.class));
+        final ImportTask rt = new ImportTask(input, domDataBroker, schemaService, false, mock(Consumer.class));
         final ListMultimap<LogicalDatastoreType, File> df = rt.dataFiles;
         assertThat(df.get(LogicalDatastoreType.CONFIGURATION)).isEmpty();
         assertThat(df.get(LogicalDatastoreType.OPERATIONAL).get(2).toString()).endsWith("@2013-08-19.json");

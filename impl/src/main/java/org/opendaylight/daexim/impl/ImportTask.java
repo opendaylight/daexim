@@ -329,12 +329,7 @@ public class ImportTask implements Callable<ImportOperationResult> {
     private void importRootNode(final DOMDataTreeReadWriteTransaction rwTrx, final LogicalDatastoreType type,
             final NormalizedNode<?, ?> data) throws InterruptedException, ExecutionException {
         if (data instanceof NormalizedNodeContainer) {
-            @SuppressWarnings({"unchecked", "linelength"})
-            final NormalizedNodeContainer<? extends PathArgument, ? extends PathArgument, ? extends NormalizedNode<YangInstanceIdentifier.PathArgument, ?>> nnContainer =
-                    ((NormalizedNodeContainer<? extends PathArgument, ? extends PathArgument, ? extends NormalizedNode<YangInstanceIdentifier.PathArgument, ?>>) data);
-            final Collection<? extends NormalizedNode<YangInstanceIdentifier.PathArgument, ?>> children =
-                    nnContainer.getValue();
-            for (NormalizedNode<YangInstanceIdentifier.PathArgument, ?> child : children) {
+            for (NormalizedNode<?, ?> child : ((NormalizedNodeContainer<?, ?, ?>) data).getValue()) {
                 if (isInternalObject(child.getIdentifier().getNodeType())) {
                     LOG.debug("Skipping import of internal dataobject : {}", child.getIdentifier());
                     continue;
@@ -363,12 +358,9 @@ public class ImportTask implements Callable<ImportOperationResult> {
         }
         LOG.debug("Performing import in batches : {}", data.getIdentifier());
 
-        final Map<NormalizedNode<PathArgument, ?>, Boolean> childCommitStatusCache = new HashMap<>();
-        final Map<NormalizedNode<PathArgument, ?>, Iterable<? extends PathArgument>> childPathCache = new HashMap<>();
-        @SuppressWarnings({"unchecked", "linelength"})
-        final NormalizedNodeContainer<? extends PathArgument, ? extends PathArgument, ? extends NormalizedNode<YangInstanceIdentifier.PathArgument, ?>> nnContainer =
-                ((NormalizedNodeContainer<? extends PathArgument, ? extends PathArgument, ? extends NormalizedNode<YangInstanceIdentifier.PathArgument, ?>>) data);
-        for (final NormalizedNode<PathArgument, ?> nnChild : nnContainer.getValue()) {
+        final Map<NormalizedNode<?, ?>, Boolean> childCommitStatusCache = new HashMap<>();
+        final Map<NormalizedNode<?, ?>, Iterable<? extends PathArgument>> childPathCache = new HashMap<>();
+        for (final NormalizedNode<?, ?> nnChild : ((NormalizedNodeContainer<?, ?, ?>) data).getValue()) {
             // If we are at root-level, skip importing data for internal model
             if (depth == 0) {
                 if (isInternalObject(nnChild.getIdentifier().getNodeType())) {
@@ -401,7 +393,7 @@ public class ImportTask implements Callable<ImportOperationResult> {
             final Iterable<? extends PathArgument> childPath =
                     new ImmutableList.Builder().addAll(path).add(nnChild.getIdentifier()).build();
             final boolean commitStatus =
-                    importFromNormalizedNodeInBatches(wrTrx, type, nnChild, childPath, (depth + 1));
+                    importFromNormalizedNodeInBatches(wrTrx, type, nnChild, childPath, depth + 1);
             childCommitStatusCache.put(nnChild, commitStatus);
             childPathCache.put(nnChild, childPath);
         }
@@ -416,7 +408,7 @@ public class ImportTask implements Callable<ImportOperationResult> {
         }
 
         // If one child has got written, write all other children as well
-        for (final Entry<NormalizedNode<PathArgument, ?>, Boolean> entry : childCommitStatusCache.entrySet()) {
+        for (final Entry<NormalizedNode<?, ?>, Boolean> entry : childCommitStatusCache.entrySet()) {
             if (!entry.getValue()) {
                 wrTrx.merge(type, YangInstanceIdentifier.create(childPathCache.get(entry.getKey())), entry.getKey());
                 writeCount++;
