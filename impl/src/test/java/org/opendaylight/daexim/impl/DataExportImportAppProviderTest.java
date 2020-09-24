@@ -18,7 +18,6 @@ import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.Sets;
 import com.google.common.io.Resources;
 import java.io.File;
 import java.io.IOException;
@@ -27,6 +26,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.Date;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.io.FileUtils;
@@ -94,7 +94,7 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
 
     @After
     public void tearDown() throws IOException {
-        Files.setPosixFilePermissions(tempDir.resolve(Util.DAEXIM_DIR), Sets.<PosixFilePermission>newHashSet(
+        Files.setPosixFilePermissions(tempDir.resolve(Util.DAEXIM_DIR), Set.of(
                 PosixFilePermission.OWNER_EXECUTE,PosixFilePermission.OWNER_READ,PosixFilePermission.OWNER_WRITE
                 ));
         FileUtils.deleteDirectory(tempDir.toFile());
@@ -302,7 +302,7 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
     @Test
     public void testExportWithPermissionDenied() throws IOException, InterruptedException, ExecutionException {
         provider.init();
-        Files.setPosixFilePermissions(tempDir.resolve(Util.DAEXIM_DIR), Sets.<PosixFilePermission>newHashSet());
+        Files.setPosixFilePermissions(tempDir.resolve(Util.DAEXIM_DIR), Set.of());
         final RpcResult<ScheduleExportOutput> result = provider
                 .scheduleExport(new ScheduleExportInputBuilder()
                         .setRunAt(new RunAt(new RelativeTime(Uint32.TEN))).build())

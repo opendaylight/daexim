@@ -8,15 +8,15 @@
  */
 package org.opendaylight.daexim.impl;
 
+import static java.util.Objects.requireNonNull;
+
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
-import com.google.common.collect.Sets;
 import com.google.gson.stream.JsonReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -34,6 +34,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -248,13 +249,13 @@ public class ImportTask implements Callable<ImportOperationResult> {
     private void validateModelAvailability(final InputStream inputStream) throws ModelsNotAvailableException {
         final List<Model> md = Util.parseModels(inputStream);
         final Collection<? extends Module> modules = schemaService.getGlobalContext().getModules();
-        final Set<Model> missing = Sets.newHashSet();
+        final Set<Model> missing = new HashSet<>();
         for (final Model m : md) {
             LOG.debug("Checking availability of {}", m);
             boolean found = false;
             for (final Module mod : modules) {
                 if (mod.getName().equals(m.getModule()) && mod.getNamespace().toString().equals(m.getNamespace())
-                        && Objects.equal(mod.getRevision().map(Revision::toString).orElse(null), m.getRevision())) {
+                        && Objects.equals(mod.getRevision().map(Revision::toString).orElse(null), m.getRevision())) {
                     found = true;
                 }
             }
@@ -271,8 +272,7 @@ public class ImportTask implements Callable<ImportOperationResult> {
             throws InterruptedException, ExecutionException {
         final DOMDataTreeReadWriteTransaction removeTrx;
         if (strictDataConsistency) {
-            Preconditions.checkNotNull(rwTrx);
-            removeTrx = rwTrx;
+            removeTrx = requireNonNull(rwTrx);
         } else {
             removeTrx = dataBroker.newReadWriteTransaction();
         }
@@ -296,15 +296,14 @@ public class ImportTask implements Callable<ImportOperationResult> {
         }
     }
 
-    private boolean isInternalObject(final QName childQName) {
+    private static boolean isInternalObject(final QName childQName) {
         return childQName.getLocalName().equals(Util.INTERNAL_LOCAL_NAME);
     }
 
     private void importFromNormalizedNode(final DOMDataTreeReadWriteTransaction rwTrx, final LogicalDatastoreType type,
             final NormalizedNode<?, ?> data) throws InterruptedException, ExecutionException {
         if (strictDataConsistency) {
-            Preconditions.checkNotNull(rwTrx);
-            importRootNode(rwTrx, type, data);
+            importRootNode(requireNonNull(rwTrx), type, data);
         } else {
             final DOMDataTreeReadWriteTransaction batchTrx = dataBroker.newReadWriteTransaction();
             final boolean commitStatus;

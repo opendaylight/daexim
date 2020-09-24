@@ -13,7 +13,6 @@ import com.google.common.base.Strings;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
-import com.google.common.collect.Sets;
 import com.google.gson.stream.JsonWriter;
 import java.io.File;
 import java.io.FileWriter;
@@ -75,7 +74,7 @@ public class ExportTask implements Callable<Void> {
     private final Collection<IncludedModules> includedModules;
     private final Collection<ExcludedModules> excludedModules;
     private final Consumer<Void> callback;
-    private final Set<LogicalDatastoreType> excludedDss = Sets.newHashSet();
+    private final Set<LogicalDatastoreType> excludedDss = new HashSet<>();
     private final boolean strictDataConsistency;
     private final boolean isPerModuleExport;
 
@@ -220,7 +219,7 @@ public class ExportTask implements Callable<Void> {
      */
     private Collection<NormalizedNode<?, ?>> readDatastorePerChild(final LogicalDatastoreType type)
             throws InterruptedException, ExecutionException {
-        final Collection<NormalizedNode<?, ?>> nodes = Sets.newHashSet();
+        final Collection<NormalizedNode<?, ?>> nodes = new HashSet<>();
         for (final DataSchemaNode schemaNode : schemaService.getGlobalContext().getChildNodes()) {
             if (!isIncludedOrNotExcluded(type, schemaNode.getQName())) {
                 continue;
@@ -374,12 +373,12 @@ public class ExportTask implements Callable<Void> {
         return false;
     }
 
-    private String getDataStoreFromInclusion(IncludedModules incl) {
+    private static String getDataStoreFromInclusion(IncludedModules incl) {
         return Strings.isNullOrEmpty(incl.getDataStore().getString()) ? incl.getDataStore().getEnumeration().getName()
                 : incl.getDataStore().getString();
     }
 
-    private String getDataStoreFromExclusion(ExcludedModules excl) {
+    private static String getDataStoreFromExclusion(ExcludedModules excl) {
         return Strings.isNullOrEmpty(excl.getDataStore().getString()) ? excl.getDataStore().getEnumeration().getName()
                 : excl.getDataStore().getString();
     }
