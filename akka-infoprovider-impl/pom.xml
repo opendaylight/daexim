@@ -20,16 +20,6 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
 
     <dependencies>
         <dependency>
-            <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-actor_2.13</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-cluster_2.13</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>daexim-model</artifactId>
             <scope>provided</scope>
