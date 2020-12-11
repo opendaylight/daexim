@@ -18,11 +18,11 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
     </parent>
     <groupId>org.opendaylight.daexim</groupId>
     <artifactId>odl-daexim-all</artifactId>
-    <version>1.7.3-SNAPSHOT</version>
+    <version>1.7.4-SNAPSHOT</version>
     <packaging>feature</packaging>
     <name>OpenDaylight :: Daexim :: All</name>
     <properties>
-        <restconf.version>1.11.3-SNAPSHOT</restconf.version>
+        <restconf.version>1.11.4-SNAPSHOT</restconf.version>
     </properties>
     <dependencyManagement>
         <dependencies>
