@@ -17,7 +17,6 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.Lists;
 import com.jayway.jsonpath.Configuration;
 import java.io.File;
 import java.io.IOException;
@@ -45,6 +44,7 @@ import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.NodeBuilder;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.node.TerminationPointBuilder;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
+import org.opendaylight.yangtools.yang.binding.util.BindingMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -85,13 +85,13 @@ public class LocalExportTaskTest extends AbstractDataBrokerTest {
         final WriteTransaction wrTrx = getDataBroker().newWriteOnlyTransaction();
         final InstanceIdentifier<NetworkTopology> ii = InstanceIdentifier.create(NetworkTopology.class);
         final NetworkTopology dObj = new NetworkTopologyBuilder()
-                .setTopology(Lists.newArrayList(new TopologyBuilder()
-                        .setNode(Lists.newArrayList(
+                .setTopology(BindingMap.of(new TopologyBuilder()
+                        .setNode(BindingMap.of(
                                 new NodeBuilder()
                                     .setNodeId(new NodeId("node-id-1"))
                                 .build(),
                                 new NodeBuilder()
-                                    .setTerminationPoint(Lists.newArrayList(
+                                    .setTerminationPoint(BindingMap.of(
                                             new TerminationPointBuilder()
                                                 .setTpId(new TpId("eth0"))
                                             .build()

@@ -123,7 +123,7 @@ public class ImportTask implements Callable<ImportOperationResult> {
             final DOMSchemaService schemaService, boolean isBooting, Consumer<Void> callback) {
         this.dataBroker = domDataBroker;
         this.schemaService = schemaService;
-        this.mustValidate = input.isCheckModels() != null && input.isCheckModels();
+        this.mustValidate = input.getCheckModels() != null && input.getCheckModels();
         this.clearScope = input.getClearStores();
         if (input.getImportBatching() != null && input.getImportBatching().getMaxTraversalDepth() != null) {
             this.maxTraversalDepth = input.getImportBatching().getMaxTraversalDepth().shortValue();
@@ -135,7 +135,7 @@ public class ImportTask implements Callable<ImportOperationResult> {
         } else {
             this.listBatchSize = DEFAULT_LIST_BATCH_SIZE;
         }
-        this.strictDataConsistency = input.isStrictDataConsistency();
+        this.strictDataConsistency = input.getStrictDataConsistency();
         this.isBooting = isBooting;
         this.callback = callback;
         dataFiles = ArrayListMultimap.create(LogicalDatastoreType.values().length, 4);

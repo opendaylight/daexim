@@ -12,7 +12,6 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 
-import com.google.common.collect.Lists;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -35,6 +34,7 @@ import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.TopologyBuilder;
 import org.opendaylight.yangtools.yang.binding.DataObject;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
+import org.opendaylight.yangtools.yang.binding.util.BindingMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,7 +49,7 @@ public class PerModuleExportTest extends AbstractDataBrokerTest {
     private Path tmpDir;
     private DOMSchemaService schemaService;
     @SuppressWarnings("unchecked")
-    private Consumer<Void> callback = mock(Consumer.class);
+    private final Consumer<Void> callback = mock(Consumer.class);
 
     @Before
     public void setUp() throws Exception {
@@ -84,8 +84,7 @@ public class PerModuleExportTest extends AbstractDataBrokerTest {
     public void test() throws Exception {
         // 1, populate datastore
         writeDataToRoot(InstanceIdentifier.create(NetworkTopology.class), new NetworkTopologyBuilder()
-                .setTopology(
-                        Lists.newArrayList(new TopologyBuilder().setTopologyId(TestBackupData.TOPOLOGY_ID).build()))
+                .setTopology(BindingMap.of(new TopologyBuilder().setTopologyId(TestBackupData.TOPOLOGY_ID).build()))
                 .build());
         writeDataToRoot(InstanceIdentifier.create(Data2.class), new Data2Builder().setLeaf1("A").build());
         // 2, perform export

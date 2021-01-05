@@ -93,6 +93,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.status.exp
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.status.export.output.NodesBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.status.export.output.NodesKey;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
+import org.opendaylight.yangtools.yang.binding.util.BindingMap;
 import org.opendaylight.yangtools.yang.common.RpcError.ErrorType;
 import org.opendaylight.yangtools.yang.common.RpcResult;
 import org.opendaylight.yangtools.yang.common.RpcResultBuilder;
@@ -177,7 +178,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
                         public void onSuccess(RpcResult<ImmediateImportOutput> result) {
                             if (!result.isSuccessful()
                                     || !result.getErrors().isEmpty()
-                                    || !result.getResult().isResult()) {
+                                    || !result.getResult().getResult()) {
                                 failed(null);
                             } else {
                                 renameBootImportFiles();
@@ -213,7 +214,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
         LOG.info("Published OSGi service {}", DataImportBootReady.class);
     }
 
-    private void renameBootImportFiles() {
+    private static void renameBootImportFiles() {
         boolean renamedAtLeastOneFile = false;
         renamedAtLeastOneFile = renameFile(Util.getModelsFilePath(true));
         renamedAtLeastOneFile |= renameFile(Util.getDaeximFilePath(true, CONFIGURATION));
@@ -224,7 +225,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
         }
     }
 
-    private boolean renameFile(Path file) {
+    private static boolean renameFile(Path file) {
         try {
             if (file.toFile().exists()) {
                 final Path renamedFile = file.resolveSibling(file.getFileName().toString() + ".imported");
@@ -289,7 +290,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
         long scheduleAtTimestamp = Util.parseDate(newTask.getRunAt().getValue()).getTime();
         exportSchedule = scheduledExecutorService.schedule(
                 new ExportTask(newTask.getIncludedModules(), newTask.getExcludedModules(),
-                        newTask.isStrictDataConsistency(), newTask.isSplitByModule(), domDataBroker, schemaService,
+                        newTask.getStrictDataConsistency(), newTask.getSplitByModule(), domDataBroker, schemaService,
                     notUsed -> updateExportStatus(Status.InProgress)),
                 scheduleAtTimestamp - System.currentTimeMillis(), TimeUnit.MILLISECONDS);
         Futures.addCallback(exportSchedule, new FutureCallback<Void>() {
@@ -402,7 +403,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
         importStatus = Status.Initial;
         LOG.info("Global status is not yet created");
         updateNodeStatus();
-        return new DaeximStatusBuilder().setNodeStatus(Lists.<NodeStatus>newArrayList(createNodeStatusData())).build();
+        return new DaeximStatusBuilder().setNodeStatus(BindingMap.of(createNodeStatusData())).build();
     }
 
     /**
@@ -556,14 +557,14 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
         LOG.info("Scheduling export at {}, which is {} seconds in the future", scheduledString,
             (scheduleAtTimestamp - System.currentTimeMillis()) / 1000);
         try {
-            final DaeximControlBuilder builder = new DaeximControlBuilder();
-            builder.setTaskType(IpcType.Schedule);
-            builder.setStrictDataConsistency(input.isStrictDataConsistency());
-            builder.setIncludedModules(input.getIncludedModules());
-            builder.setExcludedModules(input.getExcludedModules());
-            builder.setRunAt(new AbsoluteTime(new DateAndTime(Util.toDateAndTime(new Date(scheduleAtTimestamp)))));
-            builder.setSplitByModule(input.isSplitByModule());
-            if (Objects.equals(input.isLocalNodeOnly(), Boolean.TRUE)) {
+            final DaeximControlBuilder builder = new DaeximControlBuilder()
+                .setTaskType(IpcType.Schedule)
+                .setStrictDataConsistency(input.getStrictDataConsistency())
+                .setIncludedModules(input.getIncludedModules())
+                .setExcludedModules(input.getExcludedModules())
+                .setRunAt(new AbsoluteTime(new DateAndTime(Util.toDateAndTime(new Date(scheduleAtTimestamp)))))
+                .setSplitByModule(input.getSplitByModule());
+            if (Boolean.TRUE.equals(input.getLocalNodeOnly())) {
                 builder.setRunOnNode(nodeNameProvider.getNodeName());
             }
             invokeIPC(builder.build());
@@ -609,7 +610,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
                 }
                 builder.setRunAt(ctrl.getRunAt());
             }
-            builder.setNodes(tasks);
+            builder.setNodes(BindingMap.of(tasks));
             return Futures.immediateFuture(RpcResultBuilder.<StatusExportOutput>success(builder.build()).build());
         } catch (ExecutionException | InterruptedException e) {
             LOG.error("statusExport() failed", e);
@@ -642,7 +643,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
             @Override
             public void onSuccess(ImportOperationResult result) {
                 LOG.info("Restore operation finished : {}", result);
-                if (!result.isResult()) {
+                if (!result.getResult()) {
                     importFailure = result.getReason();
                     if (isBooting) {
                         updateImportStatus(Status.BootImportFailed);
@@ -665,8 +666,8 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
         }, MoreExecutors.directExecutor());
         return Futures.transform(f, (Function<ImportOperationResult, RpcResult<ImmediateImportOutput>>) input1 -> {
             final ImmediateImportOutputBuilder output = new ImmediateImportOutputBuilder();
-            output.setResult(input1.isResult());
-            if (!input1.isResult()) {
+            output.setResult(input1.getResult());
+            if (!input1.getResult()) {
                 output.setReason(input1.getReason());
                 return RpcResultBuilder.<ImmediateImportOutput>success().withResult(output.build()).build();
             }
@@ -707,26 +708,24 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
         final StatusImportOutputBuilder builder = new StatusImportOutputBuilder();
         try {
             final DaeximStatus gs = readGlobalStatus();
-            final List<org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.status._import.output.Nodes> nodes
-                = Lists.newArrayList(
-                    Iterables.transform(gs.nonnullNodeStatus().values(), nodeStatus -> {
-                        final org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.status._import.output
-                               .NodesBuilder nb = new org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921
-                                       .status._import.output.NodesBuilder();
-                        if (Status.Complete.equals(nodeStatus.getImportStatus())) {
-                            nb.setImportedAt(nodeStatus.getImportedAt());
-                        }
-                        nb.setReason(nodeStatus.getImportResult());
-                        nb.setModelFile(nodeStatus.getModelFile());
-                        nb.setDataFiles(nodeStatus.getDataFiles());
-                        nb.setStatus(nodeStatus.getImportStatus());
-                        if (nodeStatus.getLastImportChange() != null) {
-                            nb.setLastChange(nodeStatus.getLastImportChange());
-                        }
-                        nb.withKey(new org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921
-                                .status._import.output.NodesKey(nodeStatus.getNodeName()));
-                        return nb.build();
-                    }));
+            final var nodes = gs.nonnullNodeStatus().values().stream().map(nodeStatus -> {
+                final org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.status._import.output
+                       .NodesBuilder nb = new org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921
+                               .status._import.output.NodesBuilder();
+                if (Status.Complete.equals(nodeStatus.getImportStatus())) {
+                    nb.setImportedAt(nodeStatus.getImportedAt());
+                }
+                nb.setReason(nodeStatus.getImportResult());
+                nb.setModelFile(nodeStatus.getModelFile());
+                nb.setDataFiles(nodeStatus.getDataFiles());
+                nb.setStatus(nodeStatus.getImportStatus());
+                if (nodeStatus.getLastImportChange() != null) {
+                    nb.setLastChange(nodeStatus.getLastImportChange());
+                }
+                nb.withKey(new org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921
+                        .status._import.output.NodesKey(nodeStatus.getNodeName()));
+                return nb.build();
+            }).collect(BindingMap.toMap());
             builder.setStatus(importStatus);
             builder.setNodes(nodes);
             return Futures.immediateFuture(RpcResultBuilder.<StatusImportOutput>success(builder.build()).build());

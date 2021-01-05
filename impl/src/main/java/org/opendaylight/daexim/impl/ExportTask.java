@@ -101,7 +101,7 @@ public class ExportTask implements Callable<Void> {
     /*
      * Exclude ourself from dump
      */
-    private Collection<ExcludedModules> ensureSelfExclusion(
+    private static Collection<ExcludedModules> ensureSelfExclusion(
             @Nullable Map<ExcludedModulesKey, ExcludedModules> excludedModulesMap) {
         final Set<ExcludedModules> modules = new HashSet<>();
         modules.addAll(Optional.ofNullable(excludedModulesMap).orElse(Collections.emptyMap()).values());
@@ -132,7 +132,7 @@ public class ExportTask implements Callable<Void> {
             });
 
     // JsonWriter's close() will close new FileWriter
-    private JsonWriter createWriter(LogicalDatastoreType type, boolean isModules) throws IOException {
+    private static JsonWriter createWriter(LogicalDatastoreType type, boolean isModules) throws IOException {
         final File filePath = isModules ? Util.getModelsFilePath(false).toFile()
                 : Util.getDaeximFilePath(false, type).toFile();
         LOG.info("Creating JSON file : {}", filePath);
@@ -143,7 +143,7 @@ public class ExportTask implements Callable<Void> {
         final StringBuilder fileName = new StringBuilder();
         fileName.append(Util.FILE_PREFIX);
         fileName.append(Util.storeNameByType(store));
-        java.util.Optional<Module> mod = schemaService.getGlobalContext().findModule(ni.getNodeType().getNamespace(),
+        Optional<Module> mod = schemaService.getGlobalContext().findModule(ni.getNodeType().getNamespace(),
                 ni.getNodeType().getRevision());
         if (mod.isPresent()) {
             fileName.append('_');
@@ -156,14 +156,13 @@ public class ExportTask implements Callable<Void> {
         return new JsonWriter(new FileWriter(filePath.toFile()));
     }
 
-    private void appendRevision(final StringBuilder fileName, java.util.Optional<Revision> optional) {
+    private static void appendRevision(final StringBuilder fileName, Optional<Revision> optional) {
         if (optional.isPresent()) {
-            fileName.append('@');
-            fileName.append(optional.get().toString());
+            fileName.append('@').append(optional.get());
         }
     }
 
-    private void writeEmptyStore(LogicalDatastoreType type) throws IOException {
+    private static void writeEmptyStore(LogicalDatastoreType type) throws IOException {
         try (JsonWriter writer = createWriter(type, false)) {
             writer.beginObject();
             writer.endObject();
@@ -272,7 +271,7 @@ public class ExportTask implements Callable<Void> {
         return null;
     }
 
-    private void writeProperty(JsonWriter writer, String name, String value) throws IOException {
+    private static void writeProperty(JsonWriter writer, String name, String value) throws IOException {
         writer.name(name);
         writer.value(value);
     }

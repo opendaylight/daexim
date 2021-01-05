@@ -16,7 +16,6 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 
-import com.google.common.collect.Lists;
 import com.google.common.io.ByteStreams;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -49,6 +48,7 @@ import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.NodeBuilder;
 import org.opendaylight.yangtools.yang.binding.DataObject;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
+import org.opendaylight.yangtools.yang.binding.util.BindingMap;
 import org.opendaylight.yangtools.yang.common.Uint16;
 import org.opendaylight.yangtools.yang.common.Uint32;
 import org.opendaylight.yangtools.yang.data.api.YangInstanceIdentifier;
@@ -64,7 +64,7 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
     private static final Logger LOG = LoggerFactory.getLogger(ImportTaskTest.class);
     private static final String OLD_NODE_ID = "node-id-5";
     @SuppressWarnings("unchecked")
-    private Consumer<Void> callback = mock(Consumer.class);
+    private final Consumer<Void> callback = mock(Consumer.class);
     private DOMSchemaService schemaService;
     private SchemaContext schemaContext;
     private Path modelsFile;
@@ -168,7 +168,7 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
                         .setStrictDataConsistency(true).build(),
                 getDomBroker(), schemaService, false, callback);
         final ImportOperationResult result = rt.call();
-        assertTrue(result.getReason(), result.isResult());
+        assertTrue(result.getReason(), result.getResult());
         Collection<? extends NormalizedNode<?, ?>> children = readRoot();
         assertEquals(1, children.size());
         NormalizedNode<?, ?> nn = children.iterator().next();
@@ -188,7 +188,7 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
                         .setStrictDataConsistency(false).build(),
                 getDomBroker(), schemaService, false, callback);
         final ImportOperationResult result = rt.call();
-        assertTrue(result.getReason(), result.isResult());
+        assertTrue(result.getReason(), result.getResult());
         verifyNetworkTopologyInDataStore();
         assertEquals(rt.getBatchCount(), 3);
         assertEquals(rt.getWriteCount(), 1);
@@ -203,11 +203,11 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
                 new ImmediateImportInputBuilder().setClearStores(DataStoreScope.All).setCheckModels(true)
                         .setStrictDataConsistency(false)
                         .setImportBatching(new ImportBatchingBuilder().setMaxTraversalDepth(Uint16.valueOf(2))
-                                .setListBatchSize(Uint32.valueOf(1)).build())
+                                .setListBatchSize(Uint32.ONE).build())
                         .build(),
                 getDomBroker(), schemaService, false, callback);
         final ImportOperationResult result = rt.call();
-        assertTrue(result.getReason(), result.isResult());
+        assertTrue(result.getReason(), result.getResult());
         verifyNetworkTopologyInDataStore();
         assertEquals(rt.getBatchCount(), 6);
         assertEquals(rt.getWriteCount(), 3);
@@ -221,11 +221,11 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
                 new ImmediateImportInputBuilder().setClearStores(DataStoreScope.All).setCheckModels(true)
                         .setStrictDataConsistency(false)
                         .setImportBatching(new ImportBatchingBuilder().setMaxTraversalDepth(Uint16.valueOf(4))
-                                .setListBatchSize(Uint32.valueOf(2)).build())
+                                .setListBatchSize(Uint32.TWO).build())
                         .build(),
                 getDomBroker(), schemaService, false, callback);
         final ImportOperationResult result = rt.call();
-        assertTrue(result.getReason(), result.isResult());
+        assertTrue(result.getReason(), result.getResult());
         verifyNetworkTopologyInDataStore();
         assertEquals(rt.getBatchCount(), 6);
         assertEquals(rt.getWriteCount(), 5);
@@ -244,13 +244,12 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
         Files.delete(opDataFile);
         // Write arbitrary data to datastore
         writeDataToRoot(InstanceIdentifier.create(NetworkTopology.class), new NetworkTopologyBuilder()
-                .setTopology(
-                        Lists.newArrayList(new TopologyBuilder().setTopologyId(TestBackupData.TOPOLOGY_ID).build()))
+                .setTopology(BindingMap.of(new TopologyBuilder().setTopologyId(TestBackupData.TOPOLOGY_ID).build()))
                 .build());
         // perform restore
         result = runRestore(new ImmediateImportInputBuilder().setClearStores(DataStoreScope.All).setCheckModels(true)
                 .setStrictDataConsistency(true).build());
-        assertTrue(result.getReason(), result.isResult());
+        assertTrue(result.getReason(), result.getResult());
         // verify : no data present
         assertTrue(readRoot().isEmpty());
     }
@@ -268,13 +267,12 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
         Files.delete(opDataFile);
         // Write arbitrary data to datastore
         writeDataToRoot(InstanceIdentifier.create(NetworkTopology.class), new NetworkTopologyBuilder()
-                .setTopology(
-                        Lists.newArrayList(new TopologyBuilder().setTopologyId(TestBackupData.TOPOLOGY_ID).build()))
+                .setTopology(BindingMap.of(new TopologyBuilder().setTopologyId(TestBackupData.TOPOLOGY_ID).build()))
                 .build());
         // perform restore
         result = runRestore(new ImmediateImportInputBuilder().setClearStores(DataStoreScope.Data).setCheckModels(true)
                 .setStrictDataConsistency(true).build());
-        assertTrue(result.getReason(), result.isResult());
+        assertTrue(result.getReason(), result.getResult());
         // verify : no data present
         assertFalse(readRoot().isEmpty());
     }
@@ -288,13 +286,13 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
     public void testClearScopeNone_OverWrote() throws Exception {
         // Write topology
         writeDataToRoot(InstanceIdentifier.create(NetworkTopology.class),
-                new NetworkTopologyBuilder().setTopology(Lists.newArrayList(new TopologyBuilder()
-                        .setNode(Lists.newArrayList(new NodeBuilder().setNodeId(new NodeId(OLD_NODE_ID)).build()))
+                new NetworkTopologyBuilder().setTopology(BindingMap.of(new TopologyBuilder()
+                        .setNode(BindingMap.of(new NodeBuilder().setNodeId(new NodeId(OLD_NODE_ID)).build()))
                         .setTopologyId(TestBackupData.TOPOLOGY_ID).build())).build());
         // Perform restore with scope NONE
         ImportOperationResult result = runRestore(new ImmediateImportInputBuilder().setClearStores(DataStoreScope.None)
                 .setCheckModels(true).setStrictDataConsistency(true).build());
-        assertTrue(result.getReason(), result.isResult());
+        assertTrue(result.getReason(), result.getResult());
         // verify data get overwritten by restore (topology from JSON file has
         // same topology-id, but different set of nodes
         final Topology t = readData(TestBackupData.TOPOLOGY_II);
@@ -310,7 +308,7 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
         ImportOperationResult result = runRestore(new ImmediateImportInputBuilder().setClearStores(DataStoreScope.None)
                 .setCheckModels(true).setFileNameFilter("non-existent")
                 .setStrictDataConsistency(true).build());
-        assertTrue(result.getReason(), result.isResult());
+        assertTrue(result.getReason(), result.getResult());
 
         Collection<? extends NormalizedNode<?, ?>> childrenAfter = readRoot();
         assertEquals(0,childrenAfter.size());
@@ -321,7 +319,7 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
         ImportOperationResult result = runRestore(new ImmediateImportInputBuilder().setClearStores(DataStoreScope.None)
                 .setCheckModels(true).setFileNameFilter("odl_backup_operational.*")
                 .setStrictDataConsistency(true).build());
-        assertTrue(result.getReason(), result.isResult());
+        assertTrue(result.getReason(), result.getResult());
 
         Collection<? extends NormalizedNode<?, ?>> childrenAfter = readRoot();
         assertEquals(1,childrenAfter.size());

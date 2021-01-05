@@ -14,7 +14,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableList;
 import java.util.Map;
 import java.util.function.Consumer;
 import org.eclipse.jdt.annotation.Nullable;
@@ -30,29 +29,25 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.exclusions
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.exclusions.ExcludedModules.ModuleName;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.exclusions.ExcludedModulesBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.exclusions.ExcludedModulesKey;
-import org.opendaylight.yangtools.yang.binding.CodeHelpers;
+import org.opendaylight.yangtools.yang.binding.util.BindingMap;
 import org.opendaylight.yangtools.yang.common.QName;
 
 public class ModuleExclusionTest extends AbstractDataBrokerTest {
     private static final String REV1 = "2016-09-13";
 
-    private static final @Nullable Map<ExcludedModulesKey, ExcludedModules> EXCL_CFG = CodeHelpers
-            .compatMap(ImmutableList.<ExcludedModules>builder()
-                    .add(new ExcludedModulesBuilder().setDataStore(new DataStore("config"))
-                            .setModuleName(new ModuleName(new YangIdentifier("A")))
-                            .build())
-                    .build());
+    private static final @Nullable Map<ExcludedModulesKey, ExcludedModules> EXCL_CFG = BindingMap.of(
+        new ExcludedModulesBuilder().setDataStore(new DataStore("config"))
+            .setModuleName(new ModuleName(new YangIdentifier("A")))
+            .build());
 
-    private static final @Nullable Map<ExcludedModulesKey, ExcludedModules> EXCL_OP = CodeHelpers
-            .compatMap(ImmutableList.<ExcludedModules>builder()
-                    .add(new ExcludedModulesBuilder().setDataStore(new DataStore("operational"))
-                            .setModuleName(new ModuleName(new YangIdentifier("A")))
-                            .build())
-                    .build());
+    private static final @Nullable Map<ExcludedModulesKey, ExcludedModules> EXCL_OP = BindingMap.of(
+        new ExcludedModulesBuilder().setDataStore(new DataStore("operational"))
+            .setModuleName(new ModuleName(new YangIdentifier("A")))
+            .build());
 
     private static final String REV2 = "2016-09-12";
     @SuppressWarnings("unchecked")
-    private Consumer<Void> callback = mock(Consumer.class);
+    private final Consumer<Void> callback = mock(Consumer.class);
     private DOMSchemaService schemaService;
 
     @Before
