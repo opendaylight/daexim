@@ -12,11 +12,11 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
     <parent>
         <groupId>org.opendaylight.mdsal</groupId>
         <artifactId>binding-parent</artifactId>
-        <version>6.0.7</version>
+        <version>6.0.8</version>
         <relativePath/>
     </parent>
     <groupId>org.opendaylight.daexim</groupId>
     <artifactId>daexim-test-model</artifactId>
     <packaging>bundle</packaging>
-    <version>1.8.2-SNAPSHOT</version>
+    <version>1.8.3-SNAPSHOT</version>
 </project>
