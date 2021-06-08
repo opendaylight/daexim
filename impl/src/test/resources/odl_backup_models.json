@@ -1,10 +1,5 @@
 [
   {
-    "module": "entity-owners",
-    "namespace": "urn:opendaylight:params:xml:ns:yang:controller:md:sal:clustering:entity-owners",
-    "revision-date": "2015-08-04"
-  },
-  {
     "module": "ietf-inet-types",
     "namespace": "urn:ietf:params:xml:ns:yang:ietf-inet-types",
     "revision-date": "2013-07-15"
