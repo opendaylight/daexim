@@ -16,7 +16,6 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 
-import com.google.common.io.ByteStreams;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -86,9 +85,9 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
 
         modelsFile = Files.createFile(tmpDir.resolve(Util.DAEXIM_DIR).resolve(Util.FILE_PREFIX + "models.json"));
         opDataFile = Files.createFile(tmpDir.resolve(Util.DAEXIM_DIR).resolve(Util.FILE_PREFIX + "operational.json"));
-        ByteStreams.copy(this.getClass().getResourceAsStream('/' + Util.FILE_PREFIX + "models.json"),
+        this.getClass().getResourceAsStream('/' + Util.FILE_PREFIX + "models.json").transferTo(
                 Files.newOutputStream(modelsFile, StandardOpenOption.TRUNCATE_EXISTING));
-        ByteStreams.copy(this.getClass().getResourceAsStream('/' + Util.FILE_PREFIX + "operational.json"),
+        this.getClass().getResourceAsStream('/' + Util.FILE_PREFIX + "operational.json").transferTo(
                 Files.newOutputStream(opDataFile, StandardOpenOption.TRUNCATE_EXISTING));
 
         LOG.info("Copied models file to  : {}", modelsFile);
