@@ -51,7 +51,6 @@ import org.opendaylight.yangtools.yang.binding.util.BindingMap;
 import org.opendaylight.yangtools.yang.common.Uint16;
 import org.opendaylight.yangtools.yang.common.Uint32;
 import org.opendaylight.yangtools.yang.data.api.YangInstanceIdentifier;
-import org.opendaylight.yangtools.yang.data.api.YangInstanceIdentifier.PathArgument;
 import org.opendaylight.yangtools.yang.data.api.schema.NormalizedNode;
 import org.opendaylight.yangtools.yang.data.api.schema.NormalizedNodeContainer;
 import org.opendaylight.yangtools.yang.model.api.EffectiveModelContext;
@@ -105,15 +104,12 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
         reset(schemaService);
     }
 
-    @SuppressWarnings("unchecked")
-    private Collection<? extends NormalizedNode<?, ?>> readRoot() throws InterruptedException, ExecutionException {
+    private Collection<? extends NormalizedNode> readRoot() throws InterruptedException, ExecutionException {
         final DOMDataTreeReadTransaction roTrx = getDomBroker().newReadOnlyTransaction();
         try {
-            NormalizedNodeContainer<? extends PathArgument, ? extends PathArgument, ? extends NormalizedNode<?, ?>>
-                nnc = (NormalizedNodeContainer<? extends PathArgument, ? extends PathArgument,
-                        ? extends NormalizedNode<?, ?>>) roTrx.read(LogicalDatastoreType.OPERATIONAL,
+            NormalizedNodeContainer<?> nnc = (NormalizedNodeContainer<?>) roTrx.read(LogicalDatastoreType.OPERATIONAL,
                                 YangInstanceIdentifier.empty()).get().get();
-            return nnc.getValue();
+            return nnc.body();
         } finally {
             roTrx.close();
         }
@@ -168,10 +164,10 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
                 getDomBroker(), schemaService, false, callback);
         final ImportOperationResult result = rt.call();
         assertTrue(result.getReason(), result.getResult());
-        Collection<? extends NormalizedNode<?, ?>> children = readRoot();
+        Collection<? extends NormalizedNode> children = readRoot();
         assertEquals(1, children.size());
-        NormalizedNode<?, ?> nn = children.iterator().next();
-        assertEquals("network-topology", nn.getNodeType().getLocalName());
+        NormalizedNode nn = children.iterator().next();
+        assertEquals("network-topology", nn.getIdentifier().getNodeType().getLocalName());
     }
 
     @Test
@@ -179,7 +175,7 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
         schemaService = mock(DOMSchemaService.class);
         doReturn(schemaContext).when(schemaService).getGlobalContext();
 
-        Collection<? extends NormalizedNode<?, ?>> childrenBefore = readRoot();
+        Collection<? extends NormalizedNode> childrenBefore = readRoot();
         assertEquals(0, childrenBefore.size());
 
         final ImportTask rt = new ImportTask(
@@ -195,7 +191,7 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
 
     @Test
     public void testImport_WithBatchingLevel2Size1() throws Exception {
-        Collection<? extends NormalizedNode<?, ?>> childrenBefore = readRoot();
+        Collection<? extends NormalizedNode> childrenBefore = readRoot();
         assertEquals(0, childrenBefore.size());
 
         final ImportTask rt = new ImportTask(
@@ -213,7 +209,7 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
     }
 
     public void testImport_WithBatchingLevel4Size2() throws Exception {
-        Collection<? extends NormalizedNode<?, ?>> childrenBefore = readRoot();
+        Collection<? extends NormalizedNode> childrenBefore = readRoot();
         assertEquals(0, childrenBefore.size());
 
         final ImportTask rt = new ImportTask(
@@ -309,7 +305,7 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
                 .setStrictDataConsistency(true).build());
         assertTrue(result.getReason(), result.getResult());
 
-        Collection<? extends NormalizedNode<?, ?>> childrenAfter = readRoot();
+        Collection<? extends NormalizedNode> childrenAfter = readRoot();
         assertEquals(0,childrenAfter.size());
     }
 
@@ -320,7 +316,7 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
                 .setStrictDataConsistency(true).build());
         assertTrue(result.getReason(), result.getResult());
 
-        Collection<? extends NormalizedNode<?, ?>> childrenAfter = readRoot();
+        Collection<? extends NormalizedNode> childrenAfter = readRoot();
         assertEquals(1,childrenAfter.size());
     }
 }

@@ -171,10 +171,10 @@ public class ExportTask implements Callable<Void> {
     }
 
     private void writeStore(LogicalDatastoreType type) throws IOException, InterruptedException, ExecutionException {
-        final Collection<NormalizedNode<?, ?>> nodes = readDatastore(type);
+        final Collection<NormalizedNode> nodes = readDatastore(type);
         LOG.debug("Number of nodes for export after handling inclusions/exclusions : {}", nodes.size());
         if (isPerModuleExport) {
-            for (NormalizedNode<?, ?> nn : nodes) {
+            for (NormalizedNode nn : nodes) {
                 writeModuleData(nn, createPerModuleWriter(type, (NodeIdentifier) nn.getIdentifier()));
             }
         } else {
@@ -184,7 +184,7 @@ public class ExportTask implements Callable<Void> {
         }
     }
 
-    private Collection<NormalizedNode<?, ?>> readDatastore(final LogicalDatastoreType type)
+    private Collection<NormalizedNode> readDatastore(final LogicalDatastoreType type)
             throws InterruptedException, ExecutionException {
         if (strictDataConsistency) {
             return readDatastoreOneShot(type);
@@ -196,18 +196,17 @@ public class ExportTask implements Callable<Void> {
     /*
      * Read datastore in one shot and then handle inclusions/exclusions
      */
-    private Collection<NormalizedNode<?, ?>> readDatastoreOneShot(final LogicalDatastoreType type)
+    private Collection<NormalizedNode> readDatastoreOneShot(final LogicalDatastoreType type)
             throws InterruptedException, ExecutionException {
-        final Optional<NormalizedNode<?, ?>> opt = getRootNode(type);
+        final Optional<NormalizedNode> opt = getRootNode(type);
         if (!opt.isPresent()) {
             throw new IllegalStateException("Root node is not present");
         }
-        final NormalizedNode<?, ?> root = opt.get();
+        final NormalizedNode root = opt.get();
         if (root instanceof NormalizedNodeContainer) {
-            @SuppressWarnings("unchecked")
-            final Collection<NormalizedNode<?, ?>> nodes = (Collection<NormalizedNode<?, ?>>) root.getValue();
-            return nodes.stream().filter(node -> isIncludedOrNotExcluded(type, node.getIdentifier().getNodeType()))
-                    .collect(Collectors.toSet());
+            return ((NormalizedNodeContainer<?>) root).body().stream()
+                .filter(node -> isIncludedOrNotExcluded(type, node.getIdentifier().getNodeType()))
+                .collect(Collectors.toSet());
         } else {
             throw new IllegalStateException("Root node is not instance of NormalizedNodeContainer");
         }
@@ -216,20 +215,20 @@ public class ExportTask implements Callable<Void> {
     /*
      * Handle inclusions/exclusions and then read datastore one node at a time
      */
-    private Collection<NormalizedNode<?, ?>> readDatastorePerChild(final LogicalDatastoreType type)
+    private Collection<NormalizedNode> readDatastorePerChild(final LogicalDatastoreType type)
             throws InterruptedException, ExecutionException {
-        final Collection<NormalizedNode<?, ?>> nodes = new HashSet<>();
+        final Collection<NormalizedNode> nodes = new HashSet<>();
         for (final DataSchemaNode schemaNode : schemaService.getGlobalContext().getChildNodes()) {
             if (!isIncludedOrNotExcluded(type, schemaNode.getQName())) {
                 continue;
             }
             LOG.trace("Handling child node : {}", schemaNode.getQName());
-            final Optional<NormalizedNode<?, ?>> opt = getNode(type, YangInstanceIdentifier.of(schemaNode.getQName()));
+            final Optional<NormalizedNode> opt = getNode(type, YangInstanceIdentifier.of(schemaNode.getQName()));
             if (!opt.isPresent()) {
                 LOG.trace("Data for child is not present : {}", schemaNode.getQName());
                 continue;
             }
-            final NormalizedNode<?, ?> nn = opt.get();
+            final NormalizedNode nn = opt.get();
             if (!(nn instanceof NormalizedNodeContainer)) {
                 LOG.warn("Data for child is not an instance of NormalizedNodeContainer : {}", schemaNode.getQName());
                 continue;
@@ -239,13 +238,13 @@ public class ExportTask implements Callable<Void> {
         return nodes;
     }
 
-    private Optional<NormalizedNode<?, ?>> getRootNode(final LogicalDatastoreType type)
+    private Optional<NormalizedNode> getRootNode(final LogicalDatastoreType type)
             throws InterruptedException, ExecutionException {
         return getNode(type, YangInstanceIdentifier.empty());
     }
 
-    private Optional<NormalizedNode<?, ?>> getNode(final LogicalDatastoreType type,
-            final YangInstanceIdentifier nodeIID) throws InterruptedException, ExecutionException {
+    private Optional<NormalizedNode> getNode(final LogicalDatastoreType type, final YangInstanceIdentifier nodeIID)
+            throws InterruptedException, ExecutionException {
         final DOMDataTreeReadTransaction roTrx = domDataBroker.newReadOnlyTransaction();
         try {
             LOG.trace("Reading data for node : {}", nodeIID);
@@ -294,7 +293,7 @@ public class ExportTask implements Callable<Void> {
         jsonWriter.close();
     }
 
-    private void writeModuleData(final NormalizedNode<?, ?> node, final JsonWriter jsonWriter) throws IOException {
+    private void writeModuleData(final NormalizedNode node, final JsonWriter jsonWriter) throws IOException {
         jsonWriter.beginObject();
         try (NormalizedNodeWriter nnWriter = NormalizedNodeWriter.forStreamWriter(
                 JSONNormalizedNodeStreamWriter.createNestedWriter(codecFactory, SchemaPath.ROOT, null, jsonWriter),
@@ -305,7 +304,7 @@ public class ExportTask implements Callable<Void> {
         }
     }
 
-    private void writeData(final Collection<? extends NormalizedNode<?, ?>> children, final JsonWriter jsonWriter)
+    private void writeData(final Collection<? extends NormalizedNode> children, final JsonWriter jsonWriter)
             throws IOException {
 
         jsonWriter.beginObject();
@@ -313,7 +312,7 @@ public class ExportTask implements Callable<Void> {
                 JSONNormalizedNodeStreamWriter.createNestedWriter(codecFactory, SchemaPath.ROOT, null, jsonWriter),
                 true)) {
 
-            for (final NormalizedNode<?, ?> child : children) {
+            for (final NormalizedNode child : children) {
                 nnWriter.write(child);
                 nnWriter.flush();
             }
