@@ -64,17 +64,17 @@ import org.opendaylight.yangtools.yang.data.api.schema.NormalizedNode;
 import org.opendaylight.yangtools.yang.data.api.schema.NormalizedNodeContainer;
 import org.opendaylight.yangtools.yang.data.api.schema.UnkeyedListEntryNode;
 import org.opendaylight.yangtools.yang.data.api.schema.UnkeyedListNode;
+import org.opendaylight.yangtools.yang.data.api.schema.builder.CollectionNodeBuilder;
+import org.opendaylight.yangtools.yang.data.api.schema.builder.NormalizedNodeContainerBuilder;
 import org.opendaylight.yangtools.yang.data.api.schema.stream.NormalizedNodeStreamWriter;
 import org.opendaylight.yangtools.yang.data.codec.gson.JSONCodecFactorySupplier;
 import org.opendaylight.yangtools.yang.data.codec.gson.JsonParserStream;
 import org.opendaylight.yangtools.yang.data.impl.schema.ImmutableNodes;
 import org.opendaylight.yangtools.yang.data.impl.schema.ImmutableNormalizedNodeStreamWriter;
-import org.opendaylight.yangtools.yang.data.impl.schema.builder.api.CollectionNodeBuilder;
-import org.opendaylight.yangtools.yang.data.impl.schema.builder.api.NormalizedNodeContainerBuilder;
 import org.opendaylight.yangtools.yang.data.impl.schema.builder.impl.ImmutableContainerNodeBuilder;
 import org.opendaylight.yangtools.yang.data.impl.schema.builder.impl.ImmutableMapNodeBuilder;
-import org.opendaylight.yangtools.yang.data.impl.schema.builder.impl.ImmutableOrderedMapNodeBuilder;
 import org.opendaylight.yangtools.yang.data.impl.schema.builder.impl.ImmutableUnkeyedListNodeBuilder;
+import org.opendaylight.yangtools.yang.data.impl.schema.builder.impl.ImmutableUserMapNodeBuilder;
 import org.opendaylight.yangtools.yang.data.util.DataSchemaContextNode;
 import org.opendaylight.yangtools.yang.data.util.DataSchemaContextTree;
 import org.opendaylight.yangtools.yang.model.api.DataSchemaNode;
@@ -301,7 +301,7 @@ public class ImportTask implements Callable<ImportOperationResult> {
     }
 
     private void importFromNormalizedNode(final DOMDataTreeReadWriteTransaction rwTrx, final LogicalDatastoreType type,
-            final NormalizedNode<?, ?> data) throws InterruptedException, ExecutionException {
+            final NormalizedNode data) throws InterruptedException, ExecutionException {
         if (strictDataConsistency) {
             importRootNode(requireNonNull(rwTrx), type, data);
         } else {
@@ -326,9 +326,9 @@ public class ImportTask implements Callable<ImportOperationResult> {
      * model.
      */
     private void importRootNode(final DOMDataTreeReadWriteTransaction rwTrx, final LogicalDatastoreType type,
-            final NormalizedNode<?, ?> data) throws InterruptedException, ExecutionException {
+            final NormalizedNode data) throws InterruptedException, ExecutionException {
         if (data instanceof NormalizedNodeContainer) {
-            for (NormalizedNode<?, ?> child : ((NormalizedNodeContainer<?, ?, ?>) data).getValue()) {
+            for (NormalizedNode child : ((NormalizedNodeContainer<?>) data).body()) {
                 if (isInternalObject(child.getIdentifier().getNodeType())) {
                     LOG.debug("Skipping import of internal dataobject : {}", child.getIdentifier());
                     continue;
@@ -349,7 +349,7 @@ public class ImportTask implements Callable<ImportOperationResult> {
      * value indicating if data for the node was written (true) or not (false).
      */
     private boolean importFromNormalizedNodeInBatches(final DOMDataTreeWriteTransaction wrTrx,
-            final LogicalDatastoreType type, final NormalizedNode<?, ?> data,
+            final LogicalDatastoreType type, final NormalizedNode data,
             final Iterable<? extends PathArgument> path, final int depth)
             throws InterruptedException, ExecutionException {
         if (!evaluateNodeForBatchImport(data, depth)) {
@@ -357,9 +357,9 @@ public class ImportTask implements Callable<ImportOperationResult> {
         }
         LOG.debug("Performing import in batches : {}", data.getIdentifier());
 
-        final Map<NormalizedNode<?, ?>, Boolean> childCommitStatusCache = new HashMap<>();
-        final Map<NormalizedNode<?, ?>, Iterable<? extends PathArgument>> childPathCache = new HashMap<>();
-        for (final NormalizedNode<?, ?> nnChild : ((NormalizedNodeContainer<?, ?, ?>) data).getValue()) {
+        final Map<NormalizedNode, Boolean> childCommitStatusCache = new HashMap<>();
+        final Map<NormalizedNode, Iterable<? extends PathArgument>> childPathCache = new HashMap<>();
+        for (final NormalizedNode nnChild : ((NormalizedNodeContainer<?>) data).body()) {
             // If we are at root-level, skip importing data for internal model
             if (depth == 0) {
                 if (isInternalObject(nnChild.getIdentifier().getNodeType())) {
@@ -369,18 +369,17 @@ public class ImportTask implements Callable<ImportOperationResult> {
                 LOG.debug("Will import : {}", nnChild.getIdentifier());
             }
             if (nnChild instanceof DataContainerChild) {
-                final DataContainerChild<? extends PathArgument, ?> dcChild =
-                        (DataContainerChild<? extends PathArgument, ?>) nnChild;
+                final DataContainerChild dcChild = (DataContainerChild) nnChild;
                 if (dcChild instanceof MapNode) {
                     final MapNode mapNode = (MapNode) dcChild;
-                    if (mapNode.getValue().size() > listBatchSize) {
+                    if (mapNode.size() > listBatchSize) {
                         writeKeyedListInBatches(type, mapNode, path);
                         childCommitStatusCache.put(nnChild, true);
                         continue;
                     }
                 } else if (dcChild instanceof UnkeyedListNode) {
                     final UnkeyedListNode unkeyedListNode = (UnkeyedListNode) dcChild;
-                    if (unkeyedListNode.getValue().size() > listBatchSize) {
+                    if (unkeyedListNode.size() > listBatchSize) {
                         writeUnkeyedListInBatches(type, unkeyedListNode, path);
                         childCommitStatusCache.put(nnChild, true);
                         continue;
@@ -407,7 +406,7 @@ public class ImportTask implements Callable<ImportOperationResult> {
         }
 
         // If one child has got written, write all other children as well
-        for (final Entry<NormalizedNode<?, ?>, Boolean> entry : childCommitStatusCache.entrySet()) {
+        for (final Entry<NormalizedNode, Boolean> entry : childCommitStatusCache.entrySet()) {
             if (!entry.getValue()) {
                 wrTrx.merge(type, YangInstanceIdentifier.create(childPathCache.get(entry.getKey())), entry.getKey());
                 writeCount++;
@@ -420,7 +419,7 @@ public class ImportTask implements Callable<ImportOperationResult> {
      * Determine if the node is eligible for importing in batches, by checking
      * traversal depth and node type.
      */
-    private boolean evaluateNodeForBatchImport(final NormalizedNode<?, ?> data, final int depth) {
+    private boolean evaluateNodeForBatchImport(final NormalizedNode data, final int depth) {
         if (depth >= maxTraversalDepth) {
             LOG.debug("Max traversal depth exceeded : {}", data.getIdentifier());
             return false;
@@ -457,7 +456,7 @@ public class ImportTask implements Callable<ImportOperationResult> {
             ordered = false;
         }
 
-        final Iterable<List<MapEntryNode>> elementLists = Iterables.partition(mapNode.getValue(), listBatchSize);
+        final Iterable<List<MapEntryNode>> elementLists = Iterables.partition(mapNode.body(), listBatchSize);
         LOG.debug("Importing list {} by splitting into {} batches", mapNode.getIdentifier(),
                 Iterables.size(elementLists));
         final Iterator<List<MapEntryNode>> itr = elementLists.iterator();
@@ -465,7 +464,7 @@ public class ImportTask implements Callable<ImportOperationResult> {
             final List<MapEntryNode> elementList = itr.next();
             final CollectionNodeBuilder<MapEntryNode, ?> newMapNodeBuilder;
             if (ordered) {
-                newMapNodeBuilder = ImmutableOrderedMapNodeBuilder.create(listBatchSize);
+                newMapNodeBuilder = ImmutableUserMapNodeBuilder.create(listBatchSize);
             } else {
                 newMapNodeBuilder = ImmutableMapNodeBuilder.create(listBatchSize);
             }
@@ -494,7 +493,7 @@ public class ImportTask implements Callable<ImportOperationResult> {
         ensureParentsByMerge(type, listIID, schemaService.getGlobalContext());
 
         final Iterable<List<UnkeyedListEntryNode>> elementLists =
-                Iterables.partition(unkeyedListNode.getValue(), listBatchSize);
+                Iterables.partition(unkeyedListNode.body(), listBatchSize);
         LOG.debug("Importing unkeyed list {} by splitting into {} batches", unkeyedListNode.getIdentifier(),
                 Iterables.size(elementLists));
         final Iterator<List<UnkeyedListEntryNode>> itr = elementLists.iterator();
@@ -543,7 +542,7 @@ public class ImportTask implements Callable<ImportOperationResult> {
             return;
         }
 
-        final NormalizedNode<?, ?> parentStructure = ImmutableNodes.fromInstanceId(schemaContext,
+        final NormalizedNode parentStructure = ImmutableNodes.fromInstanceId(schemaContext,
                 YangInstanceIdentifier.create(normalizedPathWithoutChildArgs));
 
         LOG.debug("Creating empty parent at {} : {}", rootNormalizedPath, parentStructure);
