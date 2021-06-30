@@ -9,8 +9,16 @@
 package org.opendaylight.daexim.impl;
 
 import akka.actor.ActorSystem;
+import akka.actor.Address;
 import akka.cluster.Cluster;
+import javax.inject.Inject;
+import javax.inject.Singleton;
+import org.opendaylight.controller.cluster.ActorSystemProvider;
 import org.opendaylight.daexim.spi.NodeNameProvider;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.RequireServiceComponentRuntime;
 
 /**
  * Implementation of {@link NodeNameProvider} which uses Akka cluster API to get
@@ -18,21 +26,21 @@ import org.opendaylight.daexim.spi.NodeNameProvider;
  *
  * @author rkosegi
  */
-public class AkkaNodeNameProvider implements NodeNameProvider, AutoCloseable {
-    private ActorSystem actorSystem;
+@Singleton
+@Component(immediate = true)
+@RequireServiceComponentRuntime
+public final class AkkaNodeNameProvider implements NodeNameProvider {
+    private final ActorSystem actorSystem;
 
-    @Override
-    public void close() {
-        // noop
+    @Inject
+    @Activate
+    public AkkaNodeNameProvider(@Reference final ActorSystemProvider provider) {
+        actorSystem = provider.getActorSystem();
     }
 
     @Override
     public String getNodeName() {
-        final Cluster cluster = Cluster.get(actorSystem);
-        return cluster.selfAddress().host().get() + ':' + cluster.selfAddress().port().get();
-    }
-
-    public void setActorSystem(ActorSystem actorSystem) {
-        this.actorSystem = actorSystem;
+        final Address selfAddress = Cluster.get(actorSystem).selfAddress();
+        return selfAddress.host().get() + ':' + selfAddress.port().get();
     }
 }

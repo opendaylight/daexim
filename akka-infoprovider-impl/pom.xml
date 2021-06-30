@@ -21,18 +21,20 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>daexim-model</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
             <artifactId>daexim-spi</artifactId>
-            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.opendaylight.controller</groupId>
             <artifactId>sal-clustering-commons</artifactId>
-            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.guicedee.services</groupId>
+            <artifactId>javax.inject</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.osgi</groupId>
+            <artifactId>osgi.cmpn</artifactId>
         </dependency>
     </dependencies>
 </project>
