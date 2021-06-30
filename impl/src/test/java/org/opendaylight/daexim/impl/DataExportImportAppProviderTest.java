@@ -15,6 +15,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -34,18 +36,19 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.mockito.Mockito;
 import org.opendaylight.daexim.spi.NodeNameProvider;
 import org.opendaylight.infrautils.ready.testutils.TestSystemReadyMonitor;
 import org.opendaylight.infrautils.ready.testutils.TestSystemReadyMonitor.Behaviour;
 import org.opendaylight.infrautils.testutils.LogRule;
 import org.opendaylight.mdsal.binding.api.ReadTransaction;
+import org.opendaylight.mdsal.binding.api.RpcProviderService;
 import org.opendaylight.mdsal.binding.dom.adapter.test.AbstractDataBrokerTest;
 import org.opendaylight.mdsal.common.api.LogicalDatastoreType;
 import org.opendaylight.mdsal.dom.api.DOMSchemaService;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.AbsoluteTime;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.CancelExportInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.CancelExportOutput;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.DataExportImportService;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.DataStoreScope;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.ImmediateImportInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.ImmediateImportOutput;
@@ -59,9 +62,11 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.StatusExpo
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.StatusImportInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.StatusImportOutput;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.Topology;
+import org.opendaylight.yangtools.concepts.ObjectRegistration;
 import org.opendaylight.yangtools.yang.common.RpcError;
 import org.opendaylight.yangtools.yang.common.RpcResult;
 import org.opendaylight.yangtools.yang.common.Uint32;
+import org.opendaylight.yangtools.yang.model.api.EffectiveModelContext;
 import org.osgi.framework.BundleContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,6 +80,7 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
     private Path tempDir;
     private DataExportImportAppProvider provider;
     private NodeNameProvider nnp;
+    private EffectiveModelContext schemaContext;
 
     @Before
     public void setUp() throws Exception {
@@ -84,12 +90,22 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
 
         nnp = mock(NodeNameProvider.class);
         when(nnp.getNodeName()).thenReturn("localhost");
-        DOMSchemaService schemaService = mock(DOMSchemaService.class);
-        when(schemaService.getGlobalContext()).thenReturn(getSchemaContext());
-        provider = new DataExportImportAppProvider(getDataBroker(), getDomBroker(), schemaService, nnp,
-                new TestSystemReadyMonitor(Behaviour.IMMEDIATE), Mockito.mock(BundleContext.class));
-        // Do NOT provider.init(); just yet; let each @Test do it;
+
+        schemaContext = getSchemaContext();
+        // Do NOT initialize provider here; let each @Test do it;
         // that is because, in some tests, we want to do something before..
+    }
+
+    private void initProvider() {
+        DOMSchemaService schemaService = mock(DOMSchemaService.class);
+        when(schemaService.getGlobalContext()).thenReturn(schemaContext);
+
+        RpcProviderService rpcService = mock(RpcProviderService.class);
+        when(rpcService.registerRpcImplementation(eq(DataExportImportService.class), any()))
+            .thenReturn(mock(ObjectRegistration.class));
+
+        provider = new DataExportImportAppProvider(getDataBroker(), getDomBroker(), schemaService, nnp, rpcService,
+            new TestSystemReadyMonitor(Behaviour.IMMEDIATE), mock(BundleContext.class));
     }
 
     @After
@@ -98,12 +114,16 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
                 PosixFilePermission.OWNER_EXECUTE,PosixFilePermission.OWNER_READ,PosixFilePermission.OWNER_WRITE
                 ));
         FileUtils.deleteDirectory(tempDir.toFile());
-        provider.close();
+
+        if (provider != null) {
+            provider.close();
+            provider = null;
+        }
     }
 
     @Test(timeout = 15000)
     public void testExportStatusRPC() throws InterruptedException, ExecutionException {
-        provider.init();
+        initProvider();
         RpcResult<StatusExportOutput> result = provider.statusExport(new StatusExportInputBuilder().build()).get();
         LOG.info("RPC result : {}", result);
         assertTrue(result.isSuccessful());
@@ -111,7 +131,7 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
 
     @Test(timeout = 15000)
     public void testImportStatusRPC() throws InterruptedException, ExecutionException {
-        provider.init();
+        initProvider();
         RpcResult<StatusImportOutput> result = provider.statusImport(new StatusImportInputBuilder().build()).get();
         LOG.info("RPC result : {}", result);
         assertTrue(result.isSuccessful());
@@ -119,7 +139,7 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
 
     @Test(timeout = 15000)
     public void testScheduleMissingInfoRPC() throws InterruptedException, ExecutionException {
-        provider.init();
+        initProvider();
         final RpcResult<ScheduleExportOutput> result = provider.scheduleExport(new ScheduleExportInputBuilder().build())
                 .get();
         LOG.info("RPC result : {}", result);
@@ -130,7 +150,7 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
 
     @Test(timeout = 15000)
     public void testScheduleRelativeRPC() throws InterruptedException, ExecutionException {
-        provider.init();
+        initProvider();
         final RpcResult<ScheduleExportOutput> result = provider.scheduleExport(
                 new ScheduleExportInputBuilder().setRunAt(new RunAt(new RelativeTime(Uint32.TEN))).build())
                 .get();
@@ -146,7 +166,7 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
 
     @Test(timeout = 15000)
     public void testScheduleAbsoluteRPC() throws InterruptedException, ExecutionException {
-        provider.init();
+        initProvider();
         final RpcResult<ScheduleExportOutput> result = provider.scheduleExport(new ScheduleExportInputBuilder()
                 .setRunAt(new RunAt(new AbsoluteTime(Util.toDateAndTime(new Date(System.currentTimeMillis() + 5000)))))
                 .build()).get();
@@ -164,7 +184,7 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
 
     @Test(timeout = 15000)
     public void testCancelRPC() throws InterruptedException, ExecutionException {
-        provider.init();
+        initProvider();
         final RpcResult<ScheduleExportOutput> result = provider
                 .scheduleExport(new ScheduleExportInputBuilder()
                     .setRunAt(new RunAt(new RelativeTime(Uint32.valueOf(10000)))).build())
@@ -193,7 +213,7 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
 
     @Test(timeout = 15000)
     public void testImportRPC() throws InterruptedException, ExecutionException, IOException {
-        provider.init();
+        initProvider();
         final RpcResult<ScheduleExportOutput> result = provider
                 .scheduleExport(new ScheduleExportInputBuilder()
                         .setRunAt(new RunAt(new RunAt(new RelativeTime(Uint32.valueOf(500)))))
@@ -236,7 +256,7 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
             .copyTo(com.google.common.io.Files.asByteSink(bootImportFile));
 
         // When
-        provider.init();
+        initProvider();
         provider.awaitBootImport("DataExportImportAppProviderTest.testImportOnBoot");
 
         // Then
@@ -251,7 +271,7 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
     @Test
     public void testImportOnBootWithNoFilesShouldNotBlockAwait() {
         // Given nothing to auto-import-on-boot, await should immediately return
-        provider.init();
+        initProvider();
         provider.awaitBootImport("DataExportImportAppProviderTest.testImportOnBootWithNoFilesShouldNotBlockAwait");
     }
 
@@ -264,7 +284,7 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
         Files.write(bootImportFile.toPath(), "some-garbage".getBytes(StandardCharsets.UTF_8));
 
         // When
-        provider.init();
+        initProvider();
         try {
             provider.awaitBootImport("DataExportImportAppProviderTest.testImportOnBootWithBrokenJSON");
             fail("expected IllegalStateException");
@@ -285,7 +305,7 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
             .copyTo(com.google.common.io.Files.asByteSink(bootImportFile));
 
         // When
-        provider.init();
+        initProvider();
         provider.awaitBootImport("DataExportImportAppProviderTest.testImportOnBoot");
 
         // Then
@@ -301,7 +321,7 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
 
     @Test
     public void testExportWithPermissionDenied() throws IOException, InterruptedException, ExecutionException {
-        provider.init();
+        initProvider();
         Files.setPosixFilePermissions(tempDir.resolve(Util.DAEXIM_DIR), Set.of());
         final RpcResult<ScheduleExportOutput> result = provider
                 .scheduleExport(new ScheduleExportInputBuilder()

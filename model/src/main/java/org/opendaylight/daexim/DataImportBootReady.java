@@ -17,5 +17,5 @@ package org.opendaylight.daexim;
  * @author Michael Vorburger.ch
  */
 public interface DataImportBootReady { }
-    // TODO extends FunctionalityReady when https://git.opendaylight.org/gerrit/#/c/61480/ is available in infrautils
+    // FIXME: extends FunctionalityReady
     //  -- BUT this works as is already; making it extend FunctionalityReady is just a "marker" (like e.g. Serializable)

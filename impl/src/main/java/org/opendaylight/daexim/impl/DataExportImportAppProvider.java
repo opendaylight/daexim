@@ -36,11 +36,9 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import org.apache.aries.blueprint.annotation.service.Reference;
 import org.eclipse.jdt.annotation.Nullable;
 import org.opendaylight.daexim.DataImportBootReady;
 import org.opendaylight.daexim.DataImportBootService;
@@ -52,6 +50,7 @@ import org.opendaylight.mdsal.binding.api.DataBroker;
 import org.opendaylight.mdsal.binding.api.DataTreeIdentifier;
 import org.opendaylight.mdsal.binding.api.DataTreeModification;
 import org.opendaylight.mdsal.binding.api.ReadTransaction;
+import org.opendaylight.mdsal.binding.api.RpcProviderService;
 import org.opendaylight.mdsal.binding.api.WriteTransaction;
 import org.opendaylight.mdsal.common.api.LogicalDatastoreType;
 import org.opendaylight.mdsal.dom.api.DOMDataBroker;
@@ -92,29 +91,43 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.StatusImpo
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.status.export.output.Nodes;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.status.export.output.NodesBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.status.export.output.NodesKey;
+import org.opendaylight.yangtools.concepts.Registration;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 import org.opendaylight.yangtools.yang.binding.util.BindingMap;
 import org.opendaylight.yangtools.yang.common.RpcError.ErrorType;
 import org.opendaylight.yangtools.yang.common.RpcResult;
 import org.opendaylight.yangtools.yang.common.RpcResultBuilder;
 import org.osgi.framework.BundleContext;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.RequireServiceComponentRuntime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Singleton
+@Component(service = {})
+@RequireServiceComponentRuntime
 public class DataExportImportAppProvider implements DataExportImportService, DataImportBootService, AutoCloseable {
     private static final Logger LOG = LoggerFactory.getLogger(DataExportImportAppProvider.class);
+    private static final InstanceIdentifier<Daexim> TOP_IID = InstanceIdentifier.create(Daexim.class);
+    private static final InstanceIdentifier<DaeximStatus> GLOBAL_STATUS_II = TOP_IID.child(DaeximStatus.class);
+    private static final InstanceIdentifier<DaeximControl> IPC_II = TOP_IID.child(DaeximControl.class);
+    private static final DataTreeIdentifier<DaeximControl> IPC_DTC = DataTreeIdentifier.create(OPERATIONAL, IPC_II);
 
     private final DataBroker dataBroker;
     private final DOMDataBroker domDataBroker;
     private final DOMSchemaService schemaService;
     private final NodeNameProvider nodeNameProvider;
-    private final SystemReadyMonitor systemReadyService;
     private final BundleContext bundleContext;
     private final AtomicBoolean skipIpcDCN = new AtomicBoolean(false);
 
+    private final ListeningScheduledExecutorService scheduledExecutorService;
+    private final InstanceIdentifier<NodeStatus> nodeStatusII;
+    private final Registration rpcReg;
+
     private ListenableFuture<Void> exportSchedule;
-    private ListeningScheduledExecutorService scheduledExecutorService;
     private volatile Status exportStatus = Status.Initial;
     private volatile Status importStatus = Status.Initial;
     private volatile String exportFailure = null;
@@ -122,29 +135,19 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
     private volatile long lastImportTimestamp = -1;
     private volatile long lastImportChanged = -1;
     private volatile long lastExportChanged = -1;
-    private InstanceIdentifier<NodeStatus> nodeStatusII;
-    private static final InstanceIdentifier<Daexim> TOP_IID = InstanceIdentifier.create(Daexim.class);
-    private static final InstanceIdentifier<DaeximStatus> GLOBAL_STATUS_II = TOP_IID.child(DaeximStatus.class);
-    private static final InstanceIdentifier<DaeximControl> IPC_II = TOP_IID.child(DaeximControl.class);
-    private static final DataTreeIdentifier<DaeximControl> IPC_DTC = DataTreeIdentifier.create(OPERATIONAL, IPC_II);
 
     @Inject
+    @Activate
     public DataExportImportAppProvider(@Reference DataBroker dataBroker, @Reference DOMDataBroker domDataBroker,
             @Reference DOMSchemaService schemaService, @Reference NodeNameProvider nodeNameProvider,
-            @Reference SystemReadyMonitor systemReadyService, BundleContext bundleContext) {
+            @Reference RpcProviderService rpcProvider, @Reference SystemReadyMonitor systemReadyService,
+            BundleContext bundleContext) {
         this.dataBroker = dataBroker;
         this.domDataBroker = domDataBroker;
         this.schemaService = schemaService;
         this.nodeNameProvider = nodeNameProvider;
-        this.systemReadyService = systemReadyService;
         this.bundleContext = bundleContext;
-    }
 
-    /**
-     * Method called when the blueprint container is created.
-     */
-    @PostConstruct
-    public void init() {
         nodeStatusII = GLOBAL_STATUS_II.child(NodeStatus.class, new NodeStatusKey(nodeNameProvider.getNodeName()));
         if (readDaeximControl() != null) {
             skipIpcDCN.set(true);
@@ -205,11 +208,13 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
         } else {
             registerDataImportBootReady();
         }
+
+        rpcReg = rpcProvider.registerRpcImplementation(DataExportImportService.class, this);
     }
 
     void registerDataImportBootReady() {
         // publish an instance of DataImportBootReady into the OSGi service registry
-        // TODO use FunctionalityReadyNotifier when https://git.opendaylight.org/gerrit/#/c/61480/ is available in infrautils
+        // FIXME: use org.opendaylight.infrautils.ready.order.FunctionalityReadyNotifier
         bundleContext.registerService(DataImportBootReady.class, new DataImportBootReady() { }, null);
         LOG.info("Published OSGi service {}", DataImportBootReady.class);
     }
@@ -364,33 +369,34 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
 
     @Nullable
     private DaeximControl readDaeximControl() {
-        final ReadTransaction roTrx = dataBroker.newReadOnlyTransaction();
+        final ListenableFuture<Optional<DaeximControl>> future;
+        try (ReadTransaction roTrx = dataBroker.newReadOnlyTransaction()) {
+            future = roTrx.read(LogicalDatastoreType.OPERATIONAL, IPC_II);
+        }
+
         try {
-            return roTrx.read(LogicalDatastoreType.OPERATIONAL, IPC_II).get().orElse(null);
+            return future.get().orElse(null);
         } catch (InterruptedException | ExecutionException e) {
             LOG.warn("Failed to read IPC", e);
             return null;
-        } finally {
-            roTrx.close();
         }
     }
 
     /*
      * Read global status
      */
-    private DaeximStatus readGlobalStatus() throws InterruptedException, ExecutionException  {
-        final ReadTransaction roTrx = dataBroker.newReadOnlyTransaction();
-        try {
-            // After restore, our top level elements are gone
-            final Optional<DaeximStatus> opt = roTrx.read(LogicalDatastoreType.OPERATIONAL, GLOBAL_STATUS_II)
-                    .get();
-            if (opt.isPresent()) {
-                return opt.get();
-            } else {
-                return rebuildGlobalStatus();
-            }
-        } finally {
-            roTrx.close();
+    private DaeximStatus readGlobalStatus() throws InterruptedException, ExecutionException {
+        final ListenableFuture<Optional<DaeximStatus>> future;
+        try (ReadTransaction roTrx = dataBroker.newReadOnlyTransaction()) {
+            future = roTrx.read(LogicalDatastoreType.OPERATIONAL, GLOBAL_STATUS_II);
+        }
+
+        // After restore, our top level elements are gone
+        final Optional<DaeximStatus> opt = future.get();
+        if (opt.isPresent()) {
+            return opt.get();
+        } else {
+            return rebuildGlobalStatus();
         }
     }
 
@@ -495,7 +501,9 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
      */
     @Override
     @PreDestroy
+    @Deactivate
     public void close() {
+        rpcReg.close();
         if (scheduledExecutorService != null) {
             scheduledExecutorService.shutdownNow();
         }
@@ -681,6 +689,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
     }
 
     @Override
+    @Deprecated
     public void awaitBootImport(String blockingWhat) {
         if (Status.BootImportFailed.equals(importStatus)) {
             throw new IllegalStateException(importFailure);

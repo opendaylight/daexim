@@ -54,10 +54,6 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
                     </execution>
                 </executions>
             </plugin>
-            <plugin>
-              <groupId>org.apache.aries.blueprint</groupId>
-              <artifactId>blueprint-maven-plugin</artifactId>
-            </plugin>
         </plugins>
     </build>
     <dependencies>
@@ -73,12 +69,11 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
         </dependency>
         <dependency>
             <groupId>org.osgi</groupId>
-            <artifactId>osgi.core</artifactId>
+            <artifactId>osgi.cmpn</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.apache.aries.blueprint</groupId>
-            <artifactId>blueprint-maven-plugin-annotation</artifactId>
-            <optional>true</optional>
+            <groupId>org.osgi</groupId>
+            <artifactId>osgi.core</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
