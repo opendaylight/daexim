@@ -56,6 +56,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.ImmediateI
 import org.opendaylight.yangtools.yang.common.QName;
 import org.opendaylight.yangtools.yang.common.Revision;
 import org.opendaylight.yangtools.yang.data.api.YangInstanceIdentifier;
+import org.opendaylight.yangtools.yang.data.api.YangInstanceIdentifier.NodeIdentifier;
 import org.opendaylight.yangtools.yang.data.api.YangInstanceIdentifier.PathArgument;
 import org.opendaylight.yangtools.yang.data.api.schema.DataContainerChild;
 import org.opendaylight.yangtools.yang.data.api.schema.MapEntryNode;
@@ -226,8 +227,7 @@ public class ImportTask implements Callable<ImportOperationResult> {
                     LOG.info("Loading data into {} datastore from file {}", type.name().toLowerCase(),
                             f.getAbsolutePath());
                     final NormalizedNodeContainerBuilder<?, ?, ?, ?> builder = ImmutableContainerNodeBuilder.create()
-                            .withNodeIdentifier(new YangInstanceIdentifier.NodeIdentifier(
-                                    schemaService.getGlobalContext().getQName()));
+                            .withNodeIdentifier(new NodeIdentifier(SchemaContext.NAME));
                     try (NormalizedNodeStreamWriter writer = ImmutableNormalizedNodeStreamWriter.from(builder)) {
                         try (JsonParserStream jsonParser =
                                 JsonParserStream.create(writer, CODEC.getShared(schemaService.getGlobalContext()))) {
