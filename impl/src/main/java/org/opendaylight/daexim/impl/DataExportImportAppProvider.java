@@ -14,6 +14,8 @@ import static org.opendaylight.mdsal.common.api.LogicalDatastoreType.OPERATIONAL
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
+import com.google.common.collect.Collections2;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.FutureCallback;
@@ -94,7 +96,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.status.exp
 import org.opendaylight.yangtools.concepts.Registration;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 import org.opendaylight.yangtools.yang.binding.util.BindingMap;
-import org.opendaylight.yangtools.yang.common.RpcError.ErrorType;
+import org.opendaylight.yangtools.yang.common.ErrorType;
 import org.opendaylight.yangtools.yang.common.RpcResult;
 import org.opendaylight.yangtools.yang.common.RpcResultBuilder;
 import org.osgi.framework.BundleContext;
@@ -354,8 +356,8 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
     private NodeStatus createNodeStatusData() {
         final NodeStatusBuilder nsb = new NodeStatusBuilder().setExportStatus(exportStatus)
                 .setExportResult(exportFailure).setImportStatus(importStatus).setImportResult(importFailure)
-                .setDataFiles(Lists.transform(Lists.newArrayList(Util.collectDataFiles(false).values()),
-                        File::getAbsolutePath))
+                .setDataFiles(ImmutableSet.copyOf(Collections2.transform(Util.collectDataFiles(false).values(),
+                        File::getAbsolutePath)))
                 .setNodeName(nodeNameProvider.getNodeName())
                 .setModelFile(Util.isModelFilePresent(false) ? Util.getModelsFilePath(false).toString() : null);
         nsb.setLastExportChange(
