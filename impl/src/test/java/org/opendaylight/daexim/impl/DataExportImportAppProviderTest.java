@@ -63,6 +63,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.StatusImpo
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.StatusImportOutput;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.Topology;
 import org.opendaylight.yangtools.concepts.ObjectRegistration;
+import org.opendaylight.yangtools.yang.common.ErrorType;
 import org.opendaylight.yangtools.yang.common.RpcError;
 import org.opendaylight.yangtools.yang.common.RpcResult;
 import org.opendaylight.yangtools.yang.common.Uint32;
@@ -145,7 +146,7 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
         LOG.info("RPC result : {}", result);
         assertFalse(result.isSuccessful());
         RpcError err = result.getErrors().iterator().next();
-        assertEquals(RpcError.ErrorType.PROTOCOL, err.getErrorType());
+        assertEquals(ErrorType.PROTOCOL, err.getErrorType());
     }
 
     @Test(timeout = 15000)

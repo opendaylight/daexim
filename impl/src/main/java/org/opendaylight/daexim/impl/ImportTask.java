@@ -79,6 +79,7 @@ import org.opendaylight.yangtools.yang.data.impl.schema.builder.impl.ImmutableUs
 import org.opendaylight.yangtools.yang.data.util.DataSchemaContextNode;
 import org.opendaylight.yangtools.yang.data.util.DataSchemaContextTree;
 import org.opendaylight.yangtools.yang.model.api.DataSchemaNode;
+import org.opendaylight.yangtools.yang.model.api.EffectiveModelContext;
 import org.opendaylight.yangtools.yang.model.api.ListSchemaNode;
 import org.opendaylight.yangtools.yang.model.api.Module;
 import org.opendaylight.yangtools.yang.model.api.SchemaContext;
@@ -516,7 +517,7 @@ public class ImportTask implements Callable<ImportOperationResult> {
      * Creates parent node for the list if missing.
      */
     private void ensureParentsByMerge(final LogicalDatastoreType store, final YangInstanceIdentifier normalizedPath,
-            final SchemaContext schemaContext) throws InterruptedException, ExecutionException {
+            final EffectiveModelContext schemaContext) throws InterruptedException, ExecutionException {
         final List<PathArgument> normalizedPathWithoutChildArgs = new ArrayList<>();
         YangInstanceIdentifier rootNormalizedPath = null;
 
