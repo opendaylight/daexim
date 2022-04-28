@@ -8,7 +8,9 @@
  */
 package org.opendaylight.daexim.impl;
 
-import static com.google.common.truth.Truth.assertThat;
+import static org.hamcrest.CoreMatchers.endsWith;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ListMultimap;
@@ -16,6 +18,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.function.Consumer;
 import org.junit.After;
 import org.junit.Before;
@@ -73,12 +76,10 @@ public class CollectImportFilesTest {
         final DOMSchemaService schemaService = mock(DOMSchemaService.class);
         final ImportTask rt = new ImportTask(input, domDataBroker, schemaService, false, mock(Consumer.class));
         final ListMultimap<LogicalDatastoreType, File> df = rt.dataFiles;
-        assertThat(df.get(LogicalDatastoreType.CONFIGURATION)).isEmpty();
-        assertThat(df.get(LogicalDatastoreType.OPERATIONAL).get(2).toString()).endsWith("@2013-08-19.json");
-        assertThat(df.get(LogicalDatastoreType.OPERATIONAL).get(1).toString()).endsWith("opendaylight-inventory.json");
-        assertThat(df.get(LogicalDatastoreType.OPERATIONAL)
-                .get(0)
-                .toString())
-                .endsWith(LogicalDatastoreType.OPERATIONAL.name().toLowerCase() + ".json");
+        assertEquals(List.of(), df.get(LogicalDatastoreType.CONFIGURATION));
+        final List<File> oper = df.get(LogicalDatastoreType.OPERATIONAL);
+        assertThat(oper.get(2).toString(), endsWith("@2013-08-19.json"));
+        assertThat(oper.get(1).toString(), endsWith("opendaylight-inventory.json"));
+        assertThat(oper.get(0).toString(), endsWith(LogicalDatastoreType.OPERATIONAL.name().toLowerCase() + ".json"));
     }
 }

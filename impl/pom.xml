@@ -165,9 +165,5 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
             <groupId>org.opendaylight.daexim</groupId>
             <artifactId>daexim-test-model</artifactId>
         </dependency>
-        <dependency>
-            <groupId>com.google.truth</groupId>
-            <artifactId>truth</artifactId>
-        </dependency>
     </dependencies>
 </project>

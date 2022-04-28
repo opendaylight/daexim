@@ -9,12 +9,11 @@
  */
 package org.opendaylight.daexim.impl;
 
-import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -23,7 +22,6 @@ import static org.mockito.Mockito.when;
 import com.google.common.io.Resources;
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermission;
@@ -236,7 +234,7 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
                 provider.statusImport(new StatusImportInputBuilder().build()).get().getResult().getStatus());
         // Now, mess-up JSON file, so it fails
         final File f = Util.collectDataFiles(false).get(LogicalDatastoreType.OPERATIONAL).iterator().next();
-        Files.write(f.toPath(), "some-garbage".getBytes(StandardCharsets.UTF_8));
+        Files.writeString(f.toPath(), "some-garbage");
         importResult = provider.immediateImport(new ImmediateImportInputBuilder().setClearStores(DataStoreScope.All)
                 .setCheckModels(true).setStrictDataConsistency(true).build()).get();
         LOG.info("RPC result : {}", importResult);
@@ -266,7 +264,7 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
             assertEquals(TestBackupData.TOPOLOGY_ID, topo.getTopologyId());
         }
         // Check that import-on-boot renamed processed file, to avoid continous re-import on every boot
-        assertThat(bootImportFile.exists());
+        assertFalse(bootImportFile.exists());
     }
 
     @Test
@@ -282,16 +280,13 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
         Resources.asByteSource(Resources.getResource("odl_backup_models.json"))
             .copyTo(com.google.common.io.Files.asByteSink(Util.getModelsFilePath(true).toFile()));
         File bootImportFile = Util.getDaeximFilePath(true, LogicalDatastoreType.OPERATIONAL).toFile();
-        Files.write(bootImportFile.toPath(), "some-garbage".getBytes(StandardCharsets.UTF_8));
+        Files.writeString(bootImportFile.toPath(), "some-garbage");
 
         // When
         initProvider();
-        try {
-            provider.awaitBootImport("DataExportImportAppProviderTest.testImportOnBootWithBrokenJSON");
-            fail("expected IllegalStateException");
-        } catch (IllegalStateException e) {
-            // OK, that's the expected outcome
-        }
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+            () -> provider.awaitBootImport("DataExportImportAppProviderTest.testImportOnBootWithBrokenJSON"));
+        assertEquals("Node (urn:ietf:params:xml:ns:netconf:base:1.0)data is not a simple type", ex.getMessage());
 
         // Check that even a failed import-on-boot renamed processed file,
         // to avoid continuous re-import on every boot in case of failures
