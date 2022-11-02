@@ -460,9 +460,7 @@ public class ImportTask implements Callable<ImportOperationResult> {
         final Iterable<List<MapEntryNode>> elementLists = Iterables.partition(mapNode.body(), listBatchSize);
         LOG.debug("Importing list {} by splitting into {} batches", mapNode.getIdentifier(),
                 Iterables.size(elementLists));
-        final Iterator<List<MapEntryNode>> itr = elementLists.iterator();
-        while (itr.hasNext()) {
-            final List<MapEntryNode> elementList = itr.next();
+        for (List<MapEntryNode> elementList : elementLists) {
             final CollectionNodeBuilder<MapEntryNode, ?> newMapNodeBuilder;
             if (ordered) {
                 newMapNodeBuilder = ImmutableUserMapNodeBuilder.create(listBatchSize);
@@ -497,9 +495,7 @@ public class ImportTask implements Callable<ImportOperationResult> {
                 Iterables.partition(unkeyedListNode.body(), listBatchSize);
         LOG.debug("Importing unkeyed list {} by splitting into {} batches", unkeyedListNode.getIdentifier(),
                 Iterables.size(elementLists));
-        final Iterator<List<UnkeyedListEntryNode>> itr = elementLists.iterator();
-        while (itr.hasNext()) {
-            final List<UnkeyedListEntryNode> elementList = itr.next();
+        for (List<UnkeyedListEntryNode> elementList : elementLists) {
             final CollectionNodeBuilder<UnkeyedListEntryNode, ?> newUnkeyedListNodeBuilder =
                     ImmutableUnkeyedListNodeBuilder.create(listBatchSize);
             newUnkeyedListNodeBuilder.withNodeIdentifier(unkeyedListNode.getIdentifier());
