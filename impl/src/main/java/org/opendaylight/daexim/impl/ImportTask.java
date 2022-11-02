@@ -70,9 +70,9 @@ import org.opendaylight.yangtools.yang.data.api.schema.builder.NormalizedNodeCon
 import org.opendaylight.yangtools.yang.data.api.schema.stream.NormalizedNodeStreamWriter;
 import org.opendaylight.yangtools.yang.data.codec.gson.JSONCodecFactorySupplier;
 import org.opendaylight.yangtools.yang.data.codec.gson.JsonParserStream;
+import org.opendaylight.yangtools.yang.data.impl.schema.Builders;
 import org.opendaylight.yangtools.yang.data.impl.schema.ImmutableNodes;
 import org.opendaylight.yangtools.yang.data.impl.schema.ImmutableNormalizedNodeStreamWriter;
-import org.opendaylight.yangtools.yang.data.impl.schema.builder.impl.ImmutableContainerNodeBuilder;
 import org.opendaylight.yangtools.yang.data.impl.schema.builder.impl.ImmutableMapNodeBuilder;
 import org.opendaylight.yangtools.yang.data.impl.schema.builder.impl.ImmutableUnkeyedListNodeBuilder;
 import org.opendaylight.yangtools.yang.data.impl.schema.builder.impl.ImmutableUserMapNodeBuilder;
@@ -227,7 +227,7 @@ public class ImportTask implements Callable<ImportOperationResult> {
                 try (InputStream is = new FileInputStream(f)) {
                     LOG.info("Loading data into {} datastore from file {}", type.name().toLowerCase(),
                             f.getAbsolutePath());
-                    final NormalizedNodeContainerBuilder<?, ?, ?, ?> builder = ImmutableContainerNodeBuilder.create()
+                    final NormalizedNodeContainerBuilder<?, ?, ?, ?> builder = Builders.containerBuilder()
                             .withNodeIdentifier(new NodeIdentifier(SchemaContext.NAME));
                     try (NormalizedNodeStreamWriter writer = ImmutableNormalizedNodeStreamWriter.from(builder)) {
                         try (JsonParserStream jsonParser =
