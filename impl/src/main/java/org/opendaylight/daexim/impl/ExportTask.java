@@ -56,7 +56,6 @@ import org.opendaylight.yangtools.yang.data.codec.gson.JSONCodecFactorySupplier;
 import org.opendaylight.yangtools.yang.data.codec.gson.JSONNormalizedNodeStreamWriter;
 import org.opendaylight.yangtools.yang.model.api.DataSchemaNode;
 import org.opendaylight.yangtools.yang.model.api.Module;
-import org.opendaylight.yangtools.yang.model.api.SchemaPath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -296,7 +295,7 @@ public class ExportTask implements Callable<Void> {
     private void writeModuleData(final NormalizedNode node, final JsonWriter jsonWriter) throws IOException {
         jsonWriter.beginObject();
         try (NormalizedNodeWriter nnWriter = NormalizedNodeWriter.forStreamWriter(
-                JSONNormalizedNodeStreamWriter.createNestedWriter(codecFactory, SchemaPath.ROOT, null, jsonWriter),
+                JSONNormalizedNodeStreamWriter.createNestedWriter(codecFactory, jsonWriter),
                 true)) {
             nnWriter.write(node);
             nnWriter.flush();
@@ -309,7 +308,7 @@ public class ExportTask implements Callable<Void> {
 
         jsonWriter.beginObject();
         try (NormalizedNodeWriter nnWriter = NormalizedNodeWriter.forStreamWriter(
-                JSONNormalizedNodeStreamWriter.createNestedWriter(codecFactory, SchemaPath.ROOT, null, jsonWriter),
+                JSONNormalizedNodeStreamWriter.createNestedWriter(codecFactory, jsonWriter),
                 true)) {
 
             for (final NormalizedNode child : children) {
