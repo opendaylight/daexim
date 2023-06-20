@@ -174,7 +174,7 @@ public class ExportTask implements Callable<Void> {
         LOG.debug("Number of nodes for export after handling inclusions/exclusions : {}", nodes.size());
         if (isPerModuleExport) {
             for (NormalizedNode nn : nodes) {
-                writeModuleData(nn, createPerModuleWriter(type, (NodeIdentifier) nn.getIdentifier()));
+                writeModuleData(nn, createPerModuleWriter(type, (NodeIdentifier) nn.name()));
             }
         } else {
             try (JsonWriter jsonWriter = createWriter(type, false)) {
@@ -204,7 +204,7 @@ public class ExportTask implements Callable<Void> {
         final NormalizedNode root = opt.get();
         if (root instanceof NormalizedNodeContainer) {
             return ((NormalizedNodeContainer<?>) root).body().stream()
-                .filter(node -> isIncludedOrNotExcluded(type, node.getIdentifier().getNodeType()))
+                .filter(node -> isIncludedOrNotExcluded(type, node.name().getNodeType()))
                 .collect(Collectors.toSet());
         } else {
             throw new IllegalStateException("Root node is not instance of NormalizedNodeContainer");
@@ -239,7 +239,7 @@ public class ExportTask implements Callable<Void> {
 
     private Optional<NormalizedNode> getRootNode(final LogicalDatastoreType type)
             throws InterruptedException, ExecutionException {
-        return getNode(type, YangInstanceIdentifier.empty());
+        return getNode(type, YangInstanceIdentifier.of());
     }
 
     private Optional<NormalizedNode> getNode(final LogicalDatastoreType type, final YangInstanceIdentifier nodeIID)
