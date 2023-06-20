@@ -108,7 +108,7 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
         final DOMDataTreeReadTransaction roTrx = getDomBroker().newReadOnlyTransaction();
         try {
             NormalizedNodeContainer<?> nnc = (NormalizedNodeContainer<?>) roTrx.read(LogicalDatastoreType.OPERATIONAL,
-                                YangInstanceIdentifier.empty()).get().get();
+                                YangInstanceIdentifier.of()).get().get();
             return nnc.body();
         } finally {
             roTrx.close();
@@ -167,7 +167,7 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
         Collection<? extends NormalizedNode> children = readRoot();
         assertEquals(1, children.size());
         NormalizedNode nn = children.iterator().next();
-        assertEquals("network-topology", nn.getIdentifier().getNodeType().getLocalName());
+        assertEquals("network-topology", nn.name().getNodeType().getLocalName());
     }
 
     @Test
