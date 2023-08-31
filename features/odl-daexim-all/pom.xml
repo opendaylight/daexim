@@ -13,7 +13,7 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
     <parent>
         <groupId>org.opendaylight.odlparent</groupId>
         <artifactId>single-feature-parent</artifactId>
-        <version>13.0.3</version>
+        <version>13.0.4</version>
         <relativePath/>
     </parent>
     <groupId>org.opendaylight.daexim</groupId>
@@ -34,7 +34,7 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
                 <groupId>org.opendaylight.netconf</groupId>
                 <artifactId>netconf-artifacts</artifactId>
                 <type>pom</type>
-                <version>6.0.1</version>
+                <version>6.0.2</version>
                 <scope>import</scope>
             </dependency>
         </dependencies>
