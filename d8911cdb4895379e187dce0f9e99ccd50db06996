@@ -22,6 +22,30 @@
       },
       "revId": "d8911cdb4895379e187dce0f9e99ccd50db06996",
       "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "2feb1a2a_48259317",
+        "filename": "impl/src/main/java/org/opendaylight/daexim/impl/DataExportImportAppProvider.java",
+        "patchSetId": 2
+      },
+      "lineNbr": 114,
+      "author": {
+        "id": 9255
+      },
+      "writtenOn": "2023-09-12T18:52:20Z",
+      "side": 0,
+      "message": "Done",
+      "parentUuid": "1c6a0551_e0363edd",
+      "range": {
+        "startLine": 114,
+        "startChar": 77,
+        "endLine": 114,
+        "endChar": 98
+      },
+      "revId": "d8911cdb4895379e187dce0f9e99ccd50db06996",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81"
     }
   ]
 }
