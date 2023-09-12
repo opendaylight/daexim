@@ -14,8 +14,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -45,22 +43,17 @@ import org.opendaylight.mdsal.common.api.LogicalDatastoreType;
 import org.opendaylight.mdsal.dom.api.DOMSchemaService;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.AbsoluteTime;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.CancelExportInputBuilder;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.CancelExportOutput;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.DataExportImportService;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.DataStoreScope;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.ImmediateImportInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.ImmediateImportOutput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.RelativeTime;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.ScheduleExportInput.RunAt;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.ScheduleExportInputBuilder;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.ScheduleExportOutput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.Status;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.StatusExportInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.StatusExportOutput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.StatusImportInputBuilder;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.StatusImportOutput;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.Topology;
-import org.opendaylight.yangtools.concepts.ObjectRegistration;
 import org.opendaylight.yangtools.yang.common.ErrorType;
 import org.opendaylight.yangtools.yang.common.RpcError;
 import org.opendaylight.yangtools.yang.common.RpcResult;
@@ -98,12 +91,8 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
     private void initProvider() {
         DOMSchemaService schemaService = mock(DOMSchemaService.class);
         when(schemaService.getGlobalContext()).thenReturn(schemaContext);
-
-        RpcProviderService rpcService = mock(RpcProviderService.class);
-        when(rpcService.registerRpcImplementation(eq(DataExportImportService.class), any()))
-            .thenReturn(mock(ObjectRegistration.class));
-
-        provider = new DataExportImportAppProvider(getDataBroker(), getDomBroker(), schemaService, nnp, rpcService,
+        final var rpcProvider = mock(RpcProviderService.class);
+        provider = new DataExportImportAppProvider(getDataBroker(), getDomBroker(), schemaService, nnp, rpcProvider,
             new TestSystemReadyMonitor(Behaviour.IMMEDIATE), mock(BundleContext.class));
     }
 
@@ -113,17 +102,12 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
                 PosixFilePermission.OWNER_EXECUTE,PosixFilePermission.OWNER_READ,PosixFilePermission.OWNER_WRITE
                 ));
         FileUtils.deleteDirectory(tempDir.toFile());
-
-        if (provider != null) {
-            provider.close();
-            provider = null;
-        }
     }
 
     @Test(timeout = 15000)
     public void testExportStatusRPC() throws InterruptedException, ExecutionException {
         initProvider();
-        RpcResult<StatusExportOutput> result = provider.statusExport(new StatusExportInputBuilder().build()).get();
+        final var result = provider.statusExport(new StatusExportInputBuilder().build()).get();
         LOG.info("RPC result : {}", result);
         assertTrue(result.isSuccessful());
     }
@@ -131,7 +115,7 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
     @Test(timeout = 15000)
     public void testImportStatusRPC() throws InterruptedException, ExecutionException {
         initProvider();
-        RpcResult<StatusImportOutput> result = provider.statusImport(new StatusImportInputBuilder().build()).get();
+        final var result = provider.statusImport(new StatusImportInputBuilder().build()).get();
         LOG.info("RPC result : {}", result);
         assertTrue(result.isSuccessful());
     }
@@ -139,8 +123,7 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
     @Test(timeout = 15000)
     public void testScheduleMissingInfoRPC() throws InterruptedException, ExecutionException {
         initProvider();
-        final RpcResult<ScheduleExportOutput> result = provider.scheduleExport(new ScheduleExportInputBuilder().build())
-                .get();
+        final var result = provider.scheduleExport(new ScheduleExportInputBuilder().build()).get();
         LOG.info("RPC result : {}", result);
         assertFalse(result.isSuccessful());
         RpcError err = result.getErrors().iterator().next();
@@ -150,9 +133,8 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
     @Test(timeout = 15000)
     public void testScheduleRelativeRPC() throws InterruptedException, ExecutionException {
         initProvider();
-        final RpcResult<ScheduleExportOutput> result = provider.scheduleExport(
-                new ScheduleExportInputBuilder().setRunAt(new RunAt(new RelativeTime(Uint32.TEN))).build())
-                .get();
+        final var result = provider.scheduleExport(
+            new ScheduleExportInputBuilder().setRunAt(new RunAt(new RelativeTime(Uint32.TEN))).build()).get();
         LOG.info("RPC result : {}", result);
         assertTrue(result.isSuccessful());
         for (;;) {
@@ -166,9 +148,9 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
     @Test(timeout = 15000)
     public void testScheduleAbsoluteRPC() throws InterruptedException, ExecutionException {
         initProvider();
-        final RpcResult<ScheduleExportOutput> result = provider.scheduleExport(new ScheduleExportInputBuilder()
-                .setRunAt(new RunAt(new AbsoluteTime(Util.toDateAndTime(new Date(System.currentTimeMillis() + 5000)))))
-                .build()).get();
+        final var result = provider.scheduleExport(new ScheduleExportInputBuilder()
+            .setRunAt(new RunAt(new AbsoluteTime(Util.toDateAndTime(new Date(System.currentTimeMillis() + 5000)))))
+            .build()).get();
         LOG.info("[Schedule absolute] RPC result : {}", result);
         assertTrue(result.toString(), result.isSuccessful());
         for (;;) {
@@ -184,10 +166,9 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
     @Test(timeout = 15000)
     public void testCancelRPC() throws InterruptedException, ExecutionException {
         initProvider();
-        final RpcResult<ScheduleExportOutput> result = provider
-                .scheduleExport(new ScheduleExportInputBuilder()
-                    .setRunAt(new RunAt(new RelativeTime(Uint32.valueOf(10000)))).build())
-                .get();
+        final var result = provider.scheduleExport(
+            new ScheduleExportInputBuilder().setRunAt(new RunAt(new RelativeTime(Uint32.valueOf(10000)))).build())
+            .get();
         LOG.info("RPC result : {}", result);
         assertTrue(result.isSuccessful());
         // Wait for scheduled status
@@ -197,8 +178,7 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
             }
             TimeUnit.MILLISECONDS.sleep(250);
         }
-        RpcResult<CancelExportOutput> cancelResult = provider.cancelExport(new CancelExportInputBuilder().build())
-                .get();
+        final var cancelResult = provider.cancelExport(new CancelExportInputBuilder().build()).get();
         LOG.info("RPC result : {}", cancelResult);
         assertTrue(cancelResult.isSuccessful());
         // wait for initial status after cancellation
@@ -213,11 +193,10 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
     @Test(timeout = 15000)
     public void testImportRPC() throws InterruptedException, ExecutionException, IOException {
         initProvider();
-        final RpcResult<ScheduleExportOutput> result = provider
-                .scheduleExport(new ScheduleExportInputBuilder()
-                        .setRunAt(new RunAt(new RunAt(new RelativeTime(Uint32.valueOf(500)))))
-                        .build())
-                .get();
+        final var result = provider.scheduleExport(new ScheduleExportInputBuilder()
+                .setRunAt(new RunAt(new RunAt(new RelativeTime(Uint32.valueOf(500)))))
+                .build())
+            .get();
         LOG.info("RPC result : {}", result);
         assertTrue(result.isSuccessful());
         // Wait for completed status
@@ -231,7 +210,7 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
                 .setClearStores(DataStoreScope.All).setCheckModels(true).setStrictDataConsistency(true).build()).get();
         LOG.info("RPC result : {}", importResult);
         assertEquals(Status.Complete,
-                provider.statusImport(new StatusImportInputBuilder().build()).get().getResult().getStatus());
+            provider.statusImport(new StatusImportInputBuilder().build()).get().getResult().getStatus());
         // Now, mess-up JSON file, so it fails
         final File f = Util.collectDataFiles(false).get(LogicalDatastoreType.OPERATIONAL).iterator().next();
         Files.writeString(f.toPath(), "some-garbage");
@@ -239,7 +218,7 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
                 .setCheckModels(true).setStrictDataConsistency(true).build()).get();
         LOG.info("RPC result : {}", importResult);
         assertEquals(Status.Failed,
-                provider.statusImport(new StatusImportInputBuilder().build()).get().getResult().getStatus());
+            provider.statusImport(new StatusImportInputBuilder().build()).get().getResult().getStatus());
     }
 
     /**
@@ -319,10 +298,9 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
     public void testExportWithPermissionDenied() throws IOException, InterruptedException, ExecutionException {
         initProvider();
         Files.setPosixFilePermissions(tempDir.resolve(Util.DAEXIM_DIR), Set.of());
-        final RpcResult<ScheduleExportOutput> result = provider
-                .scheduleExport(new ScheduleExportInputBuilder()
-                        .setRunAt(new RunAt(new RelativeTime(Uint32.TEN))).build())
-                .get();
+        final var result = provider.scheduleExport(
+            new ScheduleExportInputBuilder().setRunAt(new RunAt(new RelativeTime(Uint32.TEN))).build())
+            .get();
         LOG.info("RPC result : {}", result);
         assertTrue(result.isSuccessful());
         for (;;) {
