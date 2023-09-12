@@ -14,7 +14,9 @@ import static org.opendaylight.mdsal.common.api.LogicalDatastoreType.OPERATIONAL
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
+import com.google.common.collect.ClassToInstanceMap;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.ImmutableClassToInstanceMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -69,24 +71,28 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.internal.rev160921.d
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.internal.rev160921.daexim.daexim.status.NodeStatusBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.internal.rev160921.daexim.daexim.status.NodeStatusKey;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.AbsoluteTime;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.CancelExport;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.CancelExportInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.CancelExportOutput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.CancelExportOutputBuilder;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.DataExportImportService;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.DataStoreScope;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.ImmediateImport;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.ImmediateImportInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.ImmediateImportInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.ImmediateImportOutput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.ImmediateImportOutputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.OperationStatus;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.ScheduleExport;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.ScheduleExportInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.ScheduleExportInput.RunAt;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.ScheduleExportOutput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.ScheduleExportOutputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.Status;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.StatusExport;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.StatusExportInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.StatusExportOutput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.StatusExportOutputBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.StatusImport;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.StatusImportInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.StatusImportOutput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.StatusImportOutputBuilder;
@@ -95,6 +101,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.status.exp
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.status.export.output.NodesKey;
 import org.opendaylight.yangtools.concepts.Registration;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
+import org.opendaylight.yangtools.yang.binding.Rpc;
 import org.opendaylight.yangtools.yang.binding.util.BindingMap;
 import org.opendaylight.yangtools.yang.common.ErrorType;
 import org.opendaylight.yangtools.yang.common.RpcResult;
@@ -111,7 +118,7 @@ import org.slf4j.LoggerFactory;
 @Singleton
 @Component(service = {})
 @RequireServiceComponentRuntime
-public class DataExportImportAppProvider implements DataExportImportService, DataImportBootService, AutoCloseable {
+public class DataExportImportAppProvider implements DataImportBootService, AutoCloseable {
     private static final Logger LOG = LoggerFactory.getLogger(DataExportImportAppProvider.class);
     private static final InstanceIdentifier<Daexim> TOP_IID = InstanceIdentifier.create(Daexim.class);
     private static final InstanceIdentifier<DaeximStatus> GLOBAL_STATUS_II = TOP_IID.child(DaeximStatus.class);
@@ -211,7 +218,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
             registerDataImportBootReady();
         }
 
-        rpcReg = rpcProvider.registerRpcImplementation(DataExportImportService.class, this);
+        rpcReg = rpcProvider.registerRpcImplementations(getRpcClassToInstanceMap());
     }
 
     void registerDataImportBootReady() {
@@ -517,8 +524,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
     /**
      * Cancels any pending or active export tasks.
      */
-    @Override
-    public ListenableFuture<RpcResult<CancelExportOutput>> cancelExport(CancelExportInput input) {
+    private ListenableFuture<RpcResult<CancelExportOutput>> cancelExport(CancelExportInput input) {
         final CancelExportOutputBuilder outputBuilder = new CancelExportOutputBuilder();
         try {
             invokeIPC(new DaeximControlBuilder().setTaskType(IpcType.Cancel).build());
@@ -539,8 +545,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
     /**
      * Schedule export.
      */
-    @Override
-    public ListenableFuture<RpcResult<ScheduleExportOutput>> scheduleExport(ScheduleExportInput input) {
+    private ListenableFuture<RpcResult<ScheduleExportOutput>> scheduleExport(ScheduleExportInput input) {
         Objects.requireNonNull(input, "input");
         awaitBootImport("DataExportImport.scheduleExport()");
         long scheduleAtTimestamp;
@@ -593,8 +598,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
     /**
      * Pending export status.
      */
-    @Override
-    public ListenableFuture<RpcResult<StatusExportOutput>> statusExport(StatusExportInput input) {
+    private ListenableFuture<RpcResult<StatusExportOutput>> statusExport(StatusExportInput input) {
         final StatusExportOutputBuilder builder = new StatusExportOutputBuilder();
         try {
             final DaeximStatus gs = readGlobalStatus();
@@ -632,8 +636,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
     /**
      * Immediate restore operation.
      */
-    @Override
-    public ListenableFuture<RpcResult<ImmediateImportOutput>> immediateImport(ImmediateImportInput input) {
+    private ListenableFuture<RpcResult<ImmediateImportOutput>> immediateImport(ImmediateImportInput input) {
         Objects.requireNonNull(input, "input");
         awaitBootImport("DataExportImport.immediateImport()");
         return immediateImport(input, false);
@@ -714,8 +717,7 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
     /**
      * Import status RPC.
      */
-    @Override
-    public ListenableFuture<RpcResult<StatusImportOutput>> statusImport(StatusImportInput input) {
+    private ListenableFuture<RpcResult<StatusImportOutput>> statusImport(StatusImportInput input) {
         final StatusImportOutputBuilder builder = new StatusImportOutputBuilder();
         try {
             final DaeximStatus gs = readGlobalStatus();
@@ -763,5 +765,15 @@ public class DataExportImportAppProvider implements DataExportImportService, Dat
             importStatus = newStatus;
             updateNodeStatus();
         }
+    }
+
+    public ClassToInstanceMap<Rpc<?,?>> getRpcClassToInstanceMap() {
+        return ImmutableClassToInstanceMap.<Rpc<?, ?>>builder()
+            .put(ScheduleExport.class, this::scheduleExport)
+            .put(StatusExport.class, this::statusExport)
+            .put(CancelExport.class, this::cancelExport)
+            .put(ImmediateImport.class, this::immediateImport)
+            .put(StatusImport.class, this::statusImport)
+            .build();
     }
 }
