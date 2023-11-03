@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "3cc33acd_6c6a6a4d",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 8144
+      },
+      "writtenOn": "2023-11-03T11:52:22Z",
+      "side": 1,
+      "message": "Please change commit msg to reflect what exactly has been done.",
+      "revId": "29123d625563584612182fc96ae08fb87672c261",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81"
+    }
+  ]
+}
