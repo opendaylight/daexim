@@ -94,9 +94,7 @@ in the future. Each exported file has a JSON-encoded object that contains
 module data from the corresponding data store. Each file contains at least
 one empty JSON object.
 
-**URL:** ``http://<controller-ip>:<restconf-port>/restconf/operations/data-export-import:schedule-export``
-
-**RFC8040 URL:** ``http://<controller-ip>:<restconf-port>/rests/operations/data-export-import:schedule-export``
+**URL:** ``http://<controller-ip>:<restconf-port>/rests/operations/data-export-import:schedule-export``
 
 **Payload:**
 
@@ -228,9 +226,7 @@ export was scheduled to start; and ``tasks`` indicates the activities that
 were undertaken. If the status for any node has failed, the
 corresponding reason for failure is listed.
 
-**URL:** ``http://<controller-ip>:<restconf-port>/restconf/operations/data-export-import:status-export``
-
-**RFC8040 URL:** ``http://<controller-ip>:<restconf-port>/rests/operations/data-export-import:status-export``
+**URL:** ``http://<controller-ip>:<restconf-port>/rests/operations/data-export-import:status-export``
 
 **Payload:** No payload
 
@@ -250,9 +246,7 @@ successfully cleared tasks, the state, and resources. The status is
 running, there is no tasks for the server to clear. Therefore, the
 return result is ``True`` because the server cannot fail.
 
-**URL:** ``http://<controller-ip>:<restconf-port>/restconf/operations/data-export-import:cancel-export``
-
-**RFC8040 URL:** ``http://<controller-ip>:<restconf-port>/rests/operations/data-export-import:cancel-export``
+**URL:** ``http://<controller-ip>:<restconf-port>/rests/operations/data-export-import:cancel-export``
 
 **Payload:** No payload
 
@@ -263,9 +257,7 @@ Importing from a file
 The **immediate-import** RPC imports data from files already present in
 the file system.
 
-**URL:** ``http://<controller-ip>:<restconf-port>/restconf/operations/data-export-import:immediate-import``
-
-**RFC8040 URL:** ``http://<controller-ip>:<restconf-port>/rests/operations/data-export-import:immediate-import``
+**URL:** ``http://<controller-ip>:<restconf-port>/rests/operations/data-export-import:immediate-import``
 
 **Payload:**
 
@@ -407,9 +399,7 @@ values of status, ``imported-at`` indicates the time at which the
 restoration has taken place. List nodes hold status about the
 restoration for each node.
 
-**URL:** ``http://<controller-ip>:<restconf-port>/restconf/operations/data-export-import:status-import``
-
-**RFC8040 URL:** ``http://<controller-ip>:<restconf-port>/rests/operations/data-export-import:status-import``
+**URL:** ``http://<controller-ip>:<restconf-port>/rests/operations/data-export-import:status-import``
 
 **Payload:** No payload
 
