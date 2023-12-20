@@ -16,6 +16,23 @@
       "message": "recheck",
       "revId": "a8fb39128d82f1f4430f2d65985801a27f6105d8",
       "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "063dfc32_c7f333a4",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 8144
+      },
+      "writtenOn": "2023-12-20T13:32:18Z",
+      "side": 1,
+      "message": "@Richard can you please submit this change and also make cherry-pick into stable/potassium? Thanks.",
+      "revId": "a8fb39128d82f1f4430f2d65985801a27f6105d8",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81"
     }
   ]
 }
