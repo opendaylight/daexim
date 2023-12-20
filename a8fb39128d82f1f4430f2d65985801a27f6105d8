@@ -68,6 +68,24 @@
       "message": "Please rebase to run GitHub actions verify job. Its some time not this is required in ODL projects. Thanks.",
       "revId": "a8fb39128d82f1f4430f2d65985801a27f6105d8",
       "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "fa65f062_fbf75b01",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 8144
+      },
+      "writtenOn": "2023-12-20T18:04:47Z",
+      "side": 1,
+      "message": ".. Its some time now since this is required 😊 ..",
+      "parentUuid": "c8b7a613_237f7b48",
+      "revId": "a8fb39128d82f1f4430f2d65985801a27f6105d8",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81"
     }
   ]
 }
