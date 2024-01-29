@@ -53,7 +53,7 @@ public class ModuleExclusionTest extends AbstractDataBrokerTest {
     @Before
     public void setUp() throws Exception {
         schemaService = mock(DOMSchemaService.class);
-        when(schemaService.getGlobalContext()).thenReturn(getSchemaContext());
+        when(schemaService.getGlobalContext()).thenReturn(modelContext());
     }
 
     @After

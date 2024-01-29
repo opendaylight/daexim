@@ -48,7 +48,6 @@ import org.opendaylight.daexim.DataImportBootService;
 import org.opendaylight.daexim.spi.NodeNameProvider;
 import org.opendaylight.infrautils.ready.SystemReadyMonitor;
 import org.opendaylight.infrautils.utils.concurrent.ThreadFactoryProvider;
-import org.opendaylight.mdsal.binding.api.ClusteredDataTreeChangeListener;
 import org.opendaylight.mdsal.binding.api.DataBroker;
 import org.opendaylight.mdsal.binding.api.DataTreeIdentifier;
 import org.opendaylight.mdsal.binding.api.DataTreeModification;
@@ -122,7 +121,7 @@ public class DataExportImportAppProvider implements DataImportBootService, AutoC
     private static final InstanceIdentifier<Daexim> TOP_IID = InstanceIdentifier.create(Daexim.class);
     private static final InstanceIdentifier<DaeximStatus> GLOBAL_STATUS_II = TOP_IID.child(DaeximStatus.class);
     private static final InstanceIdentifier<DaeximControl> IPC_II = TOP_IID.child(DaeximControl.class);
-    private static final DataTreeIdentifier<DaeximControl> IPC_DTC = DataTreeIdentifier.create(OPERATIONAL, IPC_II);
+    private static final DataTreeIdentifier<DaeximControl> IPC_DTC = DataTreeIdentifier.of(OPERATIONAL, IPC_II);
 
     private final DataBroker dataBroker;
     private final DOMDataBroker domDataBroker;
@@ -160,8 +159,7 @@ public class DataExportImportAppProvider implements DataImportBootService, AutoC
         if (readDaeximControl() != null) {
             skipIpcDCN.set(true);
         }
-        dataBroker.registerDataTreeChangeListener(IPC_DTC,
-                (ClusteredDataTreeChangeListener<DaeximControl>) this::ipcHandler);
+        dataBroker.registerTreeChangeListener(IPC_DTC, this::ipcHandler);
         updateNodeStatus();
         scheduledExecutorService = MoreExecutors.listeningDecorator(Executors.newScheduledThreadPool(10,
                 ThreadFactoryProvider.builder().namePrefix("daexim-scheduler").logger(LOG).build().get()));
@@ -280,7 +278,7 @@ public class DataExportImportAppProvider implements DataImportBootService, AutoC
         if (skipIpcDCN.compareAndSet(true, false)) {
             return;
         }
-        final DaeximControl newTask = changes.iterator().next().getRootNode().getDataAfter();
+        final DaeximControl newTask = changes.iterator().next().getRootNode().dataAfter();
         if (newTask != null) {
             LOG.info("IPC received : {}", newTask);
             if (newTask.getRunOnNode() != null

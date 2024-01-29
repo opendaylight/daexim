@@ -83,7 +83,7 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
         nnp = mock(NodeNameProvider.class);
         when(nnp.getNodeName()).thenReturn("localhost");
 
-        schemaContext = getSchemaContext();
+        schemaContext = modelContext();
         // Do NOT initialize provider here; let each @Test do it;
         // that is because, in some tests, we want to do something before..
     }

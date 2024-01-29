@@ -9,6 +9,7 @@
 package org.opendaylight.daexim.impl;
 
 import static java.util.Objects.requireNonNull;
+import static org.opendaylight.yangtools.yang.data.impl.schema.ImmutableNodes.fromInstanceId;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -66,16 +67,12 @@ import org.opendaylight.yangtools.yang.data.api.schema.NormalizedNodeContainer;
 import org.opendaylight.yangtools.yang.data.api.schema.UnkeyedListEntryNode;
 import org.opendaylight.yangtools.yang.data.api.schema.UnkeyedListNode;
 import org.opendaylight.yangtools.yang.data.api.schema.builder.CollectionNodeBuilder;
-import org.opendaylight.yangtools.yang.data.api.schema.builder.NormalizedNodeContainerBuilder;
 import org.opendaylight.yangtools.yang.data.api.schema.stream.NormalizedNodeStreamWriter;
 import org.opendaylight.yangtools.yang.data.codec.gson.JSONCodecFactorySupplier;
 import org.opendaylight.yangtools.yang.data.codec.gson.JsonParserStream;
 import org.opendaylight.yangtools.yang.data.impl.schema.Builders;
-import org.opendaylight.yangtools.yang.data.impl.schema.ImmutableNodes;
 import org.opendaylight.yangtools.yang.data.impl.schema.ImmutableNormalizedNodeStreamWriter;
-import org.opendaylight.yangtools.yang.data.impl.schema.builder.impl.ImmutableMapNodeBuilder;
-import org.opendaylight.yangtools.yang.data.impl.schema.builder.impl.ImmutableUnkeyedListNodeBuilder;
-import org.opendaylight.yangtools.yang.data.impl.schema.builder.impl.ImmutableUserMapNodeBuilder;
+import org.opendaylight.yangtools.yang.data.spi.node.ImmutableNodes;
 import org.opendaylight.yangtools.yang.data.util.DataSchemaContext;
 import org.opendaylight.yangtools.yang.data.util.DataSchemaContextTree;
 import org.opendaylight.yangtools.yang.model.api.DataSchemaNode;
@@ -227,7 +224,7 @@ public class ImportTask implements Callable<ImportOperationResult> {
                 try (InputStream is = new FileInputStream(f)) {
                     LOG.info("Loading data into {} datastore from file {}", type.name().toLowerCase(),
                             f.getAbsolutePath());
-                    final NormalizedNodeContainerBuilder<?, ?, ?, ?> builder = Builders.containerBuilder()
+                    final var builder = ImmutableNodes.newContainerBuilder()
                             .withNodeIdentifier(new NodeIdentifier(SchemaContext.NAME));
                     try (NormalizedNodeStreamWriter writer = ImmutableNormalizedNodeStreamWriter.from(builder)) {
                         try (JsonParserStream jsonParser =
@@ -459,9 +456,9 @@ public class ImportTask implements Callable<ImportOperationResult> {
         for (List<MapEntryNode> elementList : elementLists) {
             final CollectionNodeBuilder<MapEntryNode, ?> newMapNodeBuilder;
             if (ordered) {
-                newMapNodeBuilder = ImmutableUserMapNodeBuilder.create(listBatchSize);
+                newMapNodeBuilder = Builders.orderedMapBuilder(listBatchSize);
             } else {
-                newMapNodeBuilder = ImmutableMapNodeBuilder.create(listBatchSize);
+                newMapNodeBuilder = Builders.mapBuilder(listBatchSize);
             }
             newMapNodeBuilder.withNodeIdentifier(mapNode.name());
             newMapNodeBuilder.withValue(elementList);
@@ -493,7 +490,7 @@ public class ImportTask implements Callable<ImportOperationResult> {
                 Iterables.size(elementLists));
         for (List<UnkeyedListEntryNode> elementList : elementLists) {
             final CollectionNodeBuilder<UnkeyedListEntryNode, ?> newUnkeyedListNodeBuilder =
-                    ImmutableUnkeyedListNodeBuilder.create(listBatchSize);
+                    Builders.unkeyedListBuilder(listBatchSize);
             newUnkeyedListNodeBuilder.withNodeIdentifier(unkeyedListNode.name());
             newUnkeyedListNodeBuilder.withValue(elementList);
 
@@ -535,7 +532,7 @@ public class ImportTask implements Callable<ImportOperationResult> {
             return;
         }
 
-        final NormalizedNode parentStructure = ImmutableNodes.fromInstanceId(schemaContext,
+        final NormalizedNode parentStructure = fromInstanceId(schemaContext,
                 YangInstanceIdentifier.of(normalizedPathWithoutChildArgs));
 
         LOG.debug("Creating empty parent at {} : {}", rootNormalizedPath, parentStructure);
