@@ -12,9 +12,9 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
 
     <feature name='odl-daexim' version='${project.version}'>
         <configfile finalname="etc/org.opendaylight.daexim.cfg">mvn:org.opendaylight.daexim/daexim-impl/${project.version}/cfg</configfile>
-        <feature version="[12,13)">odl-mdsal-binding</feature>
-        <feature version="[12,13)">odl-mdsal-model-rfc6991</feature>
-        <feature version="[8,9)">odl-mdsal-broker</feature>
+        <feature version="[13,14)">odl-mdsal-binding</feature>
+        <feature version="[13,14)">odl-mdsal-model-rfc6991</feature>
+        <feature version="[9,10)">odl-mdsal-broker</feature>
         <feature version="[6,7)">odl-infrautils-ready</feature>
         <feature version="[6,7)">odl-infrautils-utils</feature>
     </feature>

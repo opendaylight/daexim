@@ -58,7 +58,7 @@ public class PerModuleExportTest extends AbstractDataBrokerTest {
         System.setProperty("karaf.home", tmpDir.toString());
         LOG.info("Created temp directory : {}", tmpDir);
         schemaService = mock(DOMSchemaService.class);
-        doReturn(getSchemaContext()).when(schemaService).getGlobalContext();
+        doReturn(modelContext()).when(schemaService).getGlobalContext();
     }
 
     @After

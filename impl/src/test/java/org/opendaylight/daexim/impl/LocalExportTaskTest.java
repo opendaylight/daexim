@@ -80,7 +80,7 @@ public class LocalExportTaskTest extends AbstractDataBrokerTest {
     @Test
     public void test() throws Exception {
         schemaService = mock(DOMSchemaService.class);
-        when(schemaService.getGlobalContext()).thenReturn(getSchemaContext());
+        when(schemaService.getGlobalContext()).thenReturn(modelContext());
 
         final WriteTransaction wrTrx = getDataBroker().newWriteOnlyTransaction();
         final InstanceIdentifier<NetworkTopology> ii = InstanceIdentifier.create(NetworkTopology.class);
