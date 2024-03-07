@@ -13,12 +13,8 @@ import static org.opendaylight.mdsal.common.api.LogicalDatastoreType.CONFIGURATI
 import static org.opendaylight.mdsal.common.api.LogicalDatastoreType.OPERATIONAL;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Function;
-import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableClassToInstanceMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -39,6 +35,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -181,8 +178,7 @@ public class DataExportImportAppProvider implements DataImportBootService, AutoC
                         .setClearStores(DataStoreScope.None)
                         .setStrictDataConsistency(true)
                     .build(),
-                    true), new FutureCallback<RpcResult<ImmediateImportOutput>>() {
-
+                    true), new FutureCallback<>() {
                         @Override
                         public void onSuccess(RpcResult<ImmediateImportOutput> result) {
                             if (!result.isSuccessful()
@@ -305,12 +301,11 @@ public class DataExportImportAppProvider implements DataImportBootService, AutoC
     private void processSchedule(DaeximControl newTask) {
         updateExportStatus(Status.Scheduled);
         long scheduleAtTimestamp = Util.parseDate(newTask.getRunAt().getValue()).getTime();
-        exportSchedule = scheduledExecutorService.schedule(
-                new ExportTask(newTask.getIncludedModules(), newTask.getExcludedModules(),
-                        newTask.getStrictDataConsistency(), newTask.getSplitByModule(), domDataBroker, schemaService,
-                    notUsed -> updateExportStatus(Status.InProgress)),
-                scheduleAtTimestamp - System.currentTimeMillis(), TimeUnit.MILLISECONDS);
-        Futures.addCallback(exportSchedule, new FutureCallback<Void>() {
+        exportSchedule = scheduledExecutorService.schedule(new ExportTask(newTask.getIncludedModules(),
+            newTask.getExcludedModules(), newTask.getStrictDataConsistency(), newTask.getSplitByModule(),
+            domDataBroker, schemaService, notUsed -> updateExportStatus(Status.InProgress)),
+            scheduleAtTimestamp - System.currentTimeMillis(), TimeUnit.MILLISECONDS);
+        Futures.addCallback(exportSchedule, new FutureCallback<>() {
             @Override
             public void onSuccess(Void result) {
                 exportFailure = null;
@@ -366,8 +361,9 @@ public class DataExportImportAppProvider implements DataImportBootService, AutoC
     private NodeStatus createNodeStatusData() {
         final NodeStatusBuilder nsb = new NodeStatusBuilder().setExportStatus(exportStatus)
                 .setExportResult(exportFailure).setImportStatus(importStatus).setImportResult(importFailure)
-                .setDataFiles(ImmutableSet.copyOf(Collections2.transform(Util.collectDataFiles(false).values(),
-                        File::getAbsolutePath)))
+                .setDataFiles(Util.collectDataFiles(false).values().stream()
+                    .map(File::getAbsolutePath)
+                    .collect(ImmutableSet.toImmutableSet()))
                 .setNodeName(nodeNameProvider.getNodeName())
                 .setModelFile(Util.isModelFilePresent(false) ? Util.getModelsFilePath(false).toString() : null);
         nsb.setLastExportChange(
@@ -529,20 +525,20 @@ public class DataExportImportAppProvider implements DataImportBootService, AutoC
      */
     @VisibleForTesting
     ListenableFuture<RpcResult<CancelExportOutput>> cancelExport(CancelExportInput input) {
-        final CancelExportOutputBuilder outputBuilder = new CancelExportOutputBuilder();
         try {
+            // FIXME: this should be asynchronous!
             invokeIPC(new DaeximControlBuilder().setTaskType(IpcType.Cancel).build());
-            outputBuilder.setResult(true);
-            return Futures.immediateFuture(RpcResultBuilder.<CancelExportOutput>success(outputBuilder.build()).build());
+            return RpcResultBuilder.<CancelExportOutput>success(new CancelExportOutputBuilder()
+                .setResult(true)
+                .build()).buildFuture();
         } catch (ExecutionException | InterruptedException e) {
-            LOG.error("cancelExport() failed", e);
-            outputBuilder.setResult(false);
-            outputBuilder.setReason(e.getMessage());
-            return Futures.immediateFuture(
-                    RpcResultBuilder.<CancelExportOutput>failed()
-                        .withResult(outputBuilder.build())
-                        .withError(ErrorType.APPLICATION, e.getMessage(), e)
-                        .build());
+            return RpcResultBuilder.<CancelExportOutput>failed()
+                .withResult(new CancelExportOutputBuilder()
+                    .setResult(false)
+                    .setReason(e.getMessage())
+                    .build())
+                .withError(ErrorType.APPLICATION, e.getMessage(), e)
+                .buildFuture();
         }
     }
 
@@ -557,8 +553,9 @@ public class DataExportImportAppProvider implements DataImportBootService, AutoC
         final ScheduleExportOutputBuilder outputBuilder = new ScheduleExportOutputBuilder();
         final RunAt runAt = input.getRunAt();
         if (runAt == null) {
-            return Futures.immediateFuture(RpcResultBuilder.<ScheduleExportOutput>failed()
-                    .withError(ErrorType.PROTOCOL, "No schedule info present in request (run-at)").build());
+            return RpcResultBuilder.<ScheduleExportOutput>failed()
+                .withError(ErrorType.PROTOCOL, "No schedule info present in request (run-at)")
+                .buildFuture();
         }
         final String scheduledString;
         if (runAt.getRelativeTime() != null) {
@@ -570,8 +567,9 @@ public class DataExportImportAppProvider implements DataImportBootService, AutoC
         }
         // verify that we are not trying to schedule in the past
         if (scheduleAtTimestamp < System.currentTimeMillis()) {
-            return Futures.immediateFuture(RpcResultBuilder.<ScheduleExportOutput>failed()
-                    .withError(ErrorType.PROTOCOL, "Attempt to schedule export in past").build());
+            return RpcResultBuilder.<ScheduleExportOutput>failed()
+                .withError(ErrorType.PROTOCOL, "Attempt to schedule export in past")
+                .buildFuture();
         }
         cancelScheduleInternal();
         LOG.info("Scheduling export at {}, which is {} seconds in the future", scheduledString,
@@ -587,15 +585,16 @@ public class DataExportImportAppProvider implements DataImportBootService, AutoC
             if (Boolean.TRUE.equals(input.getLocalNodeOnly())) {
                 builder.setRunOnNode(nodeNameProvider.getNodeName());
             }
+            // FIXME: this should be asynchronous!
             invokeIPC(builder.build());
             outputBuilder.setResult(true);
-            return Futures
-                    .immediateFuture(RpcResultBuilder.<ScheduleExportOutput>success(outputBuilder.build()).build());
+            return RpcResultBuilder.<ScheduleExportOutput>success(outputBuilder.build()).buildFuture();
         } catch (ExecutionException | InterruptedException e) {
             LOG.error("scheduleExport() failed", e);
             outputBuilder.setResult(false);
-            return Futures.immediateFuture(RpcResultBuilder.<ScheduleExportOutput>failed()
-                    .withError(ErrorType.APPLICATION, e.getMessage(), e).withResult(outputBuilder.build()).build());
+            return RpcResultBuilder.<ScheduleExportOutput>failed()
+                .withError(ErrorType.APPLICATION, e.getMessage(), e).withResult(outputBuilder.build())
+                .buildFuture();
 
         }
     }
@@ -607,34 +606,38 @@ public class DataExportImportAppProvider implements DataImportBootService, AutoC
         final StatusExportOutputBuilder builder = new StatusExportOutputBuilder();
         try {
             final DaeximStatus gs = readGlobalStatus();
-            final List<Nodes> tasks = Lists
-                    .<Nodes>newArrayList(Iterables.transform(gs.nonnullNodeStatus().values(), nodeStatus -> {
-                        final NodesBuilder nb = new NodesBuilder().setReason(nodeStatus.getExportResult())
-                                .withKey(new NodesKey(nodeStatus.getNodeName()))
-                                .setStatus(nodeStatus.getExportStatus());
-                        if (Status.Complete.equals(nodeStatus.getExportStatus())) {
-                            nb.setModelFile(nodeStatus.getModelFile()).setDataFiles(nodeStatus.getDataFiles());
-                        }
-                        nb.setLastChange(nodeStatus.getLastExportChange());
-                        return nb.build();
-                    }));
+            final List<Nodes> tasks = gs.nonnullNodeStatus().values().stream()
+                .map(nodeStatus -> {
+                    final var nb = new NodesBuilder()
+                        .setReason(nodeStatus.getExportResult())
+                        .withKey(new NodesKey(nodeStatus.getNodeName()))
+                        .setStatus(nodeStatus.getExportStatus());
+                    if (Status.Complete.equals(nodeStatus.getExportStatus())) {
+                        nb.setModelFile(nodeStatus.getModelFile()).setDataFiles(nodeStatus.getDataFiles());
+                    }
+                    return nb
+                        .setLastChange(nodeStatus.getLastExportChange())
+                        .build();
+                })
+                .collect(Collectors.toList());
             final Status s = calculateStatus(tasks);
             builder.setStatus(s);
             if (Status.Scheduled.equals(s)) {
                 final DaeximControl ctrl = readDaeximControl();
                 if (ctrl == null) {
-                    return Futures.immediateFuture(RpcResultBuilder.<StatusExportOutput>failed()
-                            .withError(ErrorType.APPLICATION, "Missing control data")
-                            .build());
+                    return RpcResultBuilder.<StatusExportOutput>failed()
+                        .withError(ErrorType.APPLICATION, "Missing control data")
+                        .buildFuture();
                 }
                 builder.setRunAt(ctrl.getRunAt());
             }
             builder.setNodes(BindingMap.of(tasks));
-            return Futures.immediateFuture(RpcResultBuilder.<StatusExportOutput>success(builder.build()).build());
+            return RpcResultBuilder.<StatusExportOutput>success(builder.build()).buildFuture();
         } catch (ExecutionException | InterruptedException e) {
             LOG.error("statusExport() failed", e);
-            return Futures.immediateFuture(RpcResultBuilder.<StatusExportOutput>failed()
-                    .withError(ErrorType.APPLICATION, e.getMessage(), e).build());
+            return RpcResultBuilder.<StatusExportOutput>failed()
+                .withError(ErrorType.APPLICATION, e.getMessage(), e)
+                .buildFuture();
         }
     }
 
@@ -648,17 +651,17 @@ public class DataExportImportAppProvider implements DataImportBootService, AutoC
         return immediateImport(input, false);
     }
 
-    private ListenableFuture<RpcResult<ImmediateImportOutput>> immediateImport(
-            ImmediateImportInput input, boolean isBooting) {
-        final ListenableFuture<ImportOperationResult> f = scheduledExecutorService
-                .submit(new ImportTask(input, domDataBroker, schemaService, isBooting, t -> {
-                    if (!isBooting) {
-                        // if isBooting then we've set another status before calling this
-                        // (it's important that happens immediately, without waiting for the Executor)
-                        updateImportStatus(Status.InProgress);
-                    }
-                }));
-        Futures.addCallback(f, new FutureCallback<ImportOperationResult>() {
+    private ListenableFuture<RpcResult<ImmediateImportOutput>> immediateImport(ImmediateImportInput input,
+            boolean isBooting) {
+        final var importFuture = scheduledExecutorService.submit(
+            new ImportTask(input, domDataBroker, schemaService, isBooting, t -> {
+                if (!isBooting) {
+                    // if isBooting then we've set another status before calling this
+                    // (it's important that happens immediately, without waiting for the Executor)
+                    updateImportStatus(Status.InProgress);
+                }
+            }));
+        Futures.addCallback(importFuture, new FutureCallback<>() {
             @Override
             public void onSuccess(ImportOperationResult result) {
                 LOG.info("Restore operation finished : {}", result);
@@ -683,11 +686,11 @@ public class DataExportImportAppProvider implements DataImportBootService, AutoC
                 updateImportStatus(Status.Failed);
             }
         }, MoreExecutors.directExecutor());
-        return Futures.transform(f, (Function<ImportOperationResult, RpcResult<ImmediateImportOutput>>) input1 -> {
+        return Futures.transform(importFuture, inputResult -> {
             final ImmediateImportOutputBuilder output = new ImmediateImportOutputBuilder();
-            output.setResult(input1.getResult());
-            if (!input1.getResult()) {
-                output.setReason(input1.getReason());
+            output.setResult(inputResult.getResult());
+            if (!inputResult.getResult()) {
+                output.setReason(inputResult.getReason());
                 return RpcResultBuilder.<ImmediateImportOutput>success().withResult(output.build()).build();
             }
             return RpcResultBuilder.<ImmediateImportOutput>success(output.build()).build();
@@ -748,11 +751,12 @@ public class DataExportImportAppProvider implements DataImportBootService, AutoC
             }).collect(BindingMap.toMap());
             builder.setStatus(importStatus);
             builder.setNodes(nodes);
-            return Futures.immediateFuture(RpcResultBuilder.<StatusImportOutput>success(builder.build()).build());
+            return RpcResultBuilder.<StatusImportOutput>success(builder.build()).buildFuture();
         } catch (ExecutionException | InterruptedException e) {
             LOG.error("statusImport() failed", e);
-            return Futures.immediateFuture(RpcResultBuilder.<StatusImportOutput>failed()
-                    .withError(ErrorType.APPLICATION, e.getMessage(), e).build());
+            return RpcResultBuilder.<StatusImportOutput>failed()
+                .withError(ErrorType.APPLICATION, e.getMessage(), e)
+                .buildFuture();
         }
     }
 
