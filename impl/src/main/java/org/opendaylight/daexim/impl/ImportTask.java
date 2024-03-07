@@ -39,7 +39,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
-import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -66,11 +65,9 @@ import org.opendaylight.yangtools.yang.data.api.schema.NormalizedNode;
 import org.opendaylight.yangtools.yang.data.api.schema.NormalizedNodeContainer;
 import org.opendaylight.yangtools.yang.data.api.schema.UnkeyedListEntryNode;
 import org.opendaylight.yangtools.yang.data.api.schema.UnkeyedListNode;
-import org.opendaylight.yangtools.yang.data.api.schema.builder.CollectionNodeBuilder;
 import org.opendaylight.yangtools.yang.data.api.schema.stream.NormalizedNodeStreamWriter;
 import org.opendaylight.yangtools.yang.data.codec.gson.JSONCodecFactorySupplier;
 import org.opendaylight.yangtools.yang.data.codec.gson.JsonParserStream;
-import org.opendaylight.yangtools.yang.data.impl.schema.Builders;
 import org.opendaylight.yangtools.yang.data.impl.schema.ImmutableNormalizedNodeStreamWriter;
 import org.opendaylight.yangtools.yang.data.spi.node.ImmutableNodes;
 import org.opendaylight.yangtools.yang.data.util.DataSchemaContext;
@@ -94,7 +91,7 @@ public class ImportTask implements Callable<ImportOperationResult> {
     private final boolean mustValidate;
     private final DataStoreScope clearScope;
     private final boolean strictDataConsistency;
-    private final Consumer<Void> callback;
+    private final Runnable callback;
     private final short maxTraversalDepth;
     private final int listBatchSize;
     private final boolean isBooting;
@@ -119,7 +116,7 @@ public class ImportTask implements Callable<ImportOperationResult> {
     }
 
     public ImportTask(final ImmediateImportInput input, DOMDataBroker domDataBroker,
-            final DOMSchemaService schemaService, boolean isBooting, Consumer<Void> callback) {
+            final DOMSchemaService schemaService, boolean isBooting, Runnable callback) {
         this.dataBroker = domDataBroker;
         this.schemaService = schemaService;
         this.mustValidate = input.getCheckModels() != null && input.getCheckModels();
@@ -157,7 +154,7 @@ public class ImportTask implements Callable<ImportOperationResult> {
     @Override
     @SuppressWarnings("checkstyle:IllegalCatch")
     public ImportOperationResult call() throws Exception {
-        callback.accept(null);
+        callback.run();
         try {
             importInternal();
             return new ImportOperationResultBuilder().setResult(true).build();
@@ -454,17 +451,14 @@ public class ImportTask implements Callable<ImportOperationResult> {
         LOG.debug("Importing list {} by splitting into {} batches", mapNode.name(),
                 Iterables.size(elementLists));
         for (List<MapEntryNode> elementList : elementLists) {
-            final CollectionNodeBuilder<MapEntryNode, ?> newMapNodeBuilder;
-            if (ordered) {
-                newMapNodeBuilder = Builders.orderedMapBuilder(listBatchSize);
-            } else {
-                newMapNodeBuilder = Builders.mapBuilder(listBatchSize);
-            }
-            newMapNodeBuilder.withNodeIdentifier(mapNode.name());
-            newMapNodeBuilder.withValue(elementList);
+            final var newMapNodeBuilder = ordered ? ImmutableNodes.newUserMapBuilder()
+                : ImmutableNodes.newSystemMapBuilder();
 
             final DOMDataTreeReadWriteTransaction wrTrx = dataBroker.newReadWriteTransaction();
-            wrTrx.merge(type, listIID, newMapNodeBuilder.build());
+            wrTrx.merge(type, listIID, newMapNodeBuilder
+                .withNodeIdentifier(mapNode.name())
+                .withValue(elementList)
+                .build());
             writeCount++;
             wrTrx.commit().get();
             batchCount++;
@@ -489,13 +483,11 @@ public class ImportTask implements Callable<ImportOperationResult> {
         LOG.debug("Importing unkeyed list {} by splitting into {} batches", unkeyedListNode.name(),
                 Iterables.size(elementLists));
         for (List<UnkeyedListEntryNode> elementList : elementLists) {
-            final CollectionNodeBuilder<UnkeyedListEntryNode, ?> newUnkeyedListNodeBuilder =
-                    Builders.unkeyedListBuilder(listBatchSize);
-            newUnkeyedListNodeBuilder.withNodeIdentifier(unkeyedListNode.name());
-            newUnkeyedListNodeBuilder.withValue(elementList);
-
             final DOMDataTreeReadWriteTransaction wrTrx = dataBroker.newReadWriteTransaction();
-            wrTrx.merge(type, listIID, newUnkeyedListNodeBuilder.build());
+            wrTrx.merge(type, listIID, ImmutableNodes.builderFactory().newUnkeyedListBuilder(listBatchSize)
+                .withNodeIdentifier(unkeyedListNode.name())
+                .withValue(elementList)
+                .build());
             writeCount++;
             wrTrx.commit().get();
             batchCount++;

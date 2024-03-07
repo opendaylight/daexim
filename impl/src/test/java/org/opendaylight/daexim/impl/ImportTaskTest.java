@@ -22,7 +22,6 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Collection;
 import java.util.concurrent.ExecutionException;
-import java.util.function.Consumer;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -61,8 +60,7 @@ import org.slf4j.LoggerFactory;
 public class ImportTaskTest extends AbstractDataBrokerTest {
     private static final Logger LOG = LoggerFactory.getLogger(ImportTaskTest.class);
     private static final String OLD_NODE_ID = "node-id-5";
-    @SuppressWarnings("unchecked")
-    private final Consumer<Void> callback = mock(Consumer.class);
+    private final Runnable callback = mock(Runnable.class);
     private DOMSchemaService schemaService;
     private SchemaContext schemaContext;
     private Path modelsFile;

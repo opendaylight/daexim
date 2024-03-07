@@ -654,7 +654,7 @@ public class DataExportImportAppProvider implements DataImportBootService, AutoC
     private ListenableFuture<RpcResult<ImmediateImportOutput>> immediateImport(ImmediateImportInput input,
             boolean isBooting) {
         final var importFuture = scheduledExecutorService.submit(
-            new ImportTask(input, domDataBroker, schemaService, isBooting, t -> {
+            new ImportTask(input, domDataBroker, schemaService, isBooting, () -> {
                 if (!isBooting) {
                     // if isBooting then we've set another status before calling this
                     // (it's important that happens immediately, without waiting for the Executor)

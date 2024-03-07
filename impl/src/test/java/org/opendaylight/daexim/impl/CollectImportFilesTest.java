@@ -19,7 +19,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.function.Consumer;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -74,7 +73,7 @@ public class CollectImportFilesTest {
                 .build();
         final DOMDataBroker domDataBroker = mock(DOMDataBroker.class);
         final DOMSchemaService schemaService = mock(DOMSchemaService.class);
-        final ImportTask rt = new ImportTask(input, domDataBroker, schemaService, false, mock(Consumer.class));
+        final ImportTask rt = new ImportTask(input, domDataBroker, schemaService, false, mock(Runnable.class));
         final ListMultimap<LogicalDatastoreType, File> df = rt.dataFiles;
         assertEquals(List.of(), df.get(LogicalDatastoreType.CONFIGURATION));
         final List<File> oper = df.get(LogicalDatastoreType.OPERATIONAL);
