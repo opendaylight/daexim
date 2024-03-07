@@ -173,6 +173,10 @@ public class DataExportImportAppProvider implements DataImportBootService, AutoC
                 updateImportStatus(Status.BootImportInProgress);
                 LOG.info("Daexim found files to import on boot; importing them now that the system is fully ready...");
 
+                // FIXME: this is wrong, as highlighted by testImportOnBootWithBrokenJSON() failing sometimes:
+                //        - immediateImport() fails and sets the status
+                //        - then the test sees import as completed, checks the file
+                //        - then this callback runs, renaming the file
                 Futures.addCallback(immediateImport(new ImmediateImportInputBuilder()
                         .setCheckModels(Util.isModelFilePresent(true))
                         .setClearStores(DataStoreScope.None)
