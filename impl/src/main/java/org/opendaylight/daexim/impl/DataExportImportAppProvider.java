@@ -13,7 +13,6 @@ import static org.opendaylight.mdsal.common.api.LogicalDatastoreType.CONFIGURATI
 import static org.opendaylight.mdsal.common.api.LogicalDatastoreType.OPERATIONAL;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableClassToInstanceMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
@@ -96,7 +95,6 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.status.exp
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.status.export.output.NodesKey;
 import org.opendaylight.yangtools.concepts.Registration;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
-import org.opendaylight.yangtools.yang.binding.Rpc;
 import org.opendaylight.yangtools.yang.binding.util.BindingMap;
 import org.opendaylight.yangtools.yang.common.ErrorType;
 import org.opendaylight.yangtools.yang.common.RpcResult;
@@ -215,13 +213,12 @@ public class DataExportImportAppProvider implements DataImportBootService, AutoC
             registerDataImportBootReady();
         }
 
-        rpcReg = rpcProvider.registerRpcImplementations(ImmutableClassToInstanceMap.<Rpc<?, ?>>builder()
-            .put(ScheduleExport.class, this::scheduleExport)
-            .put(StatusExport.class, this::statusExport)
-            .put(CancelExport.class, this::cancelExport)
-            .put(ImmediateImport.class, this::immediateImport)
-            .put(StatusImport.class, this::statusImport)
-            .build());
+        rpcReg = rpcProvider.registerRpcImplementations(
+            (ScheduleExport) this::scheduleExport,
+            (StatusExport) this::statusExport,
+            (CancelExport) this::cancelExport,
+            (ImmediateImport) this::immediateImport,
+            (StatusImport) this::statusImport);
     }
 
     void registerDataImportBootReady() {
