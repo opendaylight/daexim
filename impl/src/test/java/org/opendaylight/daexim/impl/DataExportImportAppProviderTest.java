@@ -23,11 +23,13 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermission;
+import java.time.Duration;
 import java.util.Date;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.io.FileUtils;
+import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -269,7 +271,9 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
 
         // Check that even a failed import-on-boot renamed processed file,
         // to avoid continuous re-import on every boot in case of failures
-        assertFalse(bootImportFile.exists());
+        // The wait is needed due to the wrong order of listeners firing -- the file removal is triggered asynchronously
+        // and runs *after* we see the future as completed.
+        Awaitility.await().atMost(Duration.ofSeconds(5)).until(() -> bootImportFile.exists());
     }
 
     @Test
