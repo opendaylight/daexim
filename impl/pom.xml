@@ -68,7 +68,7 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
         </dependency>
         <dependency>
             <groupId>org.osgi</groupId>
-            <artifactId>org.osgi.framework</artifactId>
+            <artifactId>org.osgi.service.component</artifactId>
         </dependency>
         <dependency>
             <groupId>org.osgi</groupId>
@@ -118,6 +118,7 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
           <groupId>org.opendaylight.infrautils</groupId>
           <artifactId>infrautils-util</artifactId>
         </dependency>
+
         <!-- Testing Dependencies -->
         <dependency>
             <groupId>commons-io</groupId>
