@@ -9,13 +9,10 @@ package org.opendaylight.daexim;
 
 /**
  * Functionality ready marker OSGi service indicating that the (asynchronous) "import-on-boot"
- * has successfully fully completed (or, alternatively, that there was nothing to import, on boot)
- *
- * <p>This is the FunctionalityReady equivalent of the blocking
- * {@link DataImportBootService#awaitBootImport(String)} call.
+ * has successfully fully completed (or, alternatively, that there was nothing to import, on boot).
  *
  * @author Michael Vorburger.ch
  */
-public interface DataImportBootReady { }
-    // FIXME: extends FunctionalityReady
-    //  -- BUT this works as is already; making it extend FunctionalityReady is just a "marker" (like e.g. Serializable)
+public interface DataImportBootReady {
+    // Just a marker interface
+}
