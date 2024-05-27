@@ -60,6 +60,7 @@ import org.opendaylight.yangtools.yang.common.RpcResult;
 import org.opendaylight.yangtools.yang.common.Uint32;
 import org.opendaylight.yangtools.yang.model.api.EffectiveModelContext;
 import org.osgi.framework.BundleContext;
+import org.osgi.service.component.ComponentFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -93,7 +94,7 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
         when(schemaService.getGlobalContext()).thenReturn(schemaContext);
         final var rpcProvider = mock(RpcProviderService.class);
         provider = new DataExportImportAppProvider(getDataBroker(), getDomBroker(), schemaService, nnp, rpcProvider,
-            new TestSystemReadyMonitor(Behaviour.IMMEDIATE), mock(BundleContext.class));
+            new TestSystemReadyMonitor(Behaviour.IMMEDIATE), mock(ComponentFactory.class));
     }
 
     @After
