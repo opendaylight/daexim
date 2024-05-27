@@ -9,6 +9,7 @@
  */
 package org.opendaylight.daexim.impl;
 
+import static java.util.Objects.requireNonNull;
 import static org.opendaylight.mdsal.common.api.LogicalDatastoreType.CONFIGURATION;
 import static org.opendaylight.mdsal.common.api.LogicalDatastoreType.OPERATIONAL;
 
@@ -99,7 +100,8 @@ import org.opendaylight.yangtools.yang.binding.util.BindingMap;
 import org.opendaylight.yangtools.yang.common.ErrorType;
 import org.opendaylight.yangtools.yang.common.RpcResult;
 import org.opendaylight.yangtools.yang.common.RpcResultBuilder;
-import org.osgi.framework.BundleContext;
+import org.osgi.service.component.ComponentFactory;
+import org.osgi.service.component.ComponentInstance;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Deactivate;
@@ -118,16 +120,18 @@ public final class DataExportImportAppProvider implements DataImportBootService,
     private static final InstanceIdentifier<DaeximControl> IPC_II = TOP_IID.child(DaeximControl.class);
     private static final DataTreeIdentifier<DaeximControl> IPC_DTC = DataTreeIdentifier.of(OPERATIONAL, IPC_II);
 
+    private final AtomicBoolean skipIpcDCN = new AtomicBoolean(false);
     private final DataBroker dataBroker;
     private final DOMDataBroker domDataBroker;
     private final DOMSchemaService schemaService;
     private final NodeNameProvider nodeNameProvider;
-    private final BundleContext bundleContext;
-    private final AtomicBoolean skipIpcDCN = new AtomicBoolean(false);
 
     private final ListeningScheduledExecutorService scheduledExecutorService;
     private final InstanceIdentifier<NodeStatus> nodeStatusII;
     private final Registration rpcReg;
+
+    private final ComponentFactory<DataImportBootReady> factory;
+    private ComponentInstance<DataImportBootReady> componentReg;
 
     private ListenableFuture<Void> exportSchedule;
     private volatile Status exportStatus = Status.Initial;
@@ -143,12 +147,13 @@ public final class DataExportImportAppProvider implements DataImportBootService,
     public DataExportImportAppProvider(@Reference DataBroker dataBroker, @Reference DOMDataBroker domDataBroker,
             @Reference DOMSchemaService schemaService, @Reference NodeNameProvider nodeNameProvider,
             @Reference RpcProviderService rpcProvider, @Reference SystemReadyMonitor systemReadyService,
-            BundleContext bundleContext) {
-        this.dataBroker = dataBroker;
-        this.domDataBroker = domDataBroker;
-        this.schemaService = schemaService;
-        this.nodeNameProvider = nodeNameProvider;
-        this.bundleContext = bundleContext;
+            @Reference(target = "(component.factory=" + OSGiDataImportBootReady.FACTORY_NAME + ")")
+            ComponentFactory<DataImportBootReady> factory) {
+        this.dataBroker = requireNonNull(dataBroker);
+        this.domDataBroker = requireNonNull(domDataBroker);
+        this.schemaService = requireNonNull(schemaService);
+        this.nodeNameProvider = requireNonNull(nodeNameProvider);
+        this.factory = requireNonNull(factory);
 
         nodeStatusII = GLOBAL_STATUS_II.child(NodeStatus.class, new NodeStatusKey(nodeNameProvider.getNodeName()));
         if (readDaeximControl() != null) {
@@ -223,9 +228,7 @@ public final class DataExportImportAppProvider implements DataImportBootService,
 
     void registerDataImportBootReady() {
         // publish an instance of DataImportBootReady into the OSGi service registry
-        // FIXME: use org.opendaylight.infrautils.ready.order.FunctionalityReadyNotifier
-        bundleContext.registerService(DataImportBootReady.class, new DataImportBootReady() { }, null);
-        LOG.info("Published OSGi service {}", DataImportBootReady.class);
+        componentReg = factory.newInstance(null);
     }
 
     private static void renameBootImportFiles() {
@@ -507,6 +510,10 @@ public final class DataExportImportAppProvider implements DataImportBootService,
     @Deactivate
     public void close() {
         rpcReg.close();
+        if (componentReg != null) {
+            componentReg.dispose();
+            componentReg = null;
+        }
         if (scheduledExecutorService != null) {
             scheduledExecutorService.shutdownNow();
         }
