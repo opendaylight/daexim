@@ -77,11 +77,11 @@ public final class Util {
     }
 
     public static Path getDaeximFilePath(boolean isBooting, LogicalDatastoreType type) {
-        return Paths.get(getDaeximDir(isBooting), FILE_PREFIX + storeNameByType(type).toLowerCase() + FILE_SUFFIX);
+        return getDaeximDir(isBooting).resolve(FILE_PREFIX + storeNameByType(type).toLowerCase() + FILE_SUFFIX);
     }
 
     public static Path getModelsFilePath(boolean isBooting) {
-        return Paths.get(getDaeximDir(isBooting), FILE_PREFIX + "models.json");
+        return getDaeximDir(isBooting).resolve(FILE_PREFIX + "models.json");
     }
 
     private static String interpolateProp(final String source, final String propName, final String defValue) {
@@ -113,16 +113,15 @@ public final class Util {
     }
 
     @VisibleForTesting
-    static String getDaeximDir(boolean isBooting) {
-        final Path daeximDir = isBooting
-                ? Paths.get(getDaeximDirInternal(), DAEXIM_BOOT_SUBDIR)
+    static Path getDaeximDir(boolean isBooting) {
+        final var daeximDir = isBooting ? Paths.get(getDaeximDirInternal(), DAEXIM_BOOT_SUBDIR)
                 : Paths.get(getDaeximDirInternal());
         try {
             Files.createDirectories(daeximDir);
-            return daeximDir.toFile().getAbsolutePath();
         } catch (IOException e) {
             throw new IllegalStateException("Unable to get location of daexim directory", e);
         }
+        return daeximDir;
     }
 
     public static List<Model> parseModels(final InputStream is) {
@@ -190,7 +189,7 @@ public final class Util {
      * Collects all data files in dump directory.
      */
     public static ListMultimap<LogicalDatastoreType, File> collectDataFiles(boolean isBooting) {
-        final Path daeximDir = Paths.get(Util.getDaeximDir(isBooting));
+        final Path daeximDir = Util.getDaeximDir(isBooting);
         final ListMultimap<LogicalDatastoreType, File> dataFiles = ArrayListMultimap.create();
         for (final LogicalDatastoreType dst : LogicalDatastoreType.values()) {
             // collect all json files related to given datastore

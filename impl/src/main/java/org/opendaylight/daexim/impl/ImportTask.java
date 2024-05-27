@@ -394,7 +394,7 @@ public class ImportTask implements Callable<ImportOperationResult> {
             return false;
         } else if (size == 1) {
             // All children have same write status
-            return childCommitStatusCache.values().stream().findFirst().get();
+            return childCommitStatusCache.values().stream().findFirst().orElseThrow();
         }
 
         // If one child has got written, write all other children as well
@@ -437,7 +437,7 @@ public class ImportTask implements Callable<ImportOperationResult> {
 
         // Determine if the list is an ordered list
         final DataSchemaContext listNode =
-                DataSchemaContextTree.from(schemaService.getGlobalContext()).findChild(listIID).get();
+                DataSchemaContextTree.from(schemaService.getGlobalContext()).findChild(listIID).orElseThrow();
         final DataSchemaNode dataSchemaNode = listNode.dataSchemaNode();
         Preconditions.checkState(dataSchemaNode instanceof ListSchemaNode, dataSchemaNode + " is not a list");
         final boolean ordered;

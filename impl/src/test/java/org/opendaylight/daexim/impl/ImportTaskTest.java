@@ -30,7 +30,6 @@ import org.opendaylight.mdsal.binding.api.WriteTransaction;
 import org.opendaylight.mdsal.binding.dom.adapter.test.AbstractDataBrokerTest;
 import org.opendaylight.mdsal.common.api.LogicalDatastoreType;
 import org.opendaylight.mdsal.common.api.TransactionCommitFailedException;
-import org.opendaylight.mdsal.dom.api.DOMDataTreeReadTransaction;
 import org.opendaylight.mdsal.dom.api.DOMSchemaService;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.internal.rev160921.ImportOperationResult;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.DataStoreScope;
@@ -103,13 +102,10 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
     }
 
     private Collection<? extends NormalizedNode> readRoot() throws InterruptedException, ExecutionException {
-        final DOMDataTreeReadTransaction roTrx = getDomBroker().newReadOnlyTransaction();
-        try {
-            NormalizedNodeContainer<?> nnc = (NormalizedNodeContainer<?>) roTrx.read(LogicalDatastoreType.OPERATIONAL,
-                                YangInstanceIdentifier.of()).get().get();
-            return nnc.body();
-        } finally {
-            roTrx.close();
+        try (var roTx = getDomBroker().newReadOnlyTransaction()) {
+            return ((NormalizedNodeContainer<?>)
+                roTx.read(LogicalDatastoreType.OPERATIONAL, YangInstanceIdentifier.of()).get().orElseThrow())
+                .body();
         }
     }
 
@@ -134,7 +130,7 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
     private <D extends DataObject> D readData(InstanceIdentifier<D> ii)
             throws InterruptedException, ExecutionException {
         try (ReadTransaction roTrx = getDataBroker().newReadOnlyTransaction()) {
-            return roTrx.read(LogicalDatastoreType.OPERATIONAL, ii).get().get();
+            return roTrx.read(LogicalDatastoreType.OPERATIONAL, ii).get().orElseThrow();
         }
     }
 
