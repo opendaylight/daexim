@@ -160,11 +160,11 @@ public final class DataExportImportAppProvider implements DataImportBootService,
                 ThreadFactoryProvider.builder().namePrefix("daexim-scheduler").logger(LOG).build().get()));
         LOG.info("Daexim Session Initiated, running on node '{}'", nodeNameProvider.getNodeName());
 
-        final File bootImportConfigurationDataFile = Util.getDaeximFilePath(true, CONFIGURATION).toFile();
-        final File bootImportOperationalDataFile = Util.getDaeximFilePath(true, OPERATIONAL).toFile();
+        final var bootImportConfigurationDataFile = Util.getDaeximFilePath(true, CONFIGURATION);
+        final var bootImportOperationalDataFile = Util.getDaeximFilePath(true, OPERATIONAL);
         LOG.info("Checking for presence of boot import data files ({}, {})",
                 bootImportConfigurationDataFile, bootImportOperationalDataFile);
-        if (bootImportOperationalDataFile.exists() || bootImportConfigurationDataFile.exists()) {
+        if (Files.exists(bootImportOperationalDataFile) || Files.exists(bootImportConfigurationDataFile)) {
             LOG.info("Daexim found files to import on boot, and will import them once the system is fully ready...");
             updateImportStatus(Status.BootImportScheduled);
             systemReadyService.registerListener(() -> {
@@ -360,20 +360,23 @@ public final class DataExportImportAppProvider implements DataImportBootService,
     }
 
     private NodeStatus createNodeStatusData() {
-        final NodeStatusBuilder nsb = new NodeStatusBuilder().setExportStatus(exportStatus)
-                .setExportResult(exportFailure).setImportStatus(importStatus).setImportResult(importFailure)
-                .setDataFiles(Util.collectDataFiles(false).values().stream()
-                    .map(File::getAbsolutePath)
-                    .collect(ImmutableSet.toImmutableSet()))
-                .setNodeName(nodeNameProvider.getNodeName())
-                .setModelFile(Util.isModelFilePresent(false) ? Util.getModelsFilePath(false).toString() : null);
-        nsb.setLastExportChange(
-                lastExportChanged != -1 ? new AbsoluteTime(Util.toDateAndTime(new Date(lastExportChanged))) : null);
-        nsb.setLastImportChange(
-                lastImportChanged != -1 ? new AbsoluteTime(Util.toDateAndTime(new Date(lastImportChanged))) : null);
-        nsb.setImportedAt(
-                lastImportTimestamp != -1 ? new AbsoluteTime(Util.toDateAndTime(new Date(lastImportTimestamp))) : null);
-        return nsb.build();
+        return new NodeStatusBuilder()
+            .setExportStatus(exportStatus)
+            .setExportResult(exportFailure)
+            .setImportStatus(importStatus)
+            .setImportResult(importFailure)
+            .setDataFiles(Util.collectDataFiles(false).values().stream()
+                .map(File::getAbsolutePath)
+                .collect(ImmutableSet.toImmutableSet()))
+            .setNodeName(nodeNameProvider.getNodeName())
+            .setModelFile(Util.isModelFilePresent(false) ? Util.getModelsFilePath(false).toString() : null)
+            .setLastExportChange(
+                lastExportChanged != -1 ? new AbsoluteTime(Util.toDateAndTime(new Date(lastExportChanged))) : null)
+            .setLastImportChange(
+                lastImportChanged != -1 ? new AbsoluteTime(Util.toDateAndTime(new Date(lastImportChanged))) : null)
+            .setImportedAt(
+                lastImportTimestamp != -1 ? new AbsoluteTime(Util.toDateAndTime(new Date(lastImportTimestamp))) : null)
+            .build();
     }
 
     @Nullable
@@ -401,12 +404,7 @@ public final class DataExportImportAppProvider implements DataImportBootService,
         }
 
         // After restore, our top level elements are gone
-        final Optional<DaeximStatus> opt = future.get();
-        if (opt.isPresent()) {
-            return opt.get();
-        } else {
-            return rebuildGlobalStatus();
-        }
+        return future.get().orElseGet(this::rebuildGlobalStatus);
     }
 
     /*

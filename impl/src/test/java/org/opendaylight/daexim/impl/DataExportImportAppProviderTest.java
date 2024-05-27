@@ -239,7 +239,7 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
 
         // Then
         try (ReadTransaction tx = getDataBroker().newReadOnlyTransaction()) {
-            Topology topo = tx.read(LogicalDatastoreType.OPERATIONAL, TestBackupData.TOPOLOGY_II).get().get();
+            Topology topo = tx.read(LogicalDatastoreType.OPERATIONAL, TestBackupData.TOPOLOGY_II).get().orElseThrow();
             assertEquals(TestBackupData.TOPOLOGY_ID, topo.getTopologyId());
         }
         // Check that import-on-boot renamed processed file, to avoid continous re-import on every boot
@@ -285,7 +285,7 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
 
         // Then
         try (ReadTransaction tx = getDataBroker().newReadOnlyTransaction()) {
-            Topology topo = tx.read(LogicalDatastoreType.OPERATIONAL, TestBackupData.TOPOLOGY_II).get().get();
+            Topology topo = tx.read(LogicalDatastoreType.OPERATIONAL, TestBackupData.TOPOLOGY_II).get().orElseThrow();
             assertEquals(TestBackupData.TOPOLOGY_ID, topo.getTopologyId());
         }
 

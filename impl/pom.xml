@@ -21,8 +21,7 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
     <properties>
         <jsonpath.version>2.2.0</jsonpath.version>
 
-        <!-- FIXME: enable spotbugs and modernizer -->
-        <odlparent.modernizer.enforce>false</odlparent.modernizer.enforce>
+        <!-- FIXME: enable spotbugs -->
         <odlparent.spotbugs.enforce>false</odlparent.spotbugs.enforce>
     </properties>
 

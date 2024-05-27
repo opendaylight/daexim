@@ -60,17 +60,17 @@ public class UtilTest {
 
     @Test
     public void testGetBackupDir() throws IOException {
-        String path;
+        Path path;
         LOG.info("Scenario #1 - property file does not exist");
         path = Util.getDaeximDir(false);
         LOG.info("Directory : {}", path);
-        assertEquals(daeximDir.toFile().getAbsolutePath(), path);
+        assertEquals(daeximDir, path);
 
         LOG.info("Scenario #2 - property file exists, but property is not set");
         setPropertyFileContent("");
         path = Util.getDaeximDir(false);
         LOG.info("Directory : {}", path);
-        assertEquals(daeximDir.toFile().getAbsolutePath(), path);
+        assertEquals(daeximDir, path);
 
         LOG.info("Scenario #3 - property file exists, property is set");
         setPropertyFileContent(Util.DAEXIM_DIR_PROP + "=" + tempDir.toString() + File.separatorChar + ALTERNATIVE_DIR);
