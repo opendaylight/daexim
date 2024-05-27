@@ -14,11 +14,9 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.gson.stream.JsonWriter;
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -33,7 +31,6 @@ import org.eclipse.jdt.annotation.Nullable;
 import org.opendaylight.daexim.impl.model.internal.Model;
 import org.opendaylight.mdsal.common.api.LogicalDatastoreType;
 import org.opendaylight.mdsal.dom.api.DOMDataBroker;
-import org.opendaylight.mdsal.dom.api.DOMDataTreeReadTransaction;
 import org.opendaylight.mdsal.dom.api.DOMSchemaService;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.YangIdentifier;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.DataStore;
@@ -132,33 +129,28 @@ public class ExportTask implements Callable<Void> {
 
     // JsonWriter's close() will close new FileWriter
     private static JsonWriter createWriter(LogicalDatastoreType type, boolean isModules) throws IOException {
-        final File filePath = isModules ? Util.getModelsFilePath(false).toFile()
-                : Util.getDaeximFilePath(false, type).toFile();
+        final var filePath = isModules ? Util.getModelsFilePath(false) : Util.getDaeximFilePath(false, type);
         LOG.info("Creating JSON file : {}", filePath);
-        return new JsonWriter(new FileWriter(filePath));
+        return new JsonWriter(Files.newBufferedWriter(filePath));
     }
 
     private JsonWriter createPerModuleWriter(LogicalDatastoreType store, NodeIdentifier ni) throws IOException {
-        final StringBuilder fileName = new StringBuilder();
-        fileName.append(Util.FILE_PREFIX);
-        fileName.append(Util.storeNameByType(store));
-        Optional<Module> mod = schemaService.getGlobalContext().findModule(ni.getNodeType().getNamespace(),
+        final var sb = new StringBuilder();
+        sb.append(Util.FILE_PREFIX);
+        sb.append(Util.storeNameByType(store));
+        final var optMod = schemaService.getGlobalContext().findModule(ni.getNodeType().getNamespace(),
                 ni.getNodeType().getRevision());
-        if (mod.isPresent()) {
-            fileName.append('_');
-            fileName.append(mod.get().getName());
-            appendRevision(fileName, mod.get().getRevision());
-        }
-        fileName.append(Util.FILE_SUFFIX);
-        final Path filePath = Paths.get(Util.getDaeximDir(false), fileName.toString());
-        LOG.info("Creating JSON file : {}", filePath);
-        return new JsonWriter(new FileWriter(filePath.toFile()));
-    }
+        optMod.ifPresent(mod -> {
+            sb.append('_').append(mod.getName());
+            mod.getRevision().ifPresent(revision -> {
+                sb.append('@').append(revision);
+            });
+        });
+        sb.append(Util.FILE_SUFFIX);
 
-    private static void appendRevision(final StringBuilder fileName, Optional<Revision> optional) {
-        if (optional.isPresent()) {
-            fileName.append('@').append(optional.get());
-        }
+        final Path filePath = Util.getDaeximDir(false).resolve(sb.toString());
+        LOG.info("Creating JSON file : {}", filePath);
+        return new JsonWriter(Files.newBufferedWriter(filePath));
     }
 
     private static void writeEmptyStore(LogicalDatastoreType type) throws IOException {
@@ -197,18 +189,13 @@ public class ExportTask implements Callable<Void> {
      */
     private Collection<NormalizedNode> readDatastoreOneShot(final LogicalDatastoreType type)
             throws InterruptedException, ExecutionException {
-        final Optional<NormalizedNode> opt = getRootNode(type);
-        if (!opt.isPresent()) {
-            throw new IllegalStateException("Root node is not present");
-        }
-        final NormalizedNode root = opt.get();
-        if (root instanceof NormalizedNodeContainer) {
-            return ((NormalizedNodeContainer<?>) root).body().stream()
-                .filter(node -> isIncludedOrNotExcluded(type, node.name().getNodeType()))
-                .collect(Collectors.toSet());
-        } else {
+        final var root = getRootNode(type).orElseThrow(() -> new IllegalStateException("Root node is not present"));
+        if (!(root instanceof NormalizedNodeContainer<?> container)) {
             throw new IllegalStateException("Root node is not instance of NormalizedNodeContainer");
         }
+        return container.body().stream()
+            .filter(node -> isIncludedOrNotExcluded(type, node.name().getNodeType()))
+            .collect(Collectors.toSet());
     }
 
     /*
@@ -227,7 +214,7 @@ public class ExportTask implements Callable<Void> {
                 LOG.trace("Data for child is not present : {}", schemaNode.getQName());
                 continue;
             }
-            final NormalizedNode nn = opt.get();
+            final NormalizedNode nn = opt.orElseThrow();
             if (!(nn instanceof NormalizedNodeContainer)) {
                 LOG.warn("Data for child is not an instance of NormalizedNodeContainer : {}", schemaNode.getQName());
                 continue;
@@ -244,12 +231,9 @@ public class ExportTask implements Callable<Void> {
 
     private Optional<NormalizedNode> getNode(final LogicalDatastoreType type, final YangInstanceIdentifier nodeIID)
             throws InterruptedException, ExecutionException {
-        final DOMDataTreeReadTransaction roTrx = domDataBroker.newReadOnlyTransaction();
-        try {
+        try (var roTx = domDataBroker.newReadOnlyTransaction()) {
             LOG.trace("Reading data for node : {}", nodeIID);
-            return roTrx.read(type, nodeIID).get();
-        } finally {
-            roTrx.close();
+            return roTx.read(type, nodeIID).get();
         }
     }
 
@@ -343,7 +327,7 @@ public class ExportTask implements Callable<Void> {
             final Optional<Model> mod = moduleCache.getUnchecked(incl.key().getModuleName().getValue());
             // SchemaService found the module being excluded. Compare it to the node being
             // written, matching only the namespace and ignoring the revision.
-            if (mod.isPresent() && mod.get().getNamespace().equals(nodeQName.getNamespace().toString())) {
+            if (mod.isPresent() && mod.orElseThrow().getNamespace().equals(nodeQName.getNamespace().toString())) {
                 return true;
             }
         }
@@ -363,7 +347,7 @@ public class ExportTask implements Callable<Void> {
                     .getUnchecked(excl.key().getModuleName().getYangIdentifier().getValue());
             // SchemaService found the module being excluded. Compare it to the node being
             // written, matching only the namespace and ignoring the revision.
-            if (mod.isPresent() && mod.get().getNamespace().equals(nodeQName.getNamespace().toString())) {
+            if (mod.isPresent() && mod.orElseThrow().getNamespace().equals(nodeQName.getNamespace().toString())) {
                 return true;
             }
         }

@@ -401,12 +401,7 @@ public final class DataExportImportAppProvider implements DataImportBootService,
         }
 
         // After restore, our top level elements are gone
-        final Optional<DaeximStatus> opt = future.get();
-        if (opt.isPresent()) {
-            return opt.get();
-        } else {
-            return rebuildGlobalStatus();
-        }
+        return future.get().orElseGet(this::rebuildGlobalStatus);
     }
 
     /*
