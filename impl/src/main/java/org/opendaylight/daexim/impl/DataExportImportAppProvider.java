@@ -109,9 +109,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Singleton
-@Component(service = {})
+@Component(immediate = true, service = DataImportBootService.class)
 @RequireServiceComponentRuntime
-public class DataExportImportAppProvider implements DataImportBootService, AutoCloseable {
+public final class DataExportImportAppProvider implements DataImportBootService, AutoCloseable {
     private static final Logger LOG = LoggerFactory.getLogger(DataExportImportAppProvider.class);
     private static final InstanceIdentifier<Daexim> TOP_IID = InstanceIdentifier.create(Daexim.class);
     private static final InstanceIdentifier<DaeximStatus> GLOBAL_STATUS_II = TOP_IID.child(DaeximStatus.class);
@@ -440,8 +440,7 @@ public class DataExportImportAppProvider implements DataImportBootService, AutoC
      * {@value Status#Inconsistent}
      * </ol>
      */
-    @VisibleForTesting
-    Status calculateStatus(final List<Nodes> nodes) {
+    private static Status calculateStatus(final List<Nodes> nodes) {
         boolean inProgress = false;
         boolean isComplete = true;
         boolean isFailed = false;
