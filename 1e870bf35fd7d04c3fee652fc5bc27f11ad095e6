@@ -16,6 +16,24 @@
       "message": "missing license",
       "revId": "1e870bf35fd7d04c3fee652fc5bc27f11ad095e6",
       "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "14321bec_a20ac673",
+        "filename": ".github/workflows/gerrit-verify.yaml",
+        "patchSetId": 1
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 6258
+      },
+      "writtenOn": "2024-12-11T00:27:37Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "da3c3aa6_fcc95c32",
+      "revId": "1e870bf35fd7d04c3fee652fc5bc27f11ad095e6",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81"
     }
   ]
 }
