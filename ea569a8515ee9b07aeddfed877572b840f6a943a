@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "0c3049d9_c0505923",
+        "filename": ".github/workflows/gerrit-verify.yaml",
+        "patchSetId": 2
+      },
+      "lineNbr": 3,
+      "author": {
+        "id": 8144
+      },
+      "writtenOn": "2024-12-17T15:00:05Z",
+      "side": 1,
+      "message": "2024",
+      "revId": "ea569a8515ee9b07aeddfed877572b840f6a943a",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81"
+    }
+  ]
+}
