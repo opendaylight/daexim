@@ -18,5 +18,5 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
     <groupId>org.opendaylight.daexim</groupId>
     <artifactId>daexim-spi</artifactId>
     <packaging>bundle</packaging>
-    <version>1.16.2-SNAPSHOT</version>
+    <version>1.16.3-SNAPSHOT</version>
 </project>
