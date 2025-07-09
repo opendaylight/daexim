@@ -17,7 +17,6 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FilenameFilter;
 import java.io.IOException;
@@ -26,7 +25,6 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
@@ -91,7 +89,7 @@ public final class Util {
     private static String getDaeximDirInternal() {
         final String propFile = interpolateProp(ETC_CFG_FILE, "karaf.etc", "." + File.separatorChar + "etc");
         final Properties props = new Properties();
-        try (InputStream is = new FileInputStream(propFile)) {
+        try (InputStream is = Files.newInputStream(Path.of(propFile))) {
             props.load(is);
             if (props.containsKey(DAEXIM_DIR_PROP)) {
                 String propVal = props.getProperty(DAEXIM_DIR_PROP);
@@ -114,8 +112,8 @@ public final class Util {
 
     @VisibleForTesting
     static Path getDaeximDir(boolean isBooting) {
-        final var daeximDir = isBooting ? Paths.get(getDaeximDirInternal(), DAEXIM_BOOT_SUBDIR)
-                : Paths.get(getDaeximDirInternal());
+        final var daeximDir = isBooting ? Path.of(getDaeximDirInternal(), DAEXIM_BOOT_SUBDIR)
+                : Path.of(getDaeximDirInternal());
         try {
             Files.createDirectories(daeximDir);
         } catch (IOException e) {

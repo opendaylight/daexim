@@ -20,7 +20,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
 import com.google.gson.stream.JsonReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -218,7 +217,7 @@ public class ImportTask implements Callable<ImportOperationResult> {
             LOG.info("No data file for datastore {}, import skipped", type.name().toLowerCase());
         } else {
             for (final File f : dataFiles.get(type)) {
-                try (InputStream is = new FileInputStream(f)) {
+                try (InputStream is = Files.newInputStream(f.toPath())) {
                     LOG.info("Loading data into {} datastore from file {}", type.name().toLowerCase(),
                             f.getAbsolutePath());
                     final var builder = ImmutableNodes.newContainerBuilder()
