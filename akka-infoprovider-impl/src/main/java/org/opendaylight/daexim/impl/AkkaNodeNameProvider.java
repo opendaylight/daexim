@@ -8,11 +8,11 @@
  */
 package org.opendaylight.daexim.impl;
 
-import akka.actor.ActorSystem;
-import akka.actor.Address;
-import akka.cluster.Cluster;
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Address;
+import org.apache.pekko.cluster.Cluster;
 import org.opendaylight.controller.cluster.ActorSystemProvider;
 import org.opendaylight.daexim.spi.NodeNameProvider;
 import org.osgi.service.component.annotations.Activate;
