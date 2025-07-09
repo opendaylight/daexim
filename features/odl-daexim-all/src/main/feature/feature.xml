@@ -9,6 +9,6 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
           xsi:schemaLocation="http://karaf.apache.org/xmlns/features/v1.2.0 http://karaf.apache.org/xmlns/features/v1.2.0">
     <feature name='odl-daexim-all' version='${project.version}'>
-        <feature version="[8,9)">odl-restconf</feature>
+        <feature version="[9,10)">odl-restconf</feature>
     </feature>
 </features>
