@@ -18,7 +18,7 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
     </parent>
     <groupId>org.opendaylight.daexim</groupId>
     <artifactId>odl-daexim-all</artifactId>
-    <version>1.17.0-SNAPSHOT</version>
+    <version>1.18.0-SNAPSHOT</version>
     <packaging>feature</packaging>
     <name>OpenDaylight :: Daexim :: All</name>
     <dependencyManagement>
