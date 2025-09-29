@@ -46,7 +46,6 @@ import org.opendaylight.daexim.spi.NodeNameProvider;
 import org.opendaylight.infrautils.ready.SystemReadyMonitor;
 import org.opendaylight.infrautils.utils.concurrent.ThreadFactoryProvider;
 import org.opendaylight.mdsal.binding.api.DataBroker;
-import org.opendaylight.mdsal.binding.api.DataTreeIdentifier;
 import org.opendaylight.mdsal.binding.api.DataTreeModification;
 import org.opendaylight.mdsal.binding.api.ReadTransaction;
 import org.opendaylight.mdsal.binding.api.RpcProviderService;
@@ -94,9 +93,9 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.StatusImpo
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.status.export.output.Nodes;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.status.export.output.NodesBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.status.export.output.NodesKey;
+import org.opendaylight.yangtools.binding.DataObjectIdentifier;
 import org.opendaylight.yangtools.binding.util.BindingMap;
 import org.opendaylight.yangtools.concepts.Registration;
-import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 import org.opendaylight.yangtools.yang.common.ErrorType;
 import org.opendaylight.yangtools.yang.common.RpcResult;
 import org.opendaylight.yangtools.yang.common.RpcResultBuilder;
@@ -115,10 +114,11 @@ import org.slf4j.LoggerFactory;
 @RequireServiceComponentRuntime
 public final class DataExportImportAppProvider implements DataImportBootService, AutoCloseable {
     private static final Logger LOG = LoggerFactory.getLogger(DataExportImportAppProvider.class);
-    private static final InstanceIdentifier<Daexim> TOP_IID = InstanceIdentifier.create(Daexim.class);
-    private static final InstanceIdentifier<DaeximStatus> GLOBAL_STATUS_II = TOP_IID.child(DaeximStatus.class);
-    private static final InstanceIdentifier<DaeximControl> IPC_II = TOP_IID.child(DaeximControl.class);
-    private static final DataTreeIdentifier<DaeximControl> IPC_DTC = DataTreeIdentifier.of(OPERATIONAL, IPC_II);
+    private static final DataObjectIdentifier<Daexim> TOP_IID = DataObjectIdentifier.builder(Daexim.class).build();
+    private static final DataObjectIdentifier<DaeximStatus> GLOBAL_STATUS_II =
+        TOP_IID.toBuilder().child(DaeximStatus.class).build();
+    private static final DataObjectIdentifier<DaeximControl> IPC_II =
+        TOP_IID.toBuilder().child(DaeximControl.class).build();
 
     private final AtomicBoolean skipIpcDCN = new AtomicBoolean(false);
     private final DataBroker dataBroker;
@@ -127,7 +127,7 @@ public final class DataExportImportAppProvider implements DataImportBootService,
     private final NodeNameProvider nodeNameProvider;
 
     private final ListeningScheduledExecutorService scheduledExecutorService;
-    private final InstanceIdentifier<NodeStatus> nodeStatusII;
+    private final DataObjectIdentifier<NodeStatus> nodeStatusII;
     private final Registration rpcReg;
 
     private final ComponentFactory<DataImportBootReady> factory;
@@ -155,11 +155,13 @@ public final class DataExportImportAppProvider implements DataImportBootService,
         this.nodeNameProvider = requireNonNull(nodeNameProvider);
         this.factory = requireNonNull(factory);
 
-        nodeStatusII = GLOBAL_STATUS_II.child(NodeStatus.class, new NodeStatusKey(nodeNameProvider.getNodeName()));
+        nodeStatusII = GLOBAL_STATUS_II.toBuilder()
+            .child(NodeStatus.class, new NodeStatusKey(nodeNameProvider.getNodeName()))
+            .build();
         if (readDaeximControl() != null) {
             skipIpcDCN.set(true);
         }
-        dataBroker.registerTreeChangeListener(IPC_DTC, this::ipcHandler);
+        dataBroker.registerTreeChangeListener(OPERATIONAL, IPC_II, this::ipcHandler);
         updateNodeStatus();
         scheduledExecutorService = MoreExecutors.listeningDecorator(Executors.newScheduledThreadPool(10,
                 ThreadFactoryProvider.builder().namePrefix("daexim-scheduler").logger(LOG).build().get()));

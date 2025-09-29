@@ -44,8 +44,8 @@ import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.Node;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.NodeBuilder;
 import org.opendaylight.yangtools.binding.DataObject;
+import org.opendaylight.yangtools.binding.DataObjectIdentifier;
 import org.opendaylight.yangtools.binding.util.BindingMap;
-import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 import org.opendaylight.yangtools.yang.common.Uint16;
 import org.opendaylight.yangtools.yang.common.Uint32;
 import org.opendaylight.yangtools.yang.data.api.YangInstanceIdentifier;
@@ -120,14 +120,14 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
         return rt.call();
     }
 
-    private <D extends DataObject> void writeDataToRoot(InstanceIdentifier<D> ii, D dataObject)
+    private <D extends DataObject> void writeDataToRoot(DataObjectIdentifier<D> ii, D dataObject)
             throws TransactionCommitFailedException, InterruptedException, ExecutionException {
         final WriteTransaction wrTrx = getDataBroker().newWriteOnlyTransaction();
         wrTrx.put(LogicalDatastoreType.OPERATIONAL, ii, dataObject);
         wrTrx.commit().get();
     }
 
-    private <D extends DataObject> D readData(InstanceIdentifier<D> ii)
+    private <D extends DataObject> D readData(DataObjectIdentifier<D> ii)
             throws InterruptedException, ExecutionException {
         try (ReadTransaction roTrx = getDataBroker().newReadOnlyTransaction()) {
             return roTrx.read(LogicalDatastoreType.OPERATIONAL, ii).get().orElseThrow();
@@ -135,10 +135,11 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
     }
 
     private void verifyNetworkTopologyInDataStore() throws InterruptedException, ExecutionException {
-        final NetworkTopology nt = readData(InstanceIdentifier.create(NetworkTopology.class));
-        assertNotNull(nt.getTopology());
-        assertEquals(2, nt.getTopology().size());
-        for (final Topology t : nt.nonnullTopology().values()) {
+        final NetworkTopology nt = readData(DataObjectIdentifier.builder(NetworkTopology.class).build());
+        final var topologies = nt.getTopology(); 
+        assertNotNull(topologies);
+        assertEquals(2, topologies.size());
+        for (final Topology t : topologies.values()) {
             assertNotNull(t.getNode());
             if (TestBackupData.TOPOLOGY_ID.equals(t.getTopologyId())) {
                 assertEquals(2, t.getNode().size());
@@ -232,7 +233,7 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
         // Remove data file first
         Files.delete(opDataFile);
         // Write arbitrary data to datastore
-        writeDataToRoot(InstanceIdentifier.create(NetworkTopology.class), new NetworkTopologyBuilder()
+        writeDataToRoot(DataObjectIdentifier.builder(NetworkTopology.class).build(), new NetworkTopologyBuilder()
                 .setTopology(BindingMap.of(new TopologyBuilder().setTopologyId(TestBackupData.TOPOLOGY_ID).build()))
                 .build());
         // perform restore
@@ -255,7 +256,7 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
         // Remove data file first
         Files.delete(opDataFile);
         // Write arbitrary data to datastore
-        writeDataToRoot(InstanceIdentifier.create(NetworkTopology.class), new NetworkTopologyBuilder()
+        writeDataToRoot(DataObjectIdentifier.builder(NetworkTopology.class).build(), new NetworkTopologyBuilder()
                 .setTopology(BindingMap.of(new TopologyBuilder().setTopologyId(TestBackupData.TOPOLOGY_ID).build()))
                 .build());
         // perform restore
@@ -274,7 +275,7 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
     @Test
     public void testClearScopeNone_OverWrote() throws Exception {
         // Write topology
-        writeDataToRoot(InstanceIdentifier.create(NetworkTopology.class),
+        writeDataToRoot(DataObjectIdentifier.builder(NetworkTopology.class).build(),
                 new NetworkTopologyBuilder().setTopology(BindingMap.of(new TopologyBuilder()
                         .setNode(BindingMap.of(new NodeBuilder().setNodeId(new NodeId(OLD_NODE_ID)).build()))
                         .setTopologyId(TestBackupData.TOPOLOGY_ID).build())).build());
