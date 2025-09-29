@@ -33,8 +33,8 @@ import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NetworkTopologyBuilder;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.TopologyBuilder;
 import org.opendaylight.yangtools.binding.DataObject;
+import org.opendaylight.yangtools.binding.DataObjectIdentifier;
 import org.opendaylight.yangtools.binding.util.BindingMap;
-import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -83,10 +83,10 @@ public class PerModuleExportTest extends AbstractDataBrokerTest {
     @Test
     public void test() throws Exception {
         // 1, populate datastore
-        writeDataToRoot(InstanceIdentifier.create(NetworkTopology.class), new NetworkTopologyBuilder()
+        writeDataToRoot(DataObjectIdentifier.builder(NetworkTopology.class).build(), new NetworkTopologyBuilder()
                 .setTopology(BindingMap.of(new TopologyBuilder().setTopologyId(TestBackupData.TOPOLOGY_ID).build()))
                 .build());
-        writeDataToRoot(InstanceIdentifier.create(Data2.class), new Data2Builder().setLeaf1("A").build());
+        writeDataToRoot(DataObjectIdentifier.builder(Data2.class).build(), new Data2Builder().setLeaf1("A").build());
         // 2, perform export
         ExportTask et = new ExportTask(null, null, true, true, getDomBroker(), schemaService, callback);
         et.call();
@@ -97,7 +97,7 @@ public class PerModuleExportTest extends AbstractDataBrokerTest {
         assertTrue(jsonFiles.length >= 3);
     }
 
-    private <D extends DataObject> void writeDataToRoot(InstanceIdentifier<D> ii, D dataObject)
+    private <D extends DataObject> void writeDataToRoot(DataObjectIdentifier<D> ii, D dataObject)
             throws InterruptedException, ExecutionException {
         final WriteTransaction wrTrx = getDataBroker().newWriteOnlyTransaction();
         wrTrx.put(LogicalDatastoreType.OPERATIONAL, ii, dataObject);
