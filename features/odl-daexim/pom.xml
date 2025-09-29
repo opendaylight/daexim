@@ -13,7 +13,7 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
     <parent>
         <groupId>org.opendaylight.odlparent</groupId>
         <artifactId>single-feature-parent</artifactId>
-        <version>14.1.3</version>
+        <version>14.1.6</version>
         <relativePath/>
     </parent>
     <groupId>org.opendaylight.daexim</groupId>
@@ -34,14 +34,14 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
     </dependencyManagement>
     <dependencies>
         <dependency>
-            <groupId>org.opendaylight.infrautils</groupId>
-            <artifactId>odl-infrautils-ready</artifactId>
+            <groupId>org.opendaylight.ietf</groupId>
+            <artifactId>odl-ietf-model-rfc6991</artifactId>
             <type>xml</type>
             <classifier>features</classifier>
         </dependency>
         <dependency>
-            <groupId>org.opendaylight.mdsal.model</groupId>
-            <artifactId>odl-mdsal-model-rfc6991</artifactId>
+            <groupId>org.opendaylight.infrautils</groupId>
+            <artifactId>odl-infrautils-ready</artifactId>
             <type>xml</type>
             <classifier>features</classifier>
         </dependency>

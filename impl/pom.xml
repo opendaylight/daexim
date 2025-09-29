@@ -111,7 +111,7 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
             <artifactId>mdsal-dom-api</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.opendaylight.mdsal.binding.model.ietf</groupId>
+            <groupId>org.opendaylight.ietf.model</groupId>
             <artifactId>rfc6991-ietf-yang-types</artifactId>
         </dependency>
         <dependency>
