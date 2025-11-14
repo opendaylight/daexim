@@ -203,6 +203,7 @@ public class ImportTaskTest extends AbstractDataBrokerTest {
         assertEquals(rt.getWriteCount(), 3);
     }
 
+    @Test
     public void testImport_WithBatchingLevel4Size2() throws Exception {
         Collection<? extends NormalizedNode> childrenBefore = readRoot();
         assertEquals(0, childrenBefore.size());
