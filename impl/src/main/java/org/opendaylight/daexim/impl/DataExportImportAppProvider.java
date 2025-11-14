@@ -384,8 +384,7 @@ public final class DataExportImportAppProvider implements DataImportBootService,
             .build();
     }
 
-    @Nullable
-    private DaeximControl readDaeximControl() {
+    private @Nullable DaeximControl readDaeximControl() {
         final ListenableFuture<Optional<DaeximControl>> future;
         try (ReadTransaction roTrx = dataBroker.newReadOnlyTransaction()) {
             future = roTrx.read(LogicalDatastoreType.OPERATIONAL, IPC_II);

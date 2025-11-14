@@ -67,7 +67,8 @@ public class DataExportImportAppProviderTest extends AbstractDataBrokerTest {
 
     private static final Logger LOG = LoggerFactory.getLogger(DataExportImportAppProviderTest.class);
 
-    public @Rule LogRule logRule = new LogRule();
+    @Rule
+    public LogRule logRule = new LogRule();
 
     private Path tempDir;
     private DataExportImportAppProvider provider;
