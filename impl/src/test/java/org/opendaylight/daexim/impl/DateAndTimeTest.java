@@ -8,41 +8,45 @@
  */
 package org.opendaylight.daexim.impl;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Calendar;
-import java.util.Date;
 import java.util.TimeZone;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-public class DateAndTimeTest {
-
+class DateAndTimeTest {
     @Test
-    public void test() {
-        Date date = Util.parseDate("2016-08-07T12:23:48Z");
+    void test() {
+        var date = Util.parseDate("2016-08-07T12:23:48Z");
         Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
         calendar.setTimeInMillis(date.getTime());
 
-        assertEquals(calendar.get(Calendar.MILLISECOND), 0);
-        assertEquals(calendar.get(Calendar.MONTH), 7);
-        assertEquals(calendar.get(Calendar.MINUTE), 23);
+        assertEquals(0, calendar.get(Calendar.MILLISECOND));
+        assertEquals(7, calendar.get(Calendar.MONTH));
+        assertEquals(23, calendar.get(Calendar.MINUTE));
 
         date = Util.parseDate("2016-08-07T12:23:48.812Z");
         calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
         calendar.setTimeInMillis(date.getTime());
-        assertEquals(calendar.get(Calendar.MILLISECOND), 812);
-        assertEquals(calendar.get(Calendar.MONTH), 7);
-        assertEquals(calendar.get(Calendar.MINUTE), 23);
+        assertEquals(812, calendar.get(Calendar.MILLISECOND));
+        assertEquals(7, calendar.get(Calendar.MONTH));
+        assertEquals(23, calendar.get(Calendar.MINUTE));
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void testInvalid_LocalTime() {
-        Util.parseDate("2016-08-07T12:23:48.325-01:00");
+    @Test
+    void testInvalid_LocalTime() {
+        final var ex = assertThrows(IllegalArgumentException.class,
+            () -> Util.parseDate("2016-08-07T12:23:48.325-01:00"));
+        assertEquals("Unrecognized DateAndTime value : 2016-08-07T12:23:48.325-01:00 (only UTC date is accepted)",
+            ex.getMessage());
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void testInvalid_Grabage() {
-        Util.parseDate("this-is-not-date-and-time");
+    @Test
+    void testInvalid_Grabage() {
+        final var ex = assertThrows(IllegalArgumentException.class,
+            () -> Util.parseDate("this-is-not-date-and-time"));
+        assertEquals("Unrecognized DateAndTime value : this-is-not-date-and-time (only UTC date is accepted)",
+            ex.getMessage());
     }
-
 }
