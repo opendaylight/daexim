@@ -28,7 +28,6 @@ import java.nio.file.Path;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Properties;
@@ -193,8 +192,7 @@ public final class Util {
             // collect all json files related to given datastore
             dataFiles.putAll(dst, collectDatastoreFiles(daeximDir, dst));
             // sort them to honor order during import
-            final List<File> unsorted = dataFiles.get(dst);
-            Collections.sort(unsorted, (f1, f2) -> f1.getAbsolutePath().length() - f2.getAbsolutePath().length());
+            dataFiles.get(dst).sort((f1, f2) -> f1.getAbsolutePath().length() - f2.getAbsolutePath().length());
         }
         return dataFiles;
     }
