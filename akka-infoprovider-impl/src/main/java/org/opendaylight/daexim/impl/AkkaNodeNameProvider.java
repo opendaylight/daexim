@@ -13,7 +13,7 @@ import javax.inject.Singleton;
 import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.actor.Address;
 import org.apache.pekko.cluster.Cluster;
-import org.opendaylight.controller.cluster.ActorSystemProvider;
+import org.opendaylight.controller.pekko.support.ActorSystemInstance;
 import org.opendaylight.daexim.spi.NodeNameProvider;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
@@ -34,8 +34,8 @@ public final class AkkaNodeNameProvider implements NodeNameProvider {
 
     @Inject
     @Activate
-    public AkkaNodeNameProvider(@Reference final ActorSystemProvider provider) {
-        actorSystem = provider.getActorSystem();
+    public AkkaNodeNameProvider(@Reference final ActorSystemInstance provider) {
+        actorSystem = provider.actorSystem();
     }
 
     @Override
