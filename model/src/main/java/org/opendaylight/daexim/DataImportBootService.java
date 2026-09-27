@@ -12,14 +12,14 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.daexim.rev160921.StatusImpo
 
 /**
  * Service API for the "auto-import-on-boot" feature.
+ *
  * @author Michael Vorburger.ch
  */
 public interface DataImportBootService {
-
     /**
      * Check last import status, of this node only. Does not return status about
      * restore operation on per-node basis; see {@link StatusImport} for that.
-     * This is a very light weight operation (i.e. no data store access &amp; no RPC
+     * This is a very light weight operation (i.e. no data store access and no RPC
      * overhead), suitable to be invoked very frequently (contrary to
      * {@link StatusImport}).
      */
@@ -34,11 +34,10 @@ public interface DataImportBootService {
      * <li>If there was a "auto-import-on-boot" but that failed,
      * then this throws an IllegalStateException.
      * </ul>
-     * @param blockingWhat name of Class &amp; method being blocked (just for logging)
      *
+     * @param blockingWhat name of Class and method being blocked (just for logging)
      * @deprecated Using {@link DataImportBootReady} is, usually, a better alternative to this
      */
     @Deprecated
     void awaitBootImport(String blockingWhat);
-
 }
