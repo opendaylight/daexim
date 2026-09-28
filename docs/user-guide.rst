@@ -62,6 +62,17 @@ are provided in the `Tutorials`.
 Tutorials
 ---------
 
+Netty RESTCONF is the default endpoint:
+
+* **Default Netty RESTCONF:**
+  ``http://<controller-ip>:8182/restconf/operations/...``
+* **Deprecated/legacy JAX-RS RESTCONF:**
+  ``http://<controller-ip>:8181/rests/operations/...``
+
+The examples below use the Netty endpoint. For deployments using the
+deprecated/legacy JAX-RS endpoint, use port ``8181`` and the ``/rests``
+base path instead.
+
 The following tutorials provide examples of REST API that are supported
 by the Data Export/Import feature.  As for all ODL RESTCONF calls, the
 following are the common setting for REST calls:
@@ -78,7 +89,7 @@ following are the common setting for REST calls:
 * <controller-ip>: Host (or IP) where OpenDaylight controller is
   running, e.g. localhost
 * <restconf-port>: TCP port where RESTCONF has been configured to
-  listen, e.g. 8181 by default
+  listen, ``8182`` by default for Netty RESTCONF
 
 The files created by export are placed in a subdirectory called
 ``daexim/`` in the installation directory of OpenDaylight. Similarly files
@@ -94,7 +105,7 @@ in the future. Each exported file has a JSON-encoded object that contains
 module data from the corresponding data store. Each file contains at least
 one empty JSON object.
 
-**URL:** ``http://<controller-ip>:<restconf-port>/rests/operations/data-export-import:schedule-export``
+**URL:** ``http://<controller-ip>:<restconf-port>/restconf/operations/data-export-import:schedule-export``
 
 **Payload:**
 
@@ -226,7 +237,7 @@ export was scheduled to start; and ``tasks`` indicates the activities that
 were undertaken. If the status for any node has failed, the
 corresponding reason for failure is listed.
 
-**URL:** ``http://<controller-ip>:<restconf-port>/rests/operations/data-export-import:status-export``
+**URL:** ``http://<controller-ip>:<restconf-port>/restconf/operations/data-export-import:status-export``
 
 **Payload:** No payload
 
@@ -246,7 +257,7 @@ successfully cleared tasks, the state, and resources. The status is
 running, there is no tasks for the server to clear. Therefore, the
 return result is ``True`` because the server cannot fail.
 
-**URL:** ``http://<controller-ip>:<restconf-port>/rests/operations/data-export-import:cancel-export``
+**URL:** ``http://<controller-ip>:<restconf-port>/restconf/operations/data-export-import:cancel-export``
 
 **Payload:** No payload
 
@@ -257,7 +268,7 @@ Importing from a file
 The **immediate-import** RPC imports data from files already present in
 the file system.
 
-**URL:** ``http://<controller-ip>:<restconf-port>/rests/operations/data-export-import:immediate-import``
+**URL:** ``http://<controller-ip>:<restconf-port>/restconf/operations/data-export-import:immediate-import``
 
 **Payload:**
 
@@ -399,7 +410,7 @@ values of status, ``imported-at`` indicates the time at which the
 restoration has taken place. List nodes hold status about the
 restoration for each node.
 
-**URL:** ``http://<controller-ip>:<restconf-port>/rests/operations/data-export-import:status-import``
+**URL:** ``http://<controller-ip>:<restconf-port>/restconf/operations/data-export-import:status-import``
 
 **Payload:** No payload
 
