@@ -18,6 +18,24 @@
       "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "ec00a8be_c08ee4cf",
+        "filename": "docs/user-guide.rst",
+        "patchSetId": 1
+      },
+      "lineNbr": 72,
+      "author": {
+        "id": 9173
+      },
+      "writtenOn": "2026-10-26T08:10:53Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "6e38456f_7420ad86",
+      "revId": "640ef5cf18bc1916b15bd1a85ab4ac447ca63da5",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "0c419005_abd9bbe5",
@@ -31,6 +49,24 @@
       "writtenOn": "2026-10-23T16:48:04Z",
       "side": 1,
       "message": "intro should be first anyway",
+      "revId": "640ef5cf18bc1916b15bd1a85ab4ac447ca63da5",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "686abecc_9ec90990",
+        "filename": "docs/user-guide.rst",
+        "patchSetId": 1
+      },
+      "lineNbr": 76,
+      "author": {
+        "id": 9173
+      },
+      "writtenOn": "2026-10-26T08:10:53Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "0c419005_abd9bbe5",
       "revId": "640ef5cf18bc1916b15bd1a85ab4ac447ca63da5",
       "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81"
     }
