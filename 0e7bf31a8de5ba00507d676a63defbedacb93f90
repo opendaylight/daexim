@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "f5b8e419_43ea8fb7",
+        "filename": "docs/user-guide.rst",
+        "patchSetId": 3
+      },
+      "lineNbr": 81,
+      "author": {
+        "id": 8144
+      },
+      "writtenOn": "2026-10-27T12:30:17Z",
+      "side": 1,
+      "message": "Usually we just write \"feature:install odl-something\" but if you want then add:\n\n\"opendaylight-user@root\u003efeature:install\"",
+      "revId": "0e7bf31a8de5ba00507d676a63defbedacb93f90",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81"
+    }
+  ]
+}
